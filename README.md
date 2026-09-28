@@ -18,7 +18,7 @@ Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal tele
 Il gioco è una pagina web statica (`index.html` + `engine.js` + `ui.js` + cartella `img/`) e non ha bisogno di installazioni.
 
 - **Dal computer**: scarica la cartella e apri `index.html` nel browser.
-- **Online con GitHub Pages**: https://contesamuele999-dev.github.io/Stones-Trip/ (attivo dopo aver reso pubblica la repo e acceso Pages da Settings → Pages, pubblicando dal branch `claude/gym-game-character-cards-7x2mik`, cartella `/ (root)`).
+- **Online con GitHub Pages**: https://contesamuele999-dev.github.io/Stonegame/ (dalla repo pubblica `Stonegame`, branch `main`, cartella `/ (root)`; Pages si attiva da Settings → Pages).
 
 ### Animazioni
 
