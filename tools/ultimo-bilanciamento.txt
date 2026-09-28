@@ -1,0 +1,25 @@
+partite 8000 in 95.1s | turni medi 17.0 | vince chi inizia 50.6% | senza esito 0
+andrea      costo 4   53.8%  (1513)  uso att/m1/m2 66% / 11% / 23%
+katya       costo 3   53.0%  (2691)  uso att/m1/m2 59% / 5% / 36%
+flavio      costo 2   52.8%  (3127)  uso att/m1/m2 56% / 29% / 15%
+carla       costo 2   52.7%  (3054)  uso att/m1/m2 54% / 22% / 25%
+niccolo     costo 3   52.6%  (2626)  uso att/m1/m2 70% / 21% / 9%
+federica    costo 3   52.3%  (2731)  uso att/m1/m2 55% / 18% / 27%
+elia        costo 4   51.9%  (1365)  uso att/m1/m2 74% / 12% / 14%
+adriano     costo 2   51.6%  (2996)  uso att/m1/m2 80% / 0% / 20%
+lorenzo     costo 3   51.4%  (2628)  uso att/m1/m2 80% / 6% / 14%
+chen        costo 4   51.4%  (1424)  uso att/m1/m2 53% / 34% / 14%
+annastella  costo 2   50.9%  (3001)  uso att/m1/m2 44% / 29% / 27%
+samuele     costo 4   50.8%  (1433)  uso att/m1/m2 69% / 19% / 11%
+grazia      costo 2   50.3%  (3000)  uso att/m1/m2 37% / 29% / 33%
+federico    costo 2   50.2%  (3059)  uso att/m1/m2 66% / 34% / 0%
+strahinja   costo 3   49.8%  (2642)  uso att/m1/m2 49% / 23% / 27%
+christian   costo 2   49.5%  (3087)  uso att/m1/m2 52% / 28% / 20%
+chicca      costo 3   49.3%  (2685)  uso att/m1/m2 38% / 28% / 34%
+viola       costo 2   48.9%  (3033)  uso att/m1/m2 59% / 14% / 27%
+vittorio    costo 2   48.7%  (2982)  uso att/m1/m2 50% / 27% / 23%
+alessandro  costo 2   47.6%  (3088)  uso att/m1/m2 48% / 36% / 16%
+sara        costo 2   47.1%  (2981)  uso att/m1/m2 51% / 20% / 29%
+caterina    costo 1   46.6%  (2751)  uso att/m1/m2 76% / 4% / 20%
+oksana      costo 2   46.1%  (3043)  uso att/m1/m2 63% / 17% / 20%
+celeste     costo 2   45.5%  (3060)  uso att/m1/m2 63% / 37% / 0%
