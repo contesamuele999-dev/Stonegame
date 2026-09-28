@@ -200,6 +200,18 @@
   .rules li { margin-bottom: 5px; }
   .rules code { font-family: var(--label); font-size: 15px; background: var(--ink-3); padding: 1px 5px; border-radius: 3px; }
 
+  /* ---------- arena 3D ---------- */
+  .arena3d { position: fixed; inset: 0; z-index: 40; background: #1b120d; overflow: hidden; cursor: pointer; }
+  .arena3d canvas { position: absolute; inset: 0; display: block; }
+  .arena-title { position: absolute; left: 16px; right: 16px; top: calc(18px + env(safe-area-inset-top, 0px)); text-align: center; pointer-events: none; z-index: 2; }
+  .arena-who { font-family: var(--label); font-weight: 700; font-size: 15px; letter-spacing: .14em; text-transform: uppercase; color: var(--paper); text-shadow: 0 2px 4px #000; }
+  .arena-move { font-family: var(--display); font-size: clamp(28px, 8.5vw, 46px); line-height: 1.05; color: var(--temple); text-shadow: 0 3px 0 #140f0c, 0 0 18px #000a; text-wrap: balance; }
+  .arena3d.show .arena-title { animation: slam .45s cubic-bezier(.2, 1.6, .4, 1); }
+  .arena-flash { position: absolute; inset: 0; opacity: 0; pointer-events: none; z-index: 1; }
+  .arena-skip { position: absolute; left: 0; right: 0; bottom: calc(18px + env(safe-area-inset-bottom, 0px)); text-align: center; font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: var(--paper-dim); z-index: 2; pointer-events: none; }
+  @keyframes slam { from { transform: scale(1.8); opacity: 0; } to { transform: none; opacity: 1; } }
+  body.arena-open { overflow: hidden; }
+
   @media (min-width: 480px) { .pool { grid-template-columns: repeat(4, 1fr); } .collection { grid-template-columns: repeat(3, 1fr); } }
   @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation: none !important; transition: none !important; } }
 </style>
@@ -207,7 +219,9 @@
 <body>
 <div id="app"></div>
 <div id="layer"></div>
+<script src="vendor/three.min.js"></script>
 <script src="engine.js"></script>
+<script src="arena3d.js"></script>
 <script src="ui.js"></script>
 </body>
 </html>

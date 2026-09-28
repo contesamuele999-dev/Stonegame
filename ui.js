@@ -20,6 +20,9 @@
   function store(k, v) { try { localStorage.setItem('stt_' + k, JSON.stringify(v)); } catch (e) { /* niente */ } }
   function load(k, d) { try { const v = localStorage.getItem('stt_' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
   A.level = load('level', 'normale');
+  const reduced = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+  A.anim = load('anim', reduced ? 'off' : 'full'); // full | fast | off
+  const ANIM_LABEL = { full: '3D', fast: '3D veloce', off: 'Senza 3D' };
   A.names = load('names', A.names);
 
   function moveMeta(m) {
@@ -112,6 +115,10 @@
         <label class="field-label" for="n0"><span class="eyebrow">Giocatore 1</span><input id="n0" maxlength="16" value="${esc(A.names[0])}"></label>
         <label class="field-label" for="n1"><span class="eyebrow">Giocatore 2</span><input id="n1" maxlength="16" value="${esc(A.names[1])}"></label>
       `}
+      <div class="eyebrow">Animazioni</div>
+      <div class="seg" role="group" aria-label="Animazioni">
+        ${['full', 'fast', 'off'].map(l => `<button data-act="anim" data-v="${l}" aria-pressed="${A.anim === l}">${ANIM_LABEL[l]}</button>`).join('')}
+      </div>
       <p class="hint" style="text-align:left">Ognuno sceglie 4 carte spendendo al massimo ${S.BUDGET} Punti Dojo: le prime 3 vanno in campo, la quarta resta in riserva ed entra quando una tua carta va K.O.</p>
       <button class="btn primary" data-act="to-build">Scegli la squadra →</button>
     </div>`;
@@ -270,7 +277,7 @@
     }
     const canEnd = isHumanTurn() && !A.busy;
     return `<div class="battle">
-      <div class="bar"><button class="back" data-act="quit">← Esci</button><div class="eyebrow num">Turno ${Math.ceil(g.turnNo / 2)}</div></div>
+      <div class="bar"><button class="back" data-act="quit">← Esci</button><div class="eyebrow num">Turno ${Math.ceil(g.turnNo / 2)}</div><button class="back" data-act="anim-cycle" aria-label="Animazioni: ${ANIM_LABEL[A.anim]}">${ANIM_LABEL[A.anim]}</button></div>
       ${sideBar(g, opp)}
       ${rowHtml(g, opp)}
       <div class="mid">
@@ -344,10 +351,71 @@
     if (inner && inner.formula) a.formula = await formulaPrompt();
     A.sel = null; A.banner = '';
     A.busy = true;
-    S.doAction(g, a);
-    await playEvents();
+    await perform(a);
     A.busy = false;
     afterAction();
+  }
+
+  // ------------------------------------------------------------ animazioni 3D
+  function use3D() { return A.anim !== 'off' && window.Arena3D && window.Arena3D.available(); }
+
+  // fotografa chi agisce e chi viene colpito prima che l'azione cambi il campo
+  function describe(g, a) {
+    const u = S.byUid(g, a.actor);
+    const opt = S.actorOptions(g, u).find(o => o.i === a.move);
+    const m = opt ? opt.move : S.BASIC;
+    const exec = (m.target === 'copy' || m.target === 'bottle') ? S.refMove(a.pick || g.lastSpecial) : m;
+    const info = uid => { const f = S.byUid(g, uid); return { uid, card: f.card, name: f.name, rank: f.rank, owner: f.owner }; };
+    let tg = [];
+    if (a.target) tg = [a.target];
+    else if (exec.target === 'enemies') tg = S.enemies(g, u.owner).map(f => f.uid);
+    else if (exec.target === 'allies') tg = S.team(g, u.owner).map(f => f.uid).filter(x => x !== u.uid);
+    else if (exec.target === 'none' && exec.offensive) tg = S.field(g).map(f => f.uid).filter(x => x !== u.uid);
+    return { actor: info(u.uid), move: exec.name, label: exec !== m ? `${m.name} → ${exec.name}` : m.name, targets: tg.map(info), info };
+  }
+
+  function buildSpec(d, evs) {
+    const out = {};
+    const o = uid => out[uid] || (out[uid] = { dmg: 0, heal: 0 });
+    const flags = {};
+    for (const e of evs) {
+      if (e.type === 'dmg') o(e.uid).dmg += e.amount;
+      else if (e.type === 'heal') o(e.uid).heal += e.amount;
+      else if (e.type === 'ko') o(e.uid).ko = true;
+      else if (e.type === 'status') {
+        const x = o(e.uid);
+        if (e.text === 'STORDITO') x.stun = true;
+        if (e.text === 'PARALIZZATO') { x.stun = true; x.para = true; }
+        if (e.text === 'CONFUSO') x.confuse = true;
+        if (e.text === 'SCHIVATA') x.dodge = true;
+        if (e.text === 'IMMUNE') x.immune = true;
+      } else if (e.type === 'log') {
+        if (e.text.includes('Prodigy')) flags.prodigy = true;
+        if (e.text.includes('perde il controllo')) flags.confused = true;
+        if (e.text.includes('Fuckgammon!')) flags.counter = true;
+        if (e.text.toLowerCase().includes('fate tiri')) flags.formula = true;
+      }
+    }
+    const ids = d.targets.map(t => t.uid);
+    const extra = Object.keys(out).filter(uid => uid !== d.actor.uid && !ids.includes(uid));
+    const targets = d.targets.concat(extra.map(uid => d.info(uid)))
+      .map(t => Object.assign({}, t, { ally: t.owner === d.actor.owner, out: out[t.uid] }));
+    const self = out[d.actor.uid];
+    if (self && flags.confused) self.confuse = false;
+    return { attacker: d.actor, move: d.move, label: d.label, targets, self, flags, speed: A.anim === 'fast' ? 1.8 : 1 };
+  }
+
+  async function perform(a) {
+    const g = A.game;
+    const d = use3D() ? describe(g, a) : null;
+    S.doAction(g, a);
+    const evs = g.events.splice(0);
+    if (!d) { await playEvents(evs); return; }
+    let cut = evs.findIndex(e => e.type === 'turn');
+    if (cut < 0) cut = evs.length;
+    try { await window.Arena3D.play(buildSpec(d, evs.slice(0, cut))); } catch (e) { /* in caso di errore si prosegue senza 3D */ }
+    render();
+    await playEvents(evs.slice(cut));
   }
 
   function afterAction() {
@@ -373,9 +441,8 @@
       A.banner = `${u.name}: ${label}`;
       render();
       mark(a.actor, 'acting'); if (a.target) mark(a.target, 'target');
-      await sleep(900);
-      S.doAction(g, a);
-      await playEvents();
+      await sleep(use3D() ? 450 : 900);
+      await perform(a);
       A.banner = '';
       render();
       await sleep(250);
@@ -398,9 +465,7 @@
     if (cls === 'dmg') { el.classList.remove('hit'); void el.offsetWidth; el.classList.add('hit'); }
   }
 
-  async function playEvents() {
-    const g = A.game;
-    const evs = g.events.splice(0);
+  async function playEvents(evs) {
     const count = {};
     let fx = false;
     for (const e of evs) {
@@ -530,6 +595,8 @@
       case 'go': go(v); break;
       case 'mode': A.mode = v; go('setup'); break;
       case 'level': A.level = v; store('level', v); saveNames(); render(); break;
+      case 'anim': A.anim = v; store('anim', v); saveNames(); render(); break;
+      case 'anim-cycle': A.anim = { full: 'fast', fast: 'off', off: 'full' }[A.anim]; store('anim', A.anim); render(); break;
       case 'to-build':
         saveNames();
         A.builder = 0; A.teams = [load('team0', []), A.mode === 'pvp' ? load('team1', []) : []];
@@ -574,7 +641,7 @@
       case 'move': if (!A.busy) chooseMove(el.dataset.uid, +el.dataset.i); break;
       case 'copy-pick': chooseMove(el.dataset.uid, +el.dataset.i, { card: el.dataset.card, i: +el.dataset.mi }); break;
       case 'cancel-sel': A.sel = null; A.banner = ''; render(); break;
-      case 'end-turn': if (isHumanTurn() && !A.busy) { S.passTurn(g); A.game.events.splice(0); afterAction(); } break;
+      case 'end-turn': if (isHumanTurn() && !A.busy) { S.passTurn(g); A.busy = true; playEvents(g.events.splice(0)).then(() => { A.busy = false; afterAction(); }); } break;
       case 'quit':
         openLayer(`<div class="overlay" role="dialog"><h2>Abbandoni?</h2><p>La partita in corso andrà persa.</p><button class="btn primary" data-act="quit-now">Esci dalla partita</button><button class="btn" data-act="close">Continua a giocare</button></div>`);
         break;

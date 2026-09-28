@@ -5,6 +5,7 @@ Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal tele
 - **Contro il computer**, con tre livelli di difficoltà: facile, normale e difficile.
 - **In 2 giocatori sullo stesso telefono**, passandoselo a ogni turno.
 - **Collezione** con tutte le carte originali e i valori usati in gioco.
+- **Animazioni 3D**: a ogni azione parte una scena in un'arena 3D. I lottatori hanno il volto preso dalla propria carta, la divisa nei colori della carta e la cintura del grado (oro Maestro, nera Istruttore, bianca Allievo). Ogni mossa ha il suo gesto e il suo effetto, e il bersaglio reagisce al risultato vero: danni, schivata, immunità, stordimento, confusione, K.O.
 
 ## Come aprirlo
 
@@ -12,6 +13,10 @@ Il gioco è una pagina web statica (`index.html` + `engine.js` + `ui.js` + carte
 
 - **Dal computer**: scarica la cartella e apri `index.html` nel browser.
 - **Dal telefono**: pubblica la cartella su un qualunque hosting statico, per esempio GitHub Pages dalle impostazioni del repository (Settings → Pages → branch). Poi apri il link.
+
+### Animazioni
+
+Nella schermata prima della squadra (e con il pulsante in alto durante la partita) si sceglie fra **3D**, **3D veloce** e **Senza 3D**. Toccando lo schermo durante una scena la si fa scorrere velocemente. Se il telefono non supporta la grafica 3D (WebGL) il gioco usa automaticamente le animazioni semplici.
 
 ## Regolamento
 
@@ -186,10 +191,13 @@ Livelli dell'IA: la *facile* vince circa 1 partita su 4 contro la *normale*; la 
 | `index.html` | pagina del gioco e grafica |
 | `ui.js` | schermate, tocchi, animazioni |
 | `engine.js` | carte, regole, effetti e IA (funziona anche in Node) |
-| `img/` | carte originali ridimensionate; `img/volti/` i ritagli dei volti |
+| `arena3d.js` | arena e lottatori 3D, coreografia di ogni mossa (tabella `MOVES`) |
+| `vendor/three.min.js` | Three.js r128 (grafica 3D), incluso così il gioco funziona anche offline |
+| `img/` | carte originali ridimensionate; `img/volti/` i ritagli per le miniature; `img/teste/` i volti per le teste 3D |
 | `tools/simulate.js` | simulatore di bilanciamento |
 | `tools/livelli.js` | confronto tra i livelli di difficoltà |
-| `tools/volti.py` | ritaglio dei volti dalle carte |
+| `tools/volti.py` | ritaglio delle miniature dalle carte |
+| `tools/teste.py` | ritaglio dei volti per le teste 3D |
 | `tools/tune.py` | piccolo aiuto per ritoccare i valori delle carte |
 
 Per cambiare un valore basta modificare la carta in `engine.js` (per esempio `hp: 150, atk: 90, def: 75`) e rilanciare il simulatore.
