@@ -552,10 +552,20 @@
     return g;
   }
 
+  // suoni e vibrazione (audio.js), se presenti
+  const sfx = (n, k) => { if (window.Sound) window.Sound.play(n, k); };
+  const buzz = p => { if (window.Sound) window.Sound.buzz(p); };
+
   // ------------------------------------------------------------ reazioni del bersaglio
   async function react(ch, out, color) {
     if (!out) return;
     const pr = [];
+    if (out.dmg) { sfx(out.dmg >= 45 ? 'bighit' : 'hit', out.dmg); buzz(out.dmg >= 45 ? 70 : 25); }
+    if (out.dodge) sfx('dodge');
+    if (out.immune) sfx('shield');
+    if (out.heal) sfx('heal');
+    if (out.stun) setTimeout(() => sfx('stun'), 200);
+    else if (out.confuse) setTimeout(() => sfx('confuse'), 200);
     if (out.dodge) {
       const z0 = ch.g.position.z;
       pr.push(tween(0.35, (t, raw) => { ch.g.position.z = z0 + Math.sin(raw * Math.PI) * 0.7; }, ease.lin));
@@ -585,6 +595,7 @@
     if (out.buff) pr.push(pop(headPos(ch).add(new T.Vector3(0, 0.8, 0)), textTex(out.buff, '#8fe0b5'), 0.32, 1.1, 0.2));
     if (out.ko) {
       await wait(0.4);
+      sfx('ko'); buzz([90, 50, 160]);
       ch.idle = false;
       pop(headPos(ch).add(new T.Vector3(0, 0.5, 0)), textTex('K.O.', '#ff6a50'), 0.6, 1.2, 0.3);
       await toPose(ch, 'ko', 0.45, ease.in);
@@ -606,6 +617,7 @@
     const dir = new T.Vector3(tp.x - home.x, 0, tp.z - home.z); const dist = dir.length(); dir.normalize();
     const stop = new T.Vector3().copy(home).addScaledVector(dir, dist - (kind === 'kick' || kind === 'spin' ? 1.05 : 0.85));
     A.idle = false;
+    sfx('whoosh');
     if (kind === 'charge') {
       await toPose(A, 'run1', 0.12);
       const run = moveTo(A, stop.x, stop.z, 0.42, ease.in);
@@ -691,7 +703,7 @@
       const hitPos = chestPos(main.ch);
       if (M.e) pop(hitPos.clone().add(new T.Vector3(0, 0.3, 0)), emojiTex(M.e), 0.6, 0.8);
       if (M.fx === 'flash' || (spec.flags && spec.flags.prodigy)) screenFlash('#ffffff', 0.7);
-      if (spec.flags && spec.flags.prodigy) { for (let i = 0; i < 6; i++) pop(hitPos.clone().add(new T.Vector3((Math.random() - .5) * 2, Math.random(), (Math.random() - .5))), emojiTex('🎵'), 0.4, 1); }
+      if (spec.flags && spec.flags.prodigy) { if (window.Sound) window.Sound.prodigy(); for (let i = 0; i < 6; i++) pop(hitPos.clone().add(new T.Vector3((Math.random() - .5) * 2, Math.random(), (Math.random() - .5))), emojiTex('🎵'), 0.4, 1); }
       if (M.fx === 'steam') rise(new T.Vector3(main.ch.g.position.x, 0.3, main.ch.g.position.z), M.c, 20, 0.5);
       if (M.fx === 'fire' || kind === 'charge') burst(hitPos, '#ff5a1f', 20, 4, 0.08);
       ring(hitPos, M.c, 1.2, 0.35);
@@ -711,6 +723,7 @@
         await toPose(A, hit, 0.14, ease.out);
       }
       const from = kind === 'shout' ? headPos(A) : handPos(A);
+      sfx(M.fx === 'wave' || M.fx === 'hypno' || kind === 'shout' ? 'magic' : 'whoosh');
       // proiettili / onde verso ogni bersaglio
       await Promise.all(tgs.map(async (t, i) => {
         await wait(i * 0.08);
@@ -755,6 +768,7 @@
         await tween(0.35, (t, raw) => { A.g.position.x = -0.55 - Math.sin(raw * Math.PI) * 0.4; }, ease.lin);
       } else {
         const p = kind === 'meditate' ? 'meditate' : kind === 'stomp' ? 'stomp' : 'power';
+        sfx(kind === 'meditate' ? 'heal' : 'buff');
         await toPose(A, p, 0.3);
         if (M.e) pop(hp(), emojiTex(M.e), 0.65, 1.1, 0.35);
         const au = aura(A, M.c, 1.0);

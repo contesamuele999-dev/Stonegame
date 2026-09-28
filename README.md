@@ -3,7 +3,13 @@
 Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal telefono con i 24 personaggi della palestra.
 
 - **Contro il computer**, con tre livelli di difficoltà: facile, normale e difficile.
+- **Torneo**: 5 incontri contro squadre sempre più forti, fino al Tempio dei Maestri.
 - **In 2 giocatori sullo stesso telefono**, passandoselo a ogni turno.
+- **Online su due telefoni**: chi crea la partita riceve un codice di 5 caratteri, l'altro lo inserisce. I telefoni si collegano direttamente (WebRTC con PeerJS), senza account.
+- **Tutorial** guidato dal Maestro Samuele per la prima partita.
+- **Carte da sbloccare**: si parte con 10 carte, ogni vittoria ne sblocca una (o tutte subito dalle impostazioni).
+- **Classifica** di giocatori e carte, salvata sul telefono (comprese le partite online).
+- **Suoni e musica** sintetizzati nel browser, **vibrazione** sui colpi forti, **partita salvata** in automatico e **installabile come app**, anche offline.
 - **Collezione** con tutte le carte originali e i valori usati in gioco.
 - **Animazioni 3D**: a ogni azione parte una scena in un'arena 3D. I lottatori hanno il volto preso dalla propria carta, la divisa nei colori della carta e la cintura del grado (oro Maestro, nera Istruttore, bianca Allievo). Ogni mossa ha il suo gesto e il suo effetto, e il bersaglio reagisce al risultato vero: danni, schivata, immunità, stordimento, confusione, K.O.
 
@@ -32,6 +38,14 @@ Nella schermata prima della squadra (e con il pulsante in alto durante la partit
 - *Tecniche bloccate*: solo attacco base.
 - Gli effetti durano i turni indicati. Uno stesso effetto non si somma: si rinnova.
 - Il grado conta: diverse mosse fanno effetto doppio sugli **Istruttori** o sui **Maestri**, come scritto sulle carte.
+
+**Sinergie.** Alcune combinazioni di gradi danno un bonus alla squadra:
+- *Linea dei Maestri* (almeno 2 Maestri): i Maestri hanno +15 PV.
+- *Istruttori affiatati* (almeno 2 Istruttori): gli Istruttori hanno +8 ATK.
+- *Forza degli allievi* (almeno 3 Allievi): gli Allievi hanno +8 DEF.
+- *Scuola completa* (almeno un Maestro, un Istruttore e un Allievo): tutte le carte +10 PV.
+
+**Eventi in palestra.** Ogni 3 round capita qualcosa che vale per tutte le carte in campo, di entrambe le squadre, per un round: Lezione extra (+15 PV), Aria condizionata rotta (ATK −15%), Il Maestro osserva (+10 ATK a Maestri e Istruttori), Musica a palla (+10 ATK), Pulizie del tatami (via gli effetti negativi), Riscaldamento (+15 DEF). Si possono spegnere dalle impostazioni.
 
 **Vittoria.** Vince chi manda K.O. tutte le carte avversarie, riserva compresa.
 
@@ -180,9 +194,19 @@ node tools/simulate.js 8000          # 8000 partite al livello "normale"
 node tools/livelli.js facile normale 300   # confronto tra livelli dell'IA
 ```
 
-Ultimo risultato su 8000 partite (in `tools/ultimo-bilanciamento.txt`): tutte le carte tra il **45% e il 54%** di vittorie, chi inizia vince il **51%** delle partite, una partita dura in media **8-9 turni** per giocatore.
+Ultimo risultato su 8000 partite, con sinergie ed eventi attivi (in `tools/ultimo-bilanciamento.txt`): tutte le carte tra il **46% e il 53%** di vittorie, chi inizia vince il **49%** delle partite, una partita dura in media **9 turni** per giocatore.
+
+Il boss del torneo (Andrea, Chen, Grazia, Caterina a livello difficile) viene battuto da una squadra casuale giocata dal computer circa 1 volta su 4.
 
 Livelli dell'IA: la *facile* vince circa 1 partita su 4 contro la *normale*; la *normale* vince circa il 41% contro la *difficile*.
+
+### Classifica condivisa
+
+La classifica è salvata su ogni telefono. Per una classifica unica della palestra, condivisa fra tutti i telefoni, serve un piccolo database online (per esempio Firebase, gratuito): si può aggiungere in seguito.
+
+### Partite online
+
+Il collegamento usa il server pubblico gratuito di PeerJS solo per far "incontrare" i due telefoni; poi la partita viaggia direttamente fra loro. Su alcune reti molto chiuse (certe reti aziendali o scolastiche) il collegamento diretto può non riuscire: in quel caso basta usare i dati mobili. Entrambi i telefoni calcolano la partita con lo stesso seme casuale e si scambiano solo le mosse, quindi restano sempre allineati.
 
 ## File
 
@@ -192,6 +216,10 @@ Livelli dell'IA: la *facile* vince circa 1 partita su 4 contro la *normale*; la 
 | `ui.js` | schermate, tocchi, animazioni |
 | `engine.js` | carte, regole, effetti e IA (funziona anche in Node) |
 | `arena3d.js` | arena e lottatori 3D, coreografia di ogni mossa (tabella `MOVES`) |
+| `audio.js` | effetti sonori, musica e vibrazione (Web Audio, nessun file audio) |
+| `net.js` | partite online tra due telefoni (PeerJS) |
+| `vendor/peerjs.min.js` | PeerJS 1.5.4, collegamento diretto tra telefoni |
+| `sw.js`, `manifest.webmanifest` | app installabile e funzionamento offline |
 | `vendor/three.min.js` | Three.js r128 (grafica 3D), incluso così il gioco funziona anche offline |
 | `img/` | carte originali ridimensionate; `img/volti/` i ritagli per le miniature; `img/teste/` i volti per le teste 3D |
 | `tools/simulate.js` | simulatore di bilanciamento |

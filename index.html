@@ -4,6 +4,11 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#140f0c">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="img/icona-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Stone Tao">
 <title>Stone Temple Tao Cards</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -122,7 +127,9 @@
   .side-name span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .side-name .turn-dot { width: 9px; height: 9px; border-radius: 5px; background: var(--ink-3); flex: none; }
   .side-name.active .turn-dot { background: var(--temple); box-shadow: 0 0 0 4px #e8631c33; }
-  .res-info { font-family: var(--label); font-size: 13px; color: var(--paper-dim); white-space: nowrap; }
+  .res-info { font-family: var(--label); font-size: 13px; color: var(--paper-dim); text-align: right; line-height: 1.2; min-width: 0; }
+  .side-name { flex: none; max-width: 58%; }
+  .syn-tag { display: block; font-size: 12px; }
   .row-fighters { display: grid; gap: 7px; }
   .tile { position: relative; border-radius: 7px; border: 1.5px solid var(--line); background: var(--ink-2); overflow: hidden; padding: 0; cursor: pointer; text-align: left; display: flex; flex-direction: column; transition: transform .15s, border-color .15s, opacity .2s; }
   .tile .face { aspect-ratio: 1/1; background-size: cover; background-position: center; position: relative; }
@@ -200,6 +207,68 @@
   .rules li { margin-bottom: 5px; }
   .rules code { font-family: var(--label); font-size: 15px; background: var(--ink-3); padding: 1px 5px; border-radius: 3px; }
 
+  /* ---------- menu, progressi, torneo, online ---------- */
+  .menu-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .menu .btn small, .btn small { display: block; font-family: var(--body); font-weight: 500; font-size: 12px; letter-spacing: 0; text-transform: none; color: var(--paper-dim); }
+  .menu-2 .btn { flex-direction: column; gap: 0; min-height: 56px; font-size: 17px; }
+  .pick.locked .face { filter: grayscale(1) brightness(.45); }
+  .lock { position: absolute; top: 34%; left: 50%; transform: translate(-50%, -50%); font-size: 26px; }
+  .syn-box { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: var(--ink-2); }
+  .syn-box summary { font-family: var(--label); font-weight: 700; font-size: 15px; letter-spacing: .04em; cursor: pointer; }
+  .syn { display: grid; gap: 6px; margin-top: 8px; }
+  .syn-row { display: grid; gap: 1px; font-size: 13px; color: var(--muted); }
+  .syn-row b { font-family: var(--label); font-size: 14px; color: var(--paper-dim); }
+  .syn-row.on b { color: var(--jade); } .syn-row.on { color: var(--paper-dim); }
+  .syn-tag { color: var(--jade); }
+  .vs-card { border: 1.5px solid var(--temple-dim); border-radius: 7px; padding: 8px 10px; display: grid; gap: 4px; background: #2a150c; }
+  .vs-card b { font-family: var(--label); font-size: 19px; }
+  .faces-row { display: flex; gap: 5px; }
+  .faces-row i { width: 38px; height: 38px; border-radius: 5px; background-size: cover; background-position: center; border: 1px solid var(--line); }
+  .ladder { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+  .ladder li { border: 1.5px solid var(--line); border-radius: 7px; padding: 8px 10px; display: grid; gap: 6px; background: var(--ink-2); }
+  .ladder li.done { opacity: .6; }
+  .ladder li.done .lad-head span::after { content: ' ✓'; color: var(--jade); }
+  .ladder li.now { border-color: var(--temple); }
+  .lad-head { display: flex; align-items: baseline; gap: 8px; }
+  .lad-head span { font-family: var(--display); font-size: 22px; color: var(--temple); }
+  .lad-head b { font-family: var(--label); font-size: 17px; flex: 1; }
+  .lad-head em { font-style: normal; font-family: var(--label); font-size: 13px; color: var(--gold); text-transform: uppercase; letter-spacing: .06em; }
+  .lad-body { display: flex; align-items: center; gap: 10px; }
+  .lad-body small { color: var(--paper-dim); font-size: 13px; }
+  .rank-page { display: grid; gap: 10px; padding-bottom: 24px; }
+  .sec { font-family: var(--label); font-weight: 700; font-size: 18px; letter-spacing: .05em; text-transform: uppercase; color: var(--temple); margin: 10px 0 0; }
+  .board { width: 100%; border-collapse: collapse; font-size: 15px; }
+  .board th { font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--paper-dim); text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); }
+  .board td { padding: 7px 6px; border-bottom: 1px solid #2b221b; }
+  .board tr.cpu td { color: var(--paper-dim); }
+  .board td:nth-child(n+3), .board th:nth-child(n+3) { text-align: right; }
+  .card-rank { display: grid; gap: 4px; }
+  .cr-row { display: grid; grid-template-columns: 32px 1fr auto auto; gap: 10px; align-items: center; padding: 3px 0; border-bottom: 1px solid #2b221b; }
+  .cr-row i { width: 32px; height: 32px; border-radius: 4px; background-size: cover; background-position: center; }
+  .cr-row b { font-family: var(--label); font-size: 16px; color: var(--gold); }
+  .cr-row small { color: var(--muted); font-size: 12px; min-width: 40px; text-align: right; }
+  .code-box { border: 2px solid var(--temple); border-radius: 10px; padding: 16px; text-align: center; display: grid; gap: 6px; background: #2a150c; }
+  .code { font-family: var(--display); font-size: 54px; letter-spacing: .12em; color: var(--temple); line-height: 1; }
+  .code-box p { margin: 0; color: var(--paper-dim); font-size: 14px; }
+  .or { text-align: center; color: var(--muted); font-family: var(--label); text-transform: uppercase; letter-spacing: .12em; font-size: 13px; }
+  .err { color: #ff9c8c; margin: 0; font-size: 14px; }
+  #oncode { text-transform: uppercase; letter-spacing: .2em; font-family: var(--label); font-size: 22px; text-align: center; }
+  .tut { display: flex; gap: 10px; align-items: flex-start; border: 1.5px solid var(--gold); border-radius: 8px; padding: 8px 10px; background: #2a1f10; }
+  .tut > i { width: 42px; height: 42px; border-radius: 21px; background-size: cover; background-position: center; flex: none; border: 2px solid var(--gold); }
+  .tut b { font-family: var(--label); font-size: 14px; color: var(--gold); letter-spacing: .04em; }
+  .tut p { margin: 2px 0 0; font-size: 14px; line-height: 1.35; }
+  .tut .btn { margin-top: 6px; min-height: 34px; font-size: 14px; }
+  .pv { position: absolute; left: 50%; bottom: 6px; transform: translateX(-50%); background: #140f0cdd; color: #ff8a73; font-family: var(--label); font-weight: 700; font-size: 14px; padding: 2px 7px; border-radius: 4px; white-space: nowrap; border: 1px solid #ff8a7355; }
+  .pv.ko { color: #140f0c; background: var(--gold); border-color: var(--gold); }
+  .toast { position: fixed; left: 16px; right: 16px; top: calc(20px + env(safe-area-inset-top, 0px)); z-index: 50; max-width: 480px; margin: 0 auto; background: #2a150c; border: 2px solid var(--temple); border-radius: 10px; padding: 12px 14px; box-shadow: 0 12px 30px #000c; animation: drop .35s ease-out; }
+  .toast b { font-family: var(--display); font-size: 26px; color: var(--temple); font-weight: 400; display: block; line-height: 1.1; }
+  .toast p { margin: 4px 0 0; font-size: 14px; color: var(--paper); }
+  .toast.small { font-family: var(--label); font-weight: 600; font-size: 16px; text-align: center; }
+  .toast.out { opacity: 0; transform: translateY(-20px); transition: opacity .3s, transform .3s; }
+  @keyframes drop { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: none; } }
+  .unlock { display: grid; gap: 6px; justify-items: center; border: 1.5px dashed var(--gold); border-radius: 8px; padding: 10px 14px; }
+  .unlock p { color: var(--gold); }
+
   /* ---------- arena 3D ---------- */
   .arena3d { position: fixed; inset: 0; z-index: 40; background: #1b120d; overflow: hidden; cursor: pointer; }
   .arena3d canvas { position: absolute; inset: 0; display: block; }
@@ -220,7 +289,10 @@
 <div id="app"></div>
 <div id="layer"></div>
 <script src="vendor/three.min.js"></script>
+<script src="vendor/peerjs.min.js"></script>
 <script src="engine.js"></script>
+<script src="audio.js"></script>
+<script src="net.js"></script>
 <script src="arena3d.js"></script>
 <script src="ui.js"></script>
 </body>

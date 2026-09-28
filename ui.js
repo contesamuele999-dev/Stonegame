@@ -5,11 +5,29 @@
   const $app = document.getElementById('app');
   const $layer = document.getElementById('layer');
 
+  // ------------------------------------------------------------ memoria locale
+  function store(k, v) { try { localStorage.setItem('stt_' + k, JSON.stringify(v)); } catch (e) { /* niente */ } }
+  function load(k, d) { try { const v = localStorage.getItem('stt_' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
+  function drop(k) { try { localStorage.removeItem('stt_' + k); } catch (e) { /* niente */ } }
+
+  const reduced = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
+  const DEFAULTS = { sfx: true, music: true, vibration: true, anim: reduced ? 'off' : 'full', events: true, allUnlocked: false };
+  const settings = Object.assign({}, DEFAULTS, load('settings', {}));
+  if (load('anim', null)) { settings.anim = load('anim', settings.anim); drop('anim'); }
+  function saveSettings() { store('settings', settings); applySound(); }
+  function applySound() {
+    if (!window.Sound) return;
+    Sound.setSfx(settings.sfx); Sound.setMusic(settings.music); Sound.setVibration(settings.vibration);
+  }
+  applySound();
+  const sfx = (n, k) => { if (window.Sound) Sound.play(n, k); };
+
   const A = {
-    screen: 'home', mode: 'cpu', level: 'normale',
-    names: ['Giocatore 1', 'Giocatore 2'],
+    screen: 'home', mode: 'cpu', level: load('level', 'normale'),
+    names: load('names', ['Giocatore 1', 'Giocatore 2']),
     teams: [[], []], builder: 0, filter: 'all',
-    game: null, view: 0, sel: null, busy: false, logOpen: false, banner: '', first: 0,
+    game: null, setup: null, log: [], view: 0, me: 0, sel: null, busy: false, logOpen: false, banner: '', first: 0,
+    tut: -1, on: null, toast: null,
   };
 
   // ------------------------------------------------------------ utilità
@@ -17,13 +35,8 @@
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const face = id => `background-image:url(img/volti/${id}.jpg)`;
   const RANK_SHORT = { A: 'Allievo', I: 'Istruttore', M: 'Maestro' };
-  function store(k, v) { try { localStorage.setItem('stt_' + k, JSON.stringify(v)); } catch (e) { /* niente */ } }
-  function load(k, d) { try { const v = localStorage.getItem('stt_' + k); return v ? JSON.parse(v) : d; } catch (e) { return d; } }
-  A.level = load('level', 'normale');
-  const reduced = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
-  A.anim = load('anim', reduced ? 'off' : 'full'); // full | fast | off
   const ANIM_LABEL = { full: '3D', fast: '3D veloce', off: 'Senza 3D' };
-  A.names = load('names', A.names);
+  const LEVEL_LABEL = { facile: 'Facile', normale: 'Normale', difficile: 'Difficile' };
 
   function moveMeta(m) {
     if (m.passive) return m.cd ? `Passiva · si ricarica in ${m.cd} turni` : 'Passiva';
@@ -31,6 +44,49 @@
     if (m.free) return `Non usa il turno · ricarica ${m.cd} turni`;
     return m.cd ? `Ricarica ${m.cd} turn${m.cd > 1 ? 'i' : 'o'}` : '';
   }
+
+  // ------------------------------------------------------------ carte sbloccate
+  const STARTERS = ['samuele', 'katya', 'niccolo', 'federica', 'grazia', 'vittorio', 'annastella', 'alessandro', 'viola', 'caterina'];
+  function unlocked() {
+    if (settings.allUnlocked) return S.CARDS.map(c => c.id);
+    const u = load('unlocked', STARTERS).filter(id => S.CARD[id]);
+    return u.length >= S.TEAM_SIZE ? u : STARTERS.slice();
+  }
+  function unlockRandom(n) {
+    if (settings.allUnlocked) return [];
+    const have = unlocked();
+    const locked = S.CARDS.map(c => c.id).filter(id => !have.includes(id));
+    const got = [];
+    while (got.length < n && locked.length) got.push(locked.splice(Math.floor(Math.random() * locked.length), 1)[0]);
+    if (got.length) store('unlocked', have.concat(got));
+    return got;
+  }
+
+  // ------------------------------------------------------------ classifica (su questo telefono)
+  function stats() { return load('stats', { players: {}, cards: {} }); }
+  function recordResult(g) {
+    const st = stats();
+    g.players.forEach((p, i) => {
+      const key = p.cpu ? `Computer (${LEVEL_LABEL[p.cpu] || p.cpu})` : p.name;
+      const r = st.players[key] || (st.players[key] = { w: 0, l: 0, cpu: !!p.cpu });
+      if (g.winner === i) r.w++; else r.l++;
+      p.cards.forEach(id => {
+        const c = st.cards[id] || (st.cards[id] = { p: 0, w: 0 });
+        c.p++; if (g.winner === i) c.w++;
+      });
+    });
+    store('stats', st);
+  }
+
+  // ------------------------------------------------------------ torneo
+  const TORNEO = [
+    { name: 'Gli allievi del lunedì', level: 'facile', cards: ['grazia', 'viola', 'annastella', 'caterina'], text: 'Si parte con calma: la classe dei principianti.' },
+    { name: 'Il corso serale', level: 'normale', cards: ['vittorio', 'alessandro', 'christian', 'carla'], text: 'Dopo il lavoro, ma pieni di energia.' },
+    { name: 'Gli istruttori', level: 'normale', cards: ['niccolo', 'strahinja', 'federica', 'caterina'], text: 'Chi insegna sa anche combattere.' },
+    { name: 'La squadra agonistica', level: 'difficile', cards: ['lorenzo', 'sara', 'federico', 'chicca'], text: 'Allenati per le gare: non regalano niente.' },
+    { name: 'Il Tempio dei Maestri', level: 'difficile', cards: ['andrea', 'chen', 'grazia', 'caterina'], text: 'La sfida finale: i Maestri e le loro allieve migliori.' },
+  ];
+  const torneo = () => load('torneo', { stage: 0, titles: 0 });
 
   // ------------------------------------------------------------ effetti di stato
   function chipList(g, f, compact) {
@@ -72,13 +128,26 @@
   // ------------------------------------------------------------ router
   function go(screen) { A.screen = screen; closeLayer(); render(); window.scrollTo(0, 0); }
   function render() {
-    const fn = { home: renderHome, setup: renderSetup, build: renderBuild, battle: renderBattle, collection: renderCollection, rules: renderRules }[A.screen];
+    const fn = {
+      home: renderHome, setup: renderSetup, build: renderBuild, battle: renderBattle, collection: renderCollection,
+      rules: renderRules, ranking: renderRanking, settings: renderSettings, torneo: renderTorneo, online: renderOnline,
+    }[A.screen];
     $app.innerHTML = fn();
+    if (A.screen === 'online') focusOnline();
   }
 
   // ------------------------------------------------------------ HOME
+  let installEvt = null;
+  window.addEventListener('beforeinstallprompt', e => { e.preventDefault(); installEvt = e; if (A.screen === 'home') render(); });
+  const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  const standalone = (() => { try { return window.matchMedia('(display-mode: standalone)').matches || navigator.standalone; } catch (e) { return false; } })();
+
   function renderHome() {
-    const ids = S.CARDS.map(c => c.id).sort(() => Math.random() - 0.5).slice(0, 5);
+    const ids = unlocked().slice().sort(() => Math.random() - 0.5).slice(0, 5);
+    const save = load('save', null);
+    const tutDone = load('tutorial', false);
+    const t = torneo();
+    const nUnl = unlocked().length;
     return `<div class="home">
       <div class="hero">
         <img src="img/retro.jpg" alt="Retro delle carte Stone Temple Tao">
@@ -90,10 +159,24 @@
       </div>
       <div class="fan" aria-hidden="true">${ids.map((id, i) => `<img src="img/${id}.jpg" alt="" style="transform:rotate(${(i - 2) * 7}deg) translateY(${Math.abs(i - 2) * 8}px)">`).join('')}</div>
       <div class="menu">
-        <button class="btn primary" data-act="mode" data-v="cpu">Sfida il computer</button>
-        <button class="btn" data-act="mode" data-v="pvp">2 giocatori · stesso telefono</button>
-        <button class="btn ghost" data-act="go" data-v="collection">Collezione carte</button>
-        <button class="btn ghost" data-act="go" data-v="rules">Come si gioca</button>
+        ${save ? `<button class="btn primary" data-act="resume">Riprendi partita · turno ${Math.ceil(save.turnNo / 2)}</button>` : ''}
+        ${!tutDone ? `<button class="btn ${save ? '' : 'primary'}" data-act="tutorial">Prima volta? Fai il tutorial</button>` : ''}
+        <button class="btn ${save || !tutDone ? '' : 'primary'}" data-act="mode" data-v="cpu">Sfida il computer</button>
+        <button class="btn" data-act="go" data-v="torneo">Torneo · incontro ${Math.min(t.stage + 1, 5)} di 5${t.titles ? ` · 🏆 ${t.titles}` : ''}</button>
+        <div class="menu-2">
+          <button class="btn" data-act="mode" data-v="pvp">2 giocatori<small>stesso telefono</small></button>
+          <button class="btn" data-act="go" data-v="online">Online<small>due telefoni</small></button>
+        </div>
+        <div class="menu-2">
+          <button class="btn ghost" data-act="go" data-v="collection">Carte<small>${nUnl}/${S.CARDS.length} sbloccate</small></button>
+          <button class="btn ghost" data-act="go" data-v="ranking">Classifica</button>
+        </div>
+        <div class="menu-2">
+          <button class="btn ghost" data-act="go" data-v="rules">Regole</button>
+          <button class="btn ghost" data-act="go" data-v="settings">Impostazioni</button>
+        </div>
+        ${!standalone && installEvt ? '<button class="btn ghost" data-act="install">Installa come app</button>' : ''}
+        ${!standalone && !installEvt && isIOS && window.top === window ? '<p class="hint">Per installarla: tocca Condividi e poi "Aggiungi alla schermata Home".</p>' : ''}
       </div>
       <p class="footnote">Partita media: 5–10 minuti · Squadra da 4 carte e 10 Punti Dojo</p>
     </div>`;
@@ -115,19 +198,25 @@
         <label class="field-label" for="n0"><span class="eyebrow">Giocatore 1</span><input id="n0" maxlength="16" value="${esc(A.names[0])}"></label>
         <label class="field-label" for="n1"><span class="eyebrow">Giocatore 2</span><input id="n1" maxlength="16" value="${esc(A.names[1])}"></label>
       `}
-      <div class="eyebrow">Animazioni</div>
-      <div class="seg" role="group" aria-label="Animazioni">
-        ${['full', 'fast', 'off'].map(l => `<button data-act="anim" data-v="${l}" aria-pressed="${A.anim === l}">${ANIM_LABEL[l]}</button>`).join('')}
-      </div>
       <p class="hint" style="text-align:left">Ognuno sceglie 4 carte spendendo al massimo ${S.BUDGET} Punti Dojo: le prime 3 vanno in campo, la quarta resta in riserva ed entra quando una tua carta va K.O.</p>
       <button class="btn primary" data-act="to-build">Scegli la squadra →</button>
     </div>`;
   }
 
   // ------------------------------------------------------------ COSTRUZIONE SQUADRA
+  function builderTitle() {
+    if (A.mode === 'torneo') return `Torneo · incontro ${torneo().stage + 1}`;
+    if (A.mode === 'online') return 'La tua squadra';
+    return `Squadra di ${esc(A.names[A.builder])}`;
+  }
+  function synergyList(team) {
+    const active = S.synergiesFor(team).map(x => x.id);
+    return `<div class="syn">${S.SYNERGIES.map(x => `<div class="syn-row ${active.includes(x.id) ? 'on' : ''}"><b>${active.includes(x.id) ? '✓ ' : ''}${esc(x.name)}</b><span>${esc(x.desc)}</span></div>`).join('')}</div>`;
+  }
   function renderBuild() {
     const team = A.teams[A.builder];
     const cost = S.teamCost(team);
+    const pool = unlocked();
     const pips = Array.from({ length: S.BUDGET }, (_, i) => `<i class="${i < cost ? (cost > S.BUDGET ? 'over' : 'on') : ''}"></i>`).join('');
     const slots = [0, 1, 2, 3].map(i => {
       const id = team[i];
@@ -136,23 +225,29 @@
       return `<button class="slot ${i === 3 ? 'res' : ''}" data-act="unpick" data-v="${i}" aria-label="Togli ${esc(S.CARD[id].name)}"><span class="who">${who}</span><span class="face" style="${face(id)}"></span><span class="nm">${esc(S.CARD[id].name)}</span></button>`;
     }).join('');
     const filters = [['all', 'Tutti'], ['M', 'Maestri'], ['I', 'Istruttori'], ['A', 'Allievi']];
-    const pool = S.CARDS.filter(c => A.filter === 'all' || c.rank === A.filter).map(c => {
+    const cards = S.CARDS.filter(c => A.filter === 'all' || c.rank === A.filter).map(c => {
+      const locked = !pool.includes(c.id);
       const chosen = team.includes(c.id);
-      const nope = !chosen && (team.length >= S.TEAM_SIZE || cost + c.cost > S.BUDGET);
-      return `<div class="pick ${chosen ? 'chosen' : ''} ${nope ? 'nope' : ''}" role="button" tabindex="0" data-act="pick" data-v="${c.id}" aria-label="${esc(c.name)}, costo ${c.cost}">
+      const nope = !chosen && (locked || team.length >= S.TEAM_SIZE || cost + c.cost > S.BUDGET);
+      return `<div class="pick ${chosen ? 'chosen' : ''} ${nope ? 'nope' : ''} ${locked ? 'locked' : ''}" role="button" tabindex="0" data-act="pick" data-v="${c.id}" aria-label="${esc(c.name)}, costo ${c.cost}${locked ? ', da sbloccare' : ''}">
         <span class="face" style="${face(c.id)}"></span>
         <span class="rank ${c.rank}">${RANK_SHORT[c.rank]}</span>
         <span class="cost num">${c.cost}</span>
+        ${locked ? '<span class="lock">🔒</span>' : ''}
         <span class="meta"><span class="nm">${esc(c.name)}</span><span class="st num">PV ${c.hp} · ATK ${c.atk} · DEF ${c.def}</span></span>
         <span class="info-dot" data-act="card" data-v="${c.id}" aria-label="Dettagli ${esc(c.name)}">i</span>
       </div>`;
     }).join('');
-    return `<div class="topbar"><button class="back" data-act="build-back">← Indietro</button><div class="eyebrow">Squadra di ${esc(A.names[A.builder])}</div></div>
+    const opp = A.mode === 'torneo' ? TORNEO[torneo().stage] : null;
+    return `<div class="topbar"><button class="back" data-act="build-back">← Indietro</button><div class="eyebrow">${builderTitle()}</div></div>
     <div class="builder">
+      ${opp ? `<div class="vs-card"><div class="eyebrow">Avversario · ${LEVEL_LABEL[opp.level]}</div><b>${esc(opp.name)}</b><div class="faces-row">${opp.cards.map(id => `<i style="${face(id)}" title="${esc(S.CARD[id].name)}"></i>`).join('')}</div></div>` : ''}
       <div class="slots">${slots}</div>
       <div class="budget num"><span>Punti Dojo</span><div class="pips">${pips}</div><span>${cost}/${S.BUDGET}</span></div>
+      <details class="syn-box"><summary>Sinergie di squadra (${S.synergiesFor(team).length} attive)</summary>${synergyList(team)}</details>
       <div class="filters" role="group" aria-label="Filtra per grado">${filters.map(([v, l]) => `<button data-act="filter" data-v="${v}" aria-pressed="${A.filter === v}">${l}</button>`).join('')}</div>
-      <div class="pool">${pool}</div>
+      ${pool.length < S.CARDS.length ? `<p class="hint" style="text-align:left">🔒 ${S.CARDS.length - pool.length} carte da sbloccare: ogni vittoria ne sblocca una.</p>` : ''}
+      <div class="pool">${cards}</div>
     </div>
     <div class="dock"><div class="row">
       <button class="btn" data-act="random-team">Casuale</button>
@@ -164,8 +259,11 @@
   function cardSheet(id) {
     const c = S.CARD[id];
     const diff = (k) => c.orig[k] !== c[k] ? `<s class="num">${c.orig[k]}</s> ` : '';
+    const locked = !unlocked().includes(id);
+    const st = stats().cards[id];
     openLayer(`<div class="sheet-wrap" data-act="close"><div class="sheet" role="dialog" aria-label="${esc(c.name)}" data-stop>
-      <div class="sheet-head"><div><h3>${esc(c.name)}</h3><p>${RANK_SHORT[c.rank]} · costo ${c.cost} Punti Dojo</p></div></div>
+      <div class="sheet-head"><div><h3>${esc(c.name)}${locked ? ' 🔒' : ''}</h3><p>${RANK_SHORT[c.rank]} · costo ${c.cost} Punti Dojo${st ? ` · vinte ${st.w} su ${st.p}` : ''}</p></div></div>
+      ${locked ? '<p class="hint" style="text-align:left">Carta da sbloccare: vinci una partita per ottenerne una nuova.</p>' : ''}
       <div class="statline num"><span>PV <b>${c.hp}</b></span><span>ATK ${diff('atk')}<b>${c.atk}</b></span><span>DEF ${diff('def')}<b>${c.def}</b></span></div>
       ${c.moves.map(m => `<div class="move special"><div class="mh"><span class="mn">${esc(m.name)}</span><span class="why">${esc(moveMeta(m))}</span></div><div class="md">${esc(m.desc)}</div></div>`).join('')}
       <div class="card-full"><img src="img/${id}.jpg" alt="Carta originale di ${esc(c.name)}"></div>
@@ -176,11 +274,68 @@
 
   // ------------------------------------------------------------ COLLEZIONE
   function renderCollection() {
-    return `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">${S.CARDS.length} carte</div></div>
+    const pool = unlocked();
+    return `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">${pool.length}/${S.CARDS.length} sbloccate</div></div>
     <h2 style="margin-bottom:12px">Collezione</h2>
-    <div class="collection">${S.CARDS.map(c => `<div class="pick" role="button" tabindex="0" data-act="card" data-v="${c.id}">
-      <span class="face" style="${face(c.id)}"></span><span class="rank ${c.rank}">${RANK_SHORT[c.rank]}</span><span class="cost num">${c.cost}</span>
-      <span class="meta"><span class="nm">${esc(c.name)}</span><span class="st num">PV ${c.hp} · ATK ${c.atk} · DEF ${c.def}</span></span></div>`).join('')}</div>`;
+    <div class="collection">${S.CARDS.map(c => { const lk = !pool.includes(c.id); return `<div class="pick ${lk ? 'locked' : ''}" role="button" tabindex="0" data-act="card" data-v="${c.id}">
+      <span class="face" style="${face(c.id)}"></span><span class="rank ${c.rank}">${RANK_SHORT[c.rank]}</span><span class="cost num">${c.cost}</span>${lk ? '<span class="lock">🔒</span>' : ''}
+      <span class="meta"><span class="nm">${esc(c.name)}</span><span class="st num">PV ${c.hp} · ATK ${c.atk} · DEF ${c.def}</span></span></div>`; }).join('')}</div>`;
+  }
+
+  // ------------------------------------------------------------ CLASSIFICA
+  function renderRanking() {
+    const st = stats();
+    const players = Object.entries(st.players).map(([n, r]) => ({ n, ...r, t: r.w + r.l })).sort((a, b) => b.w - a.w || (b.w / b.t) - (a.w / a.t));
+    const cards = Object.entries(st.cards).filter(([id]) => S.CARD[id]).map(([id, r]) => ({ id, ...r, pct: r.w / r.p })).sort((a, b) => b.pct - a.pct || b.p - a.p);
+    const pct = (w, t) => t ? Math.round(100 * w / t) + '%' : '—';
+    return `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">Su questo telefono</div></div>
+    <div class="rank-page">
+      <h2>Classifica</h2>
+      <h3 class="sec">Giocatori</h3>
+      ${players.length ? `<table class="board num"><thead><tr><th>#</th><th>Nome</th><th>V</th><th>S</th><th>%</th></tr></thead><tbody>
+        ${players.map((p, i) => `<tr class="${p.cpu ? 'cpu' : ''}"><td>${i + 1}</td><td>${esc(p.n)}</td><td>${p.w}</td><td>${p.l}</td><td>${pct(p.w, p.t)}</td></tr>`).join('')}
+      </tbody></table>` : '<p class="hint" style="text-align:left">Ancora nessuna partita giocata su questo telefono.</p>'}
+      <h3 class="sec">Carte più vincenti</h3>
+      ${cards.length ? `<div class="card-rank">${cards.map(c => `<div class="cr-row"><i style="${face(c.id)}"></i><span>${esc(S.CARD[c.id].name)}</span><b class="num">${pct(c.w, c.p)}</b><small class="num">${c.w}/${c.p}</small></div>`).join('')}</div>` : '<p class="hint" style="text-align:left">Gioca qualche partita per vedere quali carte vincono di più.</p>'}
+      <p class="hint" style="text-align:left">La classifica conta le partite giocate su questo telefono, comprese quelle online.</p>
+      ${players.length ? '<button class="btn ghost" data-act="reset-stats">Azzera classifica</button>' : ''}
+    </div>`;
+  }
+
+  // ------------------------------------------------------------ IMPOSTAZIONI
+  function renderSettings() {
+    const seg = (key, opts) => `<div class="seg" role="group">${opts.map(([v, l]) => `<button data-act="set" data-k="${key}" data-v="${v}" aria-pressed="${String(settings[key]) === String(v)}">${l}</button>`).join('')}</div>`;
+    const yn = key => seg(key, [[true, 'Sì'], [false, 'No']]);
+    return `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">Impostazioni</div></div>
+    <div class="setup">
+      <h2>Impostazioni</h2>
+      <div class="eyebrow">Animazioni</div>${seg('anim', [['full', '3D'], ['fast', '3D veloce'], ['off', 'Senza 3D']])}
+      <div class="eyebrow">Effetti sonori</div>${yn('sfx')}
+      <div class="eyebrow">Musica</div>${yn('music')}
+      <div class="eyebrow">Vibrazione</div>${yn('vibration')}
+      <div class="eyebrow">Eventi in palestra</div>${yn('events')}
+      <p class="hint" style="text-align:left">Ogni 3 round capita qualcosa in palestra (lezione extra, aria condizionata rotta…) che vale per entrambe le squadre.</p>
+      <div class="eyebrow">Tutte le carte sbloccate</div>${yn('allUnlocked')}
+      <p class="hint" style="text-align:left">Utile per le serate in palestra: tutti possono usare tutte le carte subito.</p>
+      <button class="btn ghost" data-act="replay-tutorial">Rifai il tutorial</button>
+      <button class="btn ghost" data-act="reset-progress">Azzera progressi (carte, torneo)</button>
+    </div>`;
+  }
+
+  // ------------------------------------------------------------ TORNEO
+  function renderTorneo() {
+    const t = torneo();
+    return `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">Torneo${t.titles ? ` · 🏆 ${t.titles}` : ''}</div></div>
+    <div class="setup">
+      <h2>Torneo del Tempio</h2>
+      <p class="hint" style="text-align:left">Cinque incontri contro squadre sempre più forti. Se perdi puoi ritentare l'incontro. Ogni vittoria sblocca una carta, il titolo finale ne sblocca tre.</p>
+      <ol class="ladder">${TORNEO.map((o, i) => `<li class="${i < t.stage ? 'done' : i === t.stage ? 'now' : ''}">
+        <div class="lad-head"><span class="num">${i + 1}</span><b>${esc(o.name)}</b><em>${LEVEL_LABEL[o.level]}</em></div>
+        <div class="lad-body"><div class="faces-row">${o.cards.map(id => `<i style="${face(id)}"></i>`).join('')}</div><small>${esc(o.text)}</small></div>
+      </li>`).join('')}</ol>
+      <button class="btn primary" data-act="torneo-go">Combatti l'incontro ${t.stage + 1}</button>
+      ${t.stage > 0 ? '<button class="btn ghost" data-act="torneo-reset">Ricomincia il torneo</button>' : ''}
+    </div>`;
   }
 
   // ------------------------------------------------------------ REGOLE
@@ -192,10 +347,12 @@
       <ul>
         <li>Scegli <b>4 carte</b> spendendo al massimo <b>${S.BUDGET} Punti Dojo</b> (il numero dorato sulla carta).</li>
         <li>Le prime 3 vanno <b>in campo</b>, la quarta resta <b>in riserva</b>: entra da sola quando una tua carta va K.O.</li>
+        <li><b>Sinergie</b>: alcune combinazioni di gradi danno un bonus (per esempio 2 Maestri: +15 PV ai Maestri). Le vedi mentre scegli la squadra.</li>
       </ul>
       <h3>Il turno</h3>
       <ul>
         <li>Nel tuo turno <b>ogni tua carta in campo agisce una volta</b>, nell'ordine che vuoi. Tocca una carta e scegli: <code>Attacco</code> o una delle sue <b>mosse speciali</b>.</li>
+        <li>Quando scegli il bersaglio vedi i <b>danni previsti</b> sopra ogni carta avversaria.</li>
         <li>Le mosse speciali hanno una <b>ricarica</b>: dopo l'uso devi aspettare qualche turno. Alcune si usano una sola volta per partita.</li>
         <li>Puoi chiudere il turno prima con <code>Fine turno</code>.</li>
         <li>Chi inizia (a sorte) al primo turno agisce con <b>2 carte</b> e solo con attacchi base.</li>
@@ -210,8 +367,10 @@
         <li>Gli effetti durano i turni indicati sul chip. Uno stesso effetto non si somma: si rinnova.</li>
         <li><b>Istruttori e Maestri</b> contano per alcune mosse (per esempio lo Sputo dell'Ultralama è doppio sugli Istruttori).</li>
       </ul>
+      <h3>Eventi in palestra</h3>
+      <p>Ogni 3 round capita qualcosa (lezione extra, aria condizionata rotta, musica a palla…) che vale per tutte le carte in campo, di entrambe le squadre. Si possono spegnere dalle impostazioni.</p>
       <h3>Vittoria</h3>
-      <p>Vince chi manda K.O. tutte le carte avversarie, riserva compresa.</p>
+      <p>Vince chi manda K.O. tutte le carte avversarie, riserva compresa. Ogni vittoria sblocca una nuova carta.</p>
       <h3>Segreti</h3>
       <ul>
         <li>Con Flavio, prima del Delirio Onnipotente hai 10 secondi per scrivere la formula segreta. Se la sbagli la mossa parte lo stesso, ma senza raddoppio.</li>
@@ -219,6 +378,35 @@
       </ul>
     </div>`;
   }
+
+  // ------------------------------------------------------------ ONLINE
+  function renderOnline() {
+    const o = A.on || (A.on = { phase: 'menu' });
+    const ok = window.Net && Net.available();
+    let body = '';
+    if (!ok) {
+      body = `<p class="hint" style="text-align:left">${window.top !== window
+        ? 'Il gioco online funziona dal sito del gioco (GitHub Pages) o dall\'app installata, non dentro questa anteprima.'
+        : 'Questo browser non supporta il gioco online. Prova con Chrome o Safari aggiornati.'}</p>`;
+    } else if (o.phase === 'menu') {
+      body = `<label class="field-label" for="n0"><span class="eyebrow">Il tuo nome</span><input id="n0" maxlength="16" value="${esc(A.names[0])}"></label>
+        <button class="btn primary" data-act="on-host">Crea una partita</button>
+        <div class="or">oppure</div>
+        <label class="field-label" for="oncode"><span class="eyebrow">Codice dell'altro giocatore</span><input id="oncode" maxlength="5" autocapitalize="characters" autocomplete="off" spellcheck="false" placeholder="ES. K7QXM" value="${esc(o.typed || '')}"></label>
+        <button class="btn" data-act="on-join">Entra nella partita</button>
+        ${o.error ? `<p class="err">${esc(o.error)}</p>` : ''}
+        <p class="hint" style="text-align:left">Serve internet su entrambi i telefoni. Chi crea la partita legge il codice all'altro, che lo inserisce qui.</p>`;
+    } else if (o.phase === 'wait-host') {
+      body = `<div class="code-box"><div class="eyebrow">Il tuo codice</div><div class="code num">${esc(o.code || '…')}</div><p>Dillo all'altro giocatore: lo inserisce in "Online → Entra nella partita".</p></div>
+        <p class="hint">In attesa che l'altro giocatore entri…</p>
+        <button class="btn ghost" data-act="on-cancel">Annulla</button>`;
+    } else if (o.phase === 'connecting') {
+      body = `<p class="hint">Collegamento in corso…</p><button class="btn ghost" data-act="on-cancel">Annulla</button>`;
+    }
+    return `<div class="topbar"><button class="back" data-act="on-cancel">← Menu</button><div class="eyebrow">Online</div></div>
+    <div class="setup"><h2>Gioca online</h2>${body}</div>`;
+  }
+  function focusOnline() { /* niente focus automatico: sul telefono aprirebbe la tastiera */ }
 
   // ------------------------------------------------------------ BATTAGLIA
   function tileHtml(g, f, opts) {
@@ -232,8 +420,13 @@
     if (opts.selected) classes.push('selected');
     if (opts.target) classes.push('target');
     if (opts.dim) classes.push('dim');
+    let pv = '';
+    if (opts.preview) {
+      const [lo, hi] = opts.preview;
+      pv = `<span class="pv num ${lo >= f.hp ? 'ko' : ''}">${lo === 0 && hi === 0 ? 'Bloccato' : lo >= f.hp ? 'K.O.!' : `−${lo}–${hi}`}</span>`;
+    }
     return `<button class="${classes.join(' ')}" data-act="tile" data-v="${f.uid}" aria-label="${esc(f.name)}, ${f.hp} PV su ${f.maxHp}">
-      <span class="face" style="${face(f.card)}"><span class="rank ${f.rank}">${RANK_SHORT[f.rank]}</span></span>
+      <span class="face" style="${face(f.card)}"><span class="rank ${f.rank}">${RANK_SHORT[f.rank]}</span>${pv}</span>
       <span class="body">
         <span class="nm">${esc(f.name)}</span>
         <span class="hp"><i class="${cls}" style="width:${(pct * 100).toFixed(1)}%"></i></span>
@@ -245,24 +438,36 @@
 
   function rowHtml(g, p) {
     const pl = g.players[p];
-    const humanTurn = isHumanTurn() && g.turn === p;
+    const localTurn = isLocalTurn() && g.turn === p;
     const sel = A.sel;
-    const tiles = pl.field.map(f => tileHtml(g, f, {
-      acted: humanTurn && f.acted,
-      selected: sel && sel.actor === f.uid,
-      target: sel && sel.targets.includes(f.uid),
-      dim: sel && !sel.targets.includes(f.uid) && sel.actor !== f.uid,
-    })).join('');
+    const actor = sel ? S.byUid(g, sel.actor) : null;
+    const tiles = pl.field.map(f => {
+      const isT = sel && sel.targets.includes(f.uid);
+      return tileHtml(g, f, {
+        acted: localTurn && f.acted,
+        selected: sel && sel.actor === f.uid,
+        target: isT,
+        dim: sel && !isT && sel.actor !== f.uid,
+        preview: isT && actor && f.owner !== actor.owner ? S.previewDamage(g, actor, sel.inner, f) : null,
+      });
+    }).join('');
     return `<div class="row-fighters ${pl.field.length > 3 ? 'four' : ''}" style="grid-template-columns:repeat(${Math.max(pl.field.length, 3)},1fr)">${tiles}</div>`;
   }
 
   function sideBar(g, p) {
     const pl = g.players[p];
     const res = pl.reserve.length ? `Riserva: ${pl.reserve.map(f => esc(f.name.split(' ')[0])).join(', ')}` : 'Nessuna riserva';
-    return `<div class="bar"><div class="side-name ${g.turn === p && g.winner === null ? 'active' : ''}"><i class="turn-dot"></i><span>${esc(pl.name)}</span></div><div class="res-info">${res} · K.O. ${pl.ko.length}</div></div>`;
+    const syn = pl.syn && pl.syn.length ? pl.syn.map(id => S.SYNERGIES.find(x => x.id === id).name).map(esc).join(', ') : '';
+    return `<div class="bar"><div class="side-name ${g.turn === p && g.winner === null ? 'active' : ''}"><i class="turn-dot"></i><span>${esc(pl.name)}</span></div><div class="res-info">${res} · K.O. ${pl.ko.length}<span class="syn-tag">${syn}</span></div></div>`;
   }
 
-  function isHumanTurn() { const g = A.game; return g && g.winner === null && !g.players[g.turn].cpu; }
+  // è il turno di chi tiene in mano questo telefono?
+  function isLocalTurn() {
+    const g = A.game;
+    if (!g || g.winner !== null || g.players[g.turn].cpu) return false;
+    if (A.mode === 'online' && g.turn !== A.me) return false;
+    return true;
+  }
 
   function renderBattle() {
     const g = A.game;
@@ -272,16 +477,17 @@
     if (!banner) {
       if (g.winner !== null) banner = `${g.players[g.winner].name} ha vinto!`;
       else if (A.sel) banner = 'Tocca il bersaglio';
-      else if (isHumanTurn()) banner = g.turnNo <= 2 ? 'Tocca una tua carta per farla agire' : `Turno ${Math.ceil(g.turnNo / 2)} · tocca a ${g.players[g.turn].name}`;
+      else if (isLocalTurn()) banner = g.turnNo <= 2 ? 'Tocca una tua carta per farla agire' : `Turno ${Math.ceil(g.turnNo / 2)} · tocca a ${g.players[g.turn].name}`;
+      else if (A.mode === 'online') banner = `Tocca a ${g.players[g.turn].name}…`;
       else banner = `${g.players[g.turn].name} sta pensando…`;
     }
-    const canEnd = isHumanTurn() && !A.busy;
+    const canEnd = isLocalTurn() && !A.busy;
     return `<div class="battle">
-      <div class="bar"><button class="back" data-act="quit">← Esci</button><div class="eyebrow num">Turno ${Math.ceil(g.turnNo / 2)}</div><button class="back" data-act="anim-cycle" aria-label="Animazioni: ${ANIM_LABEL[A.anim]}">${ANIM_LABEL[A.anim]}</button></div>
+      <div class="bar"><button class="back" data-act="quit">← Esci</button><div class="eyebrow num">Turno ${Math.ceil(g.turnNo / 2)}${A.mode === 'torneo' ? ` · Torneo ${torneo().stage + 1}/5` : ''}</div><button class="back" data-act="anim-cycle" aria-label="Animazioni: ${ANIM_LABEL[settings.anim]}">${ANIM_LABEL[settings.anim]}</button></div>
       ${sideBar(g, opp)}
       ${rowHtml(g, opp)}
       <div class="mid">
-        <div class="banner" aria-live="polite">${esc(banner)}</div>
+        ${tutorialHtml() || `<div class="banner" aria-live="polite">${esc(banner)}</div>`}
         <div class="log ${A.logOpen ? 'open' : ''}" data-act="log" role="button" tabindex="0" aria-label="Registro della partita">${lines || '<p>La sfida ha inizio.</p>'}</div>
       </div>
       ${rowHtml(g, me)}
@@ -293,10 +499,36 @@
     </div>`;
   }
 
-  // scheda azioni di una carta
+  // ------------------------------------------------------------ TUTORIAL
+  const TUT = [
+    'Benvenuto nel Tempio! In basso ci sono le tue carte, in alto quelle avversarie. Tocca una tua carta per farla agire.',
+    'Ogni carta può fare un Attacco oppure usare una mossa speciale (in arancione). Scegli Attacco.',
+    'Ora tocca un avversario in alto. Il numero rosso sulla carta sono i danni previsti.',
+    'Bene! Nel tuo turno ogni carta agisce una volta. Chi inizia, al primo turno, usa solo 2 carte: fai agire la seconda.',
+    'Ora puoi usare le mosse speciali: tocca una carta e scegline una in arancione. Dopo l\'uso si ricaricano per qualche turno.',
+    'Le etichette colorate sulle carte sono gli effetti (stordimento, ATK in più…). Tocca una carta avversaria per leggerli tutti.',
+    'Quando una tua carta va K.O. entra la riserva. Vince chi manda K.O. tutte le carte avversarie. Ora tocca a te!',
+  ];
+  function tutorialHtml() {
+    if (A.mode !== 'tutorial' || A.tut < 0 || A.tut >= TUT.length || !A.game || A.game.winner !== null) return '';
+    return `<div class="tut" role="status"><i style="${face('samuele')}"></i><div><b>Maestro Samuele</b><p>${esc(TUT[A.tut])}</p>${A.tut === TUT.length - 1 ? '<button class="btn small" data-act="tut-done">Ho capito</button>' : ''}</div></div>`;
+  }
+  // avanza il tutorial quando succede la cosa giusta
+  function tutEvent(kind) {
+    if (A.mode !== 'tutorial' || A.tut < 0) return;
+    const s = A.tut;
+    const g = A.game;
+    if ((s === 0 && kind === 'sheet') || (s === 1 && kind === 'target') || (s === 2 && kind === 'acted')) A.tut++;
+    else if (s === 3 && kind === 'myturn' && g.turnNo >= 3) A.tut = 4;
+    else if (s === 4 && kind === 'special') { A.tut = 5; A.tutTurn = g.turnNo; }
+    else if (s === 5 && (kind === 'enemy-sheet' || (kind === 'myturn' && g.turnNo > A.tutTurn))) A.tut = 6;
+    if (A.tut !== s && A.screen === 'battle' && !$layer.querySelector('.sheet')) render();
+  }
+
+  // ------------------------------------------------------------ schede in partita
   function actorSheet(f) {
     const g = A.game;
-    const mine = isHumanTurn() && f.owner === g.turn && !A.busy;
+    const mine = isLocalTurn() && f.owner === g.turn && !A.busy;
     const opts = S.actorOptions(g, f);
     const c = S.cardOf(f);
     const chips = chipList(g, f, false);
@@ -315,6 +547,7 @@
       ${list}
       <button class="btn ghost" data-act="close">Chiudi</button>
     </div></div>`);
+    tutEvent(mine ? 'sheet' : (f.owner !== A.view ? 'enemy-sheet' : ''));
   }
 
   function copySheet(f, i) {
@@ -340,6 +573,7 @@
       const targets = S.targetsFor(g, f, inner).map(t => t.uid);
       A.sel = { actor: uid, move: i, pick, targets, inner };
       A.banner = `${inner.name}: tocca il bersaglio`;
+      if (A.mode === 'tutorial' && A.tut === 1) A.tut = 2;
       render();
     } else {
       act({ actor: uid, move: i, pick, target: null }, inner);
@@ -351,13 +585,23 @@
     if (inner && inner.formula) a.formula = await formulaPrompt();
     A.sel = null; A.banner = '';
     A.busy = true;
-    await perform(a);
+    const special = a.move >= 0;
+    await perform(a, true);
     A.busy = false;
+    tutEvent('acted');
+    if (special) tutEvent('special');
     afterAction();
   }
 
-  // ------------------------------------------------------------ animazioni 3D
-  function use3D() { return A.anim !== 'off' && window.Arena3D && window.Arena3D.available(); }
+  // ------------------------------------------------------------ esecuzione delle azioni
+  // Ogni azione passa da qui: la registro (per salvataggio e online) e la eseguo.
+  function applyAct(a) {
+    const g = A.game;
+    if (a.pass) S.passTurn(g); else S.doAction(g, a);
+    A.log.push(a);
+  }
+
+  function use3D() { return settings.anim !== 'off' && window.Arena3D && window.Arena3D.available(); }
 
   // fotografa chi agisce e chi viene colpito prima che l'azione cambi il campo
   function describe(g, a) {
@@ -402,28 +646,37 @@
       .map(t => Object.assign({}, t, { ally: t.owner === d.actor.owner, out: out[t.uid] }));
     const self = out[d.actor.uid];
     if (self && flags.confused) self.confuse = false;
-    return { attacker: d.actor, move: d.move, label: d.label, targets, self, flags, speed: A.anim === 'fast' ? 1.8 : 1 };
+    return { attacker: d.actor, move: d.move, label: d.label, targets, self, flags, speed: settings.anim === 'fast' ? 1.8 : 1 };
   }
 
-  async function perform(a) {
+  async function perform(a, local) {
     const g = A.game;
-    const d = use3D() ? describe(g, a) : null;
-    S.doAction(g, a);
+    const d = !a.pass && use3D() ? describe(g, a) : null;
+    const turnBefore = g.turn;
+    applyAct(a);
+    if (local && A.mode === 'online') Net.send({ t: 'act', n: A.log.length - 1, a });
     const evs = g.events.splice(0);
-    if (!d) { await playEvents(evs); return; }
-    let cut = evs.findIndex(e => e.type === 'turn');
-    if (cut < 0) cut = evs.length;
-    try { await window.Arena3D.play(buildSpec(d, evs.slice(0, cut))); } catch (e) { /* in caso di errore si prosegue senza 3D */ }
-    render();
-    await playEvents(evs.slice(cut));
+    saveGame();
+    if (!d) { await playEvents(evs); }
+    else {
+      let cut = evs.findIndex(e => e.type === 'turn');
+      if (cut < 0) cut = evs.length;
+      try { await window.Arena3D.play(buildSpec(d, evs.slice(0, cut))); } catch (e) { /* in caso di errore si prosegue senza 3D */ }
+      render();
+      await playEvents(evs.slice(cut));
+    }
+    if (g.turn !== turnBefore && isLocalTurn()) sfx('turn');
   }
 
   function afterAction() {
     const g = A.game;
+    if (!g) return;
     render();
     if (g.winner !== null) { setTimeout(showWinner, 700); return; }
     if (g.players[g.turn].cpu) { runCPU(); return; }
     if (A.mode === 'pvp' && g.turn !== A.view) handoff();
+    if (A.mode === 'online') processRemote();
+    if (isLocalTurn()) tutEvent('myturn');
   }
 
   async function runCPU() {
@@ -431,9 +684,9 @@
     A.busy = true; render();
     await sleep(700);
     let guard = 0;
-    while (g.winner === null && g.players[g.turn].cpu && guard++ < 30) {
-      const a = S.chooseAction(g, A.level);
-      if (!a) { S.passTurn(g); break; }
+    while (A.game === g && g.winner === null && g.players[g.turn].cpu && guard++ < 30) {
+      const a = S.chooseAction(g, g.players[g.turn].cpu);
+      if (!a) { applyAct({ pass: true }); g.events.splice(0); break; }
       const u = S.byUid(g, a.actor);
       const opt = S.actorOptions(g, u).find(o => o.i === a.move);
       let label = opt ? opt.move.name : '';
@@ -447,9 +700,11 @@
       render();
       await sleep(250);
     }
+    if (A.game !== g) return;
     A.busy = false;
     A.banner = g.winner === null ? `Tocca a te, ${g.players[g.turn].name}!` : '';
     render();
+    if (g.winner === null) { sfx('turn'); tutEvent('myturn'); }
     setTimeout(() => { if (A.banner.startsWith('Tocca a te')) { A.banner = ''; if (A.screen === 'battle' && !A.sel) render(); } }, 2200);
     if (g.winner !== null) setTimeout(showWinner, 700);
   }
@@ -471,14 +726,28 @@
     for (const e of evs) {
       if (e.type === 'dmg' || e.type === 'heal' || e.type === 'status') {
         const n = count[e.uid] = (count[e.uid] || 0) + 1;
-        if (e.type === 'dmg') floatOn(e.uid, `−${e.amount}`, 'dmg', n - 1);
-        if (e.type === 'heal') floatOn(e.uid, `+${e.amount}`, 'heal', n - 1);
-        if (e.type === 'status') floatOn(e.uid, e.text, 'st', n - 1);
+        if (e.type === 'dmg') { floatOn(e.uid, `−${e.amount}`, 'dmg', n - 1); sfx(e.amount >= 45 ? 'bighit' : 'hit', e.amount); }
+        if (e.type === 'heal') { floatOn(e.uid, `+${e.amount}`, 'heal', n - 1); sfx('heal'); }
+        if (e.type === 'status') { floatOn(e.uid, e.text, 'st', n - 1); sfx(e.text === 'SCHIVATA' ? 'dodge' : e.text === 'CONFUSO' ? 'confuse' : e.text === 'IMMUNE' ? 'shield' : 'stun'); }
         fx = true;
         await sleep(160);
-      } else if (e.type === 'ko') { mark(e.uid, 'ko'); fx = true; }
+      } else if (e.type === 'ko') { mark(e.uid, 'ko'); sfx('ko'); if (window.Sound) Sound.buzz([90, 50, 160]); fx = true; }
+      else if (e.type === 'gymevent') { if (fx) { await sleep(500); fx = false; } await showToast(e.name, e.desc); }
     }
     if (fx) await sleep(650);
+  }
+
+  // annuncio degli eventi in palestra
+  async function showToast(title, text) {
+    sfx('event');
+    const el = document.createElement('div');
+    el.className = 'toast'; el.setAttribute('role', 'status');
+    el.innerHTML = `<div class="eyebrow">📣 Evento in palestra</div><b>${esc(title)}</b><p>${esc(text)}</p>`;
+    document.body.appendChild(el);
+    await sleep(2600);
+    el.classList.add('out');
+    await sleep(300);
+    el.remove();
   }
 
   // passaggio del telefono (2 giocatori)
@@ -493,20 +762,51 @@
     </div>`);
   }
 
+  // ------------------------------------------------------------ fine partita
   function showWinner() {
     const g = A.game;
-    if (!g || g.winner === null || A.screen !== 'battle') return;
+    if (!g || g.winner === null || A.screen !== 'battle' || A.ended === g) return;
+    A.ended = g;
+    drop('save');
+    recordResult(g);
     const w = g.players[g.winner];
-    const human = A.mode === 'cpu' ? (g.winner === 0 ? 'Vittoria!' : 'Sconfitta') : 'Vittoria!';
+    const localWin = A.mode === 'pvp' || (A.mode === 'online' ? g.winner === A.me : g.winner === 0);
+    sfx(localWin ? 'win' : 'lose');
+    let extra = '';
+    // carte sbloccate
+    let got = [];
+    if (A.mode === 'tutorial') { store('tutorial', true); got = unlockRandom(2); }
+    else if (localWin) got = unlockRandom(1);
+    // torneo
+    let torneoMsg = '';
+    if (A.mode === 'torneo') {
+      const t = torneo();
+      if (g.winner === 0) {
+        t.stage++;
+        if (t.stage >= TORNEO.length) { t.stage = 0; t.titles = (t.titles || 0) + 1; got = got.concat(unlockRandom(3)); torneoMsg = '🏆 Campione del Tempio! Hai vinto il torneo.'; }
+        else torneoMsg = `Incontro vinto! Prossimo: ${TORNEO[t.stage].name}.`;
+      } else torneoMsg = 'Incontro perso: puoi ritentarlo quando vuoi.';
+      store('torneo', t);
+    }
+    if (got.length) extra += `<div class="unlock"><div class="eyebrow">Nuov${got.length > 1 ? 'e carte sbloccate' : 'a carta sbloccata'}!</div><div class="faces">${got.map(id => `<i style="${face(id)}" title="${esc(S.CARD[id].name)}"></i>`).join('')}</div><p>${got.map(id => esc(S.CARD[id].name)).join(', ')}</p></div>`;
+    const title = A.mode === 'pvp' ? 'Vittoria!' : (localWin ? (torneoMsg.startsWith('🏆') ? 'Campione!' : 'Vittoria!') : 'Sconfitta');
     const alive = w.field.concat(w.reserve);
+    const btns = A.mode === 'torneo'
+      ? `<button class="btn primary" data-act="torneo-next">${g.winner === 0 ? (torneo().stage === 0 ? 'Torna al torneo' : 'Prossimo incontro') : 'Ritenta'}</button><button class="btn ghost" data-act="quit-now">Menu</button>`
+      : A.mode === 'tutorial'
+        ? '<button class="btn primary" data-act="quit-now">Vai al menu</button>'
+        : A.mode === 'online'
+          ? '<button class="btn primary" data-act="on-rematch">Rivincita</button><button class="btn ghost" data-act="quit-now">Esci</button>'
+          : '<button class="btn primary" data-act="rematch">Rivincita</button><button class="btn" data-act="new-game">Cambia squadre</button><button class="btn ghost" data-act="quit-now">Menu</button>';
     openLayer(`<div class="overlay" role="dialog">
       <div class="eyebrow">Fine della sfida · turno ${Math.ceil(g.turnNo / 2)}</div>
-      <h2>${human}</h2>
+      <h2>${title}</h2>
       <p>${esc(w.name)} vince con ${alive.length} cart${alive.length === 1 ? 'a' : 'e'} ancora in piedi.</p>
       <div class="faces">${alive.map(f => `<i style="${face(f.card)}"></i>`).join('')}</div>
-      <button class="btn primary" data-act="rematch">Rivincita</button>
-      <button class="btn" data-act="new-game">Cambia squadre</button>
-      <button class="btn ghost" data-act="quit-now">Menu</button>
+      ${torneoMsg ? `<p><b>${esc(torneoMsg)}</b></p>` : ''}
+      ${A.mode === 'tutorial' ? '<p>Tutorial completato!</p>' : ''}
+      ${extra}
+      ${btns}
     </div>`);
   }
 
@@ -545,31 +845,274 @@
     return dp[a.length][b.length] <= 3;
   }
 
+  // ------------------------------------------------------------ avvio partite
+  // setup = opzioni di createGame (con seme esplicito): basta questo più l'elenco delle azioni per ricostruire la partita.
+  function launch(setup, opts) {
+    opts = opts || {};
+    A.setup = setup;
+    A.log = [];
+    A.game = S.createGame(setup);
+    A.game.events = [];
+    A.ended = null;
+    A.sel = null; A.logOpen = false; A.busy = false; A.banner = '';
+    A.view = opts.view !== undefined ? opts.view : 0;
+    go('battle');
+    saveGame();
+  }
+
+  function newSetup(players, first) {
+    return {
+      seed: Math.floor(Math.random() * 2 ** 31),
+      first: first === undefined ? (Math.random() < 0.5 ? 0 : 1) : first,
+      gymEvents: settings.events,
+      players,
+    };
+  }
+
   function startGame(first, sameTeams) {
     const cpu = A.mode === 'cpu';
     if (cpu && !sameTeams) A.teams[1] = S.randomTeam(null, S.BUDGET - 1);
-    A.first = first === undefined ? (Math.random() < 0.5 ? 0 : 1) : first;
-    A.game = S.createGame({
-      first: A.first,
-      players: [
-        { name: A.names[0] || 'Giocatore 1', cards: A.teams[0] },
-        { name: cpu ? 'Computer' : (A.names[1] || 'Giocatore 2'), cards: A.teams[1], cpu: cpu ? A.level : null },
-      ],
-    });
-    A.game.events = [];
-    A.view = cpu ? 0 : A.first;
-    A.sel = null; A.logOpen = false; A.busy = false;
-    A.banner = '';
-    go('battle');
+    const setup = newSetup([
+      { name: A.names[0] || 'Giocatore 1', cards: A.teams[0] },
+      { name: cpu ? 'Computer' : (A.names[1] || 'Giocatore 2'), cards: A.teams[1], cpu: cpu ? A.level : null },
+    ], first);
+    A.first = setup.first;
+    launch(setup, { view: cpu ? 0 : setup.first });
+    beginOverlay();
+  }
+
+  function startTorneo() {
+    const t = torneo(), o = TORNEO[t.stage];
+    const setup = newSetup([
+      { name: A.names[0] || 'Giocatore 1', cards: A.teams[0] },
+      { name: o.name, cards: o.cards, cpu: o.level },
+    ]);
+    A.first = setup.first;
+    launch(setup, { view: 0 });
+    beginOverlay();
+  }
+
+  function startTutorial() {
+    A.mode = 'tutorial';
+    A.tut = 0;
+    const setup = newSetup([
+      { name: A.names[0] || 'Giocatore 1', cards: ['lorenzo', 'grazia', 'federico', 'caterina'] },
+      { name: 'Computer', cards: ['vittorio', 'celeste', 'oksana', 'adriano'], cpu: 'facile' },
+    ], 0);
+    setup.gymEvents = false;
+    A.first = 0;
+    launch(setup, { view: 0 });
+  }
+
+  function beginOverlay() {
     const g = A.game;
+    const opp = A.mode === 'online' ? 1 - A.me : 1;
     openLayer(`<div class="overlay" role="dialog">
       <div class="eyebrow">Lancio della moneta</div>
       <h2>Inizia ${esc(g.players[g.turn].name)}</h2>
       <p>Al primo turno chi inizia agisce con 2 carte e solo con attacchi base.</p>
-      <div class="faces">${g.players[1].field.concat(g.players[1].reserve).map(f => `<i style="${face(f.card)}" title="${esc(f.name)}"></i>`).join('')}</div>
-      <p>${cpu ? 'La squadra del computer' : `La squadra di ${esc(g.players[1].name)}`}</p>
+      <div class="faces">${g.players[opp].field.concat(g.players[opp].reserve).map(f => `<i style="${face(f.card)}" title="${esc(f.name)}"></i>`).join('')}</div>
+      <p>La squadra di ${esc(g.players[opp].name)}</p>
       <button class="btn primary" data-act="begin">Combatti!</button>
     </div>`);
+  }
+
+  // ------------------------------------------------------------ salvataggio della partita
+  function saveGame() {
+    const g = A.game;
+    if (!g || A.mode === 'online' || A.mode === 'tutorial') return;
+    if (g.winner !== null) { drop('save'); return; }
+    store('save', { mode: A.mode, level: A.level, names: A.names, teams: A.teams, setup: A.setup, log: A.log, view: A.view, turnNo: g.turnNo, first: A.first });
+  }
+
+  function resumeGame() {
+    const s = load('save', null);
+    if (!s) return;
+    try {
+      A.mode = s.mode; A.level = s.level; A.names = s.names; A.teams = s.teams; A.first = s.first;
+      const setup = Object.assign({}, s.setup, { silent: true });
+      A.setup = s.setup;
+      A.game = S.createGame(setup);
+      A.log = [];
+      for (const a of s.log) applyAct(a);
+      A.game.silent = false; A.game.events = [];
+      A.ended = null; A.sel = null; A.busy = false; A.banner = ''; A.logOpen = false;
+      A.view = A.mode === 'pvp' ? A.game.turn : 0;
+      go('battle');
+      afterAction();
+    } catch (e) {
+      drop('save');
+      go('home');
+    }
+  }
+
+  // ------------------------------------------------------------ ONLINE: protocollo
+  function onNet(e) {
+    const o = A.on || (A.on = { phase: 'menu' });
+    if (e.type === 'connected') {
+      o.connected = true;
+      Net.send({ t: 'hello', name: A.names[0] || 'Giocatore', have: A.mode === 'online' && A.game ? A.log.length : -1 });
+      if (o.lost) { o.lost = false; closeLayer(); }
+    } else if (e.type === 'disconnected') {
+      o.connected = false;
+      if (A.mode === 'online' && A.game && A.game.winner === null) connectionLost();
+      else if (o.phase === 'lobby') { o.phase = 'menu'; o.error = 'L\'altro giocatore si è scollegato.'; Net.close(); go('online'); }
+    } else if (e.type === 'error') {
+      if (A.screen === 'online') { o.error = e.message; o.phase = 'menu'; render(); }
+    } else if (e.type === 'data') onMessage(e.data);
+  }
+
+  function onMessage(m) {
+    const o = A.on;
+    if (!m || typeof m !== 'object' || !o) return;
+    if (m.t === 'hello') {
+      o.oppName = String(m.name || 'Avversario').slice(0, 16);
+      if (A.mode === 'online' && A.game) {
+        // si è ricollegato durante la partita: gli mando lo stato
+        if (Net.role === 'host') Net.send({ t: 'sync', setup: A.setup, log: A.log });
+        return;
+      }
+      if (o.phase !== 'lobby') {
+        o.phase = 'lobby';
+        A.mode = 'online'; A.builder = 0; A.filter = 'all';
+        A.teams = [load('team0', []).filter(id => unlocked().includes(id)), []];
+        if (S.teamCost(A.teams[0]) > S.BUDGET || A.teams[0].length !== S.TEAM_SIZE) A.teams[0] = [];
+        go('build');
+        toastQuick(`Collegato con ${o.oppName}! Scegli la tua squadra.`);
+      }
+    } else if (m.t === 'team') {
+      o.oppTeam = sanitizeTeam(m.cards);
+      maybeStartOnline();
+    } else if (m.t === 'start') {
+      if (Net.role !== 'guest' || !m.setup) return;
+      startOnline(m.setup);
+    } else if (m.t === 'act') {
+      (o.queue = o.queue || []).push(m);
+      processRemote();
+    } else if (m.t === 'sync-req') {
+      Net.send({ t: 'sync', setup: A.setup, log: A.log });
+    } else if (m.t === 'sync') {
+      applySync(m);
+    } else if (m.t === 'rematch') {
+      o.oppRematch = true;
+      maybeRematch();
+    } else if (m.t === 'bye') {
+      if (A.mode === 'online' && A.game && A.game.winner === null) {
+        openLayer(`<div class="overlay" role="dialog"><h2>Partita chiusa</h2><p>${esc(o.oppName || 'L\'avversario')} ha lasciato la partita.</p><button class="btn primary" data-act="quit-now">Menu</button></div>`);
+      }
+    }
+  }
+
+  function sanitizeTeam(cards) {
+    if (!Array.isArray(cards)) return null;
+    const t = cards.filter(id => typeof id === 'string' && S.CARD[id]);
+    if (t.length !== S.TEAM_SIZE || new Set(t).size !== S.TEAM_SIZE || S.teamCost(t) > S.BUDGET) return null;
+    return t;
+  }
+
+  function maybeStartOnline() {
+    const o = A.on;
+    if (Net.role !== 'host' || !o.myTeam || !o.oppTeam) return;
+    const setup = newSetup([
+      { name: A.names[0] || 'Giocatore 1', cards: o.myTeam },
+      { name: o.oppName || 'Giocatore 2', cards: o.oppTeam },
+    ]);
+    Net.send({ t: 'start', setup });
+    startOnline(setup);
+  }
+
+  function startOnline(setup) {
+    const o = A.on;
+    o.queue = []; o.oppRematch = false; o.myRematch = false;
+    A.mode = 'online';
+    A.me = Net.role === 'host' ? 0 : 1;
+    A.first = setup.first;
+    launch(setup, { view: A.me });
+    beginOverlay();
+  }
+
+  async function processRemote() {
+    const o = A.on;
+    const g = A.game;
+    if (!o || !g || A.busy || A.processing) return;
+    if ($layer.querySelector('[data-act="begin"]')) return; // si parte quando chiudo la schermata iniziale
+    A.processing = true;
+    try {
+      while (o.queue && o.queue.length && A.game === g) {
+        o.queue.sort((x, y) => x.n - y.n);
+        const m = o.queue[0];
+        if (m.n < A.log.length) { o.queue.shift(); continue; }
+        if (m.n > A.log.length) { Net.send({ t: 'sync-req', have: A.log.length }); break; }
+        o.queue.shift();
+        A.busy = true;
+        const a = m.a || {};
+        if (!a.pass) {
+          const u = S.byUid(g, a.actor);
+          if (u) { A.banner = `${u.name} (${g.players[u.owner].name})`; render(); mark(a.actor, 'acting'); if (a.target) mark(a.target, 'target'); await sleep(use3D() ? 350 : 700); }
+        }
+        await perform(a.pass ? { pass: true } : a);
+        A.banner = '';
+        A.busy = false;
+        render();
+        if (g.winner !== null) { setTimeout(showWinner, 700); break; }
+      }
+    } finally {
+      A.processing = false;
+      A.busy = false;
+    }
+    if (isLocalTurn()) { render(); }
+  }
+
+  function applySync(m) {
+    if (!m.setup || !Array.isArray(m.log)) return;
+    const same = A.setup && A.setup.seed === m.setup.seed;
+    if (!same) { startOnline(m.setup); }
+    // ricostruisco la partita dall'inizio con tutte le azioni ricevute
+    if (m.log.length >= A.log.length) {
+      const setup = Object.assign({}, m.setup, { silent: true });
+      A.game = S.createGame(setup);
+      A.log = [];
+      for (const a of m.log) applyAct(a);
+      A.game.silent = false; A.game.events = [];
+      A.on.queue = [];
+      closeLayer();
+      render();
+      if (A.game.winner !== null) setTimeout(showWinner, 400);
+    }
+  }
+
+  function connectionLost() {
+    const o = A.on;
+    o.lost = true;
+    const guest = Net.role === 'guest';
+    openLayer(`<div class="overlay" role="dialog">
+      <h2>Connessione persa</h2>
+      <p>${guest ? 'Il collegamento con l\'altro telefono si è interrotto.' : `In attesa che ${esc(o.oppName || 'l\'altro giocatore')} si ricolleghi…`}</p>
+      ${guest ? '<button class="btn primary" data-act="on-rejoin">Ricollegati</button>' : ''}
+      <button class="btn ghost" data-act="quit-now">Esci dalla partita</button>
+    </div>`);
+  }
+
+  function maybeRematch() {
+    const o = A.on;
+    if (!o.oppRematch || !o.myRematch) return;
+    if (Net.role === 'host') {
+      const setup = newSetup(A.setup.players.map(p => ({ name: p.name, cards: p.cards })));
+      Net.send({ t: 'start', setup });
+      startOnline(setup);
+    }
+  }
+
+  function toastQuick(text) {
+    const el = document.createElement('div');
+    el.className = 'toast small'; el.setAttribute('role', 'status'); el.textContent = text;
+    document.body.appendChild(el);
+    setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 300); }, 2200);
+  }
+
+  function leaveOnline() {
+    if (window.Net && Net.role) { Net.send({ t: 'bye' }); setTimeout(() => Net.close(), 200); }
+    A.on = null;
   }
 
   // ------------------------------------------------------------ LAYER (fogli e sovrapposizioni)
@@ -584,29 +1127,43 @@
     store('names', A.names);
   }
 
+  function confirmBox(title, text, yesAct, yesLabel) {
+    openLayer(`<div class="overlay" role="dialog"><h2>${esc(title)}</h2><p>${esc(text)}</p><button class="btn primary" data-act="${yesAct}">${esc(yesLabel)}</button><button class="btn" data-act="close">Annulla</button></div>`);
+  }
+
   function handle(e) {
     const el = e.target.closest('[data-act]');
+    if (window.Sound) Sound.unlock();
     if (!el) return;
     // clic dentro un foglio: non chiudere
     if (el.dataset.act === 'close' && el.classList.contains('sheet-wrap') && e.target.closest('[data-stop]')) return;
     const kind = el.dataset.act, v = el.dataset.v;
     const g = A.game;
+    if (el.tagName === 'BUTTON' || el.getAttribute('role') === 'button') sfx('tap');
     switch (kind) {
-      case 'go': go(v); break;
+      case 'go': if (v === 'online') A.on = A.on || { phase: 'menu' }; go(v); break;
       case 'mode': A.mode = v; go('setup'); break;
       case 'level': A.level = v; store('level', v); saveNames(); render(); break;
-      case 'anim': A.anim = v; store('anim', v); saveNames(); render(); break;
-      case 'anim-cycle': A.anim = { full: 'fast', fast: 'off', off: 'full' }[A.anim]; store('anim', A.anim); render(); break;
+      case 'set': {
+        const key = el.dataset.k;
+        settings[key] = v === 'true' ? true : v === 'false' ? false : v;
+        saveSettings(); render(); break;
+      }
+      case 'anim-cycle': settings.anim = { full: 'fast', fast: 'off', off: 'full' }[settings.anim]; saveSettings(); render(); break;
       case 'to-build':
         saveNames();
-        A.builder = 0; A.teams = [load('team0', []), A.mode === 'pvp' ? load('team1', []) : []];
-        A.teams = A.teams.map(t => (t.every(id => S.CARD[id]) && S.teamCost(t) <= S.BUDGET) ? t : []);
+        A.builder = 0; A.filter = 'all';
+        A.teams = [load('team0', []), A.mode === 'pvp' ? load('team1', []) : []];
+        A.teams = A.teams.map(t => (t.every(id => unlocked().includes(id)) && S.teamCost(t) <= S.BUDGET) ? t : []);
         go('build'); break;
       case 'build-back':
-        if (A.builder === 1) { A.builder = 0; render(); } else go('setup');
+        if (A.mode === 'online') { leaveOnline(); go('home'); }
+        else if (A.mode === 'torneo') go('torneo');
+        else if (A.builder === 1) { A.builder = 0; render(); } else go('setup');
         break;
       case 'filter': A.filter = v; render(); break;
       case 'pick': {
+        if (!unlocked().includes(v)) { cardSheet(v); break; }
         const t = A.teams[A.builder];
         const i = t.indexOf(v);
         if (i >= 0) t.splice(i, 1);
@@ -614,20 +1171,27 @@
         render(); break;
       }
       case 'unpick': A.teams[A.builder].splice(+v, 1); render(); break;
-      case 'random-team': A.teams[A.builder] = S.randomTeam(null, S.BUDGET - 1); render(); break;
+      case 'random-team': A.teams[A.builder] = S.randomTeam(null, S.BUDGET - 1, unlocked()); render(); break;
       case 'confirm-team':
         store('team' + A.builder, A.teams[A.builder]);
         if (A.mode === 'pvp' && A.builder === 0) {
           A.builder = 1; A.filter = 'all'; render(); window.scrollTo(0, 0);
           openLayer(`<div class="overlay" role="dialog"><div class="eyebrow">Squadra pronta</div><h2>Passa il telefono a ${esc(A.names[1])}</h2><p>Ora tocca a ${esc(A.names[1])} scegliere la sua squadra.</p><button class="btn primary" data-act="close">Sono pronto</button></div>`);
+        } else if (A.mode === 'torneo') startTorneo();
+        else if (A.mode === 'online') {
+          A.on.myTeam = A.teams[0].slice();
+          Net.send({ t: 'team', cards: A.on.myTeam });
+          openLayer(`<div class="overlay" role="dialog"><div class="eyebrow">Squadra pronta</div><h2>In attesa di ${esc(A.on.oppName || 'avversario')}</h2><p>La partita parte quando anche l'altra squadra è pronta.</p><button class="btn ghost" data-act="close">Cambia squadra</button></div>`);
+          maybeStartOnline();
         } else startGame();
         break;
       case 'card': e.stopPropagation(); cardSheet(v); break;
-      case 'close': closeLayer(); break;
-      case 'begin': closeLayer(); if (g.players[g.turn].cpu) runCPU(); break;
+      case 'close': closeLayer(); if (A.screen === 'battle' && A.mode === 'tutorial') render(); break;
+      case 'begin': closeLayer(); if (g.players[g.turn].cpu) runCPU(); else if (A.mode === 'online') processRemote(); break;
       case 'handoff-ok': A.view = g.turn; closeLayer(); render(); break;
       case 'log': A.logOpen = !A.logOpen; render(); if (A.logOpen) { const l = $app.querySelector('.log'); if (l) l.scrollTop = l.scrollHeight; } break;
       case 'tile': {
+        if (!g) break;
         const f = S.byUid(g, v);
         if (!f) break;
         if (A.sel) {
@@ -641,20 +1205,78 @@
       case 'move': if (!A.busy) chooseMove(el.dataset.uid, +el.dataset.i); break;
       case 'copy-pick': chooseMove(el.dataset.uid, +el.dataset.i, { card: el.dataset.card, i: +el.dataset.mi }); break;
       case 'cancel-sel': A.sel = null; A.banner = ''; render(); break;
-      case 'end-turn': if (isHumanTurn() && !A.busy) { S.passTurn(g); A.busy = true; playEvents(g.events.splice(0)).then(() => { A.busy = false; afterAction(); }); } break;
-      case 'quit':
-        openLayer(`<div class="overlay" role="dialog"><h2>Abbandoni?</h2><p>La partita in corso andrà persa.</p><button class="btn primary" data-act="quit-now">Esci dalla partita</button><button class="btn" data-act="close">Continua a giocare</button></div>`);
+      case 'end-turn':
+        if (isLocalTurn() && !A.busy) {
+          A.busy = true;
+          perform({ pass: true }, true).then(() => { A.busy = false; afterAction(); });
+        }
         break;
-      case 'quit-now': A.game = null; go('home'); break;
+      case 'quit':
+        confirmBox('Abbandoni?', A.mode === 'online' ? 'La partita online verrà chiusa anche per l\'altro giocatore.' : 'Puoi riprendere la partita dal menu.', 'quit-now', 'Esci dalla partita');
+        break;
+      case 'quit-now':
+        if (A.mode === 'online') leaveOnline();
+        A.game = null; A.tut = -1; go('home'); break;
       case 'rematch': closeLayer(); startGame(1 - A.first, true); break;
       case 'new-game': A.game = null; closeLayer(); A.builder = 0; go('build'); break;
+      case 'resume': resumeGame(); break;
+      case 'tutorial': case 'replay-tutorial': startTutorial(); break;
+      case 'tut-done': A.tut = TUT.length; render(); break;
+      case 'install': if (installEvt) { installEvt.prompt(); installEvt = null; render(); } break;
+      case 'reset-stats': confirmBox('Azzerare la classifica?', 'Tutti i risultati salvati su questo telefono verranno cancellati.', 'reset-stats-yes', 'Azzera'); break;
+      case 'reset-stats-yes': drop('stats'); closeLayer(); render(); break;
+      case 'reset-progress': confirmBox('Azzerare i progressi?', 'Carte sbloccate, torneo e tutorial tornano come all\'inizio. La classifica resta.', 'reset-progress-yes', 'Azzera'); break;
+      case 'reset-progress-yes': drop('unlocked'); drop('torneo'); drop('tutorial'); closeLayer(); render(); break;
+      // torneo
+      case 'torneo-go':
+        saveNames();
+        A.mode = 'torneo'; A.builder = 0; A.filter = 'all';
+        A.teams = [load('team0', []).filter(id => unlocked().includes(id)), []];
+        if (A.teams[0].length !== S.TEAM_SIZE || S.teamCost(A.teams[0]) > S.BUDGET) A.teams[0] = [];
+        go('build'); break;
+      case 'torneo-next': A.game = null; closeLayer(); if (torneo().stage === 0) go('torneo'); else { A.mode = 'torneo'; go('build'); } break;
+      case 'torneo-reset': confirmBox('Ricominciare il torneo?', 'Riparti dal primo incontro. I titoli vinti restano.', 'torneo-reset-yes', 'Ricomincia'); break;
+      case 'torneo-reset-yes': { const t = torneo(); t.stage = 0; store('torneo', t); closeLayer(); render(); break; }
+      // online
+      case 'on-host':
+        saveNames();
+        A.on = { phase: 'wait-host' }; render();
+        Net.host(onNet).then(code => { if (A.on && A.on.phase === 'wait-host') { A.on.code = code; render(); } })
+          .catch(err => { A.on = { phase: 'menu', error: err.message }; render(); });
+        break;
+      case 'on-join': {
+        saveNames();
+        const code = (document.getElementById('oncode') || {}).value || '';
+        A.on = { phase: 'connecting', typed: code }; render();
+        Net.join(code, onNet).catch(err => { A.on = { phase: 'menu', error: err.message, typed: code }; render(); });
+        break;
+      }
+      case 'on-cancel': leaveOnline(); go('home'); break;
+      case 'on-rejoin':
+        openLayer('<div class="overlay" role="dialog"><h2>Mi ricollego…</h2></div>');
+        Net.rejoin().catch(() => connectionLost());
+        break;
+      case 'on-rematch':
+        A.on.myRematch = true; Net.send({ t: 'rematch' });
+        openLayer(`<div class="overlay" role="dialog"><h2>Rivincita</h2><p>In attesa di ${esc(A.on.oppName || 'avversario')}…</p><button class="btn ghost" data-act="quit-now">Esci</button></div>`);
+        maybeRematch();
+        break;
     }
   }
   document.addEventListener('click', handle);
   document.addEventListener('keydown', e => {
     if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-act]')) { e.preventDefault(); handle(e); }
-    if (e.key === 'Escape' && $layer.innerHTML && !$layer.querySelector('input')) closeLayer();
+    if (e.key === 'Escape' && $layer.innerHTML && !$layer.querySelector('input') && $layer.querySelector('.sheet')) closeLayer();
   });
+  window.addEventListener('beforeunload', () => { if (A.mode === 'online' && window.Net && Net.role) Net.send({ t: 'bye' }); });
+
+  // ------------------------------------------------------------ app installabile (fuori dall'anteprima)
+  if ('serviceWorker' in navigator && window.top === window && /^https:$|^http:$/.test(location.protocol) && location.hostname !== 'localhost') {
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* non installabile qui */ }); });
+  }
+
+  // solo per i test automatici (indirizzo che termina con #test)
+  if (location.hash === '#test') window.__sttTest = { A, S };
 
   render();
 })();

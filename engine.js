@@ -53,7 +53,7 @@
       id: 'chen', name: 'Chen Delang', rank: 'M', cost: 4, hp: 160, atk: 80, def: 70,
       orig: { atk: 100, def: 100 },
       moves: [
-        { name: 'Spallata del Prodigio', target: 'enemy', cd: 2, pierce: true,
+        { name: 'Spallata del Prodigio', target: 'enemy', cd: 2, pierce: true, hit: {},
           desc: 'Attacco che apre un varco: ignora invulnerabilità, schivate e contrattacchi. 1 su 3: parte la musica dei Prodigy e i danni raddoppiano!',
           use(g, u, t) {
             let mul = 1;
@@ -66,7 +66,7 @@
       ],
     },
     {
-      id: 'elia', name: 'Elia Moretton', rank: 'M', cost: 4, hp: 140, atk: 90, def: 75,
+      id: 'elia', name: 'Elia Moretton', rank: 'M', cost: 4, hp: 135, atk: 85, def: 75,
       orig: { atk: 90, def: 90 },
       moves: [
         { name: 'Perfezionismo Compulsivo', target: 'enemy', cd: 3,
@@ -88,7 +88,7 @@
         { name: 'Firma Urgente', target: 'enemies', cd: 3,
           desc: 'Blocca le tecniche avversarie: per 1 turno nessun avversario può usare mosse speciali.',
           use(g, u) { for (const f of enemies(g, u.owner)) addStatus(g, f, u, 'block', 1); log(g, `${nm(u)} fa firmare un modulo urgente: tecniche avversarie bloccate!`); } },
-        { name: 'Annotazione Omnidirezionale', target: 'enemy', cd: 2, pierce: true, whileStunned: true,
+        { name: 'Annotazione Omnidirezionale', target: 'enemy', cd: 2, pierce: true, whileStunned: true, hit: { flat: 15 },
           desc: 'Colpisce con precisione qualsiasi avversario (+15 danni): ignora schivate e invulnerabilità. Si può usare anche se Katya è stordita.',
           use(g, u, t) { attack(g, u, t, { pierce: true, flat: 15 }); } },
       ],
@@ -97,10 +97,10 @@
       id: 'chicca', name: 'Chicca Fossa', rank: 'M', cost: 3, hp: 140, atk: 65, def: 60,
       orig: { atk: 70, def: 60 },
       moves: [
-        { name: 'Blocco Telematico', target: 'enemy', cd: 3,
+        { name: 'Blocco Telematico', target: 'enemy', cd: 3, hit: { defMul: 0.5 },
           desc: 'Rallenta l\'avversario (ATK −25% per 2 turni) e lo colpisce con la sua difesa dimezzata.',
           use(g, u, t) { attack(g, u, t, { defMul: 0.5 }); addStatus(g, t, u, 'atkMul', 2, 0.75); } },
-        { name: 'Ventaglio Perforante', target: 'enemy', cd: 1,
+        { name: 'Ventaglio Perforante', target: 'enemy', cd: 1, hit: { flat: 10 },
           desc: 'Finge di avere caldo e attacca con il ventaglio: +10 danni extra.',
           use(g, u, t) { attack(g, u, t, { flat: 10 }); } },
       ],
@@ -141,7 +141,7 @@
         { name: 'Dolori Omnidirezionali', target: 'enemies', cd: 4,
           desc: 'Dolori che nessuno nota: ogni avversario in campo subisce 10 danni per 3 turni (ignorano la difesa).',
           use(g, u) { for (const f of enemies(g, u.owner)) addStatus(g, f, u, 'dot', 3, 10); log(g, `${nm(u)} semina dolori omnidirezionali...`); } },
-        { name: 'Organizzazione Confusionaria', target: 'enemy', cd: 3,
+        { name: 'Organizzazione Confusionaria', target: 'enemy', cd: 3, hit: {},
           desc: 'Attacca e confonde l\'avversario per 2 turni (può colpirsi per sbaglio).',
           use(g, u, t) { attack(g, u, t); confuse(g, t, u, 2); } },
       ],
@@ -150,10 +150,10 @@
       id: 'federica', name: 'Federica Siciliano', rank: 'I', cost: 3, hp: 140, atk: 60, def: 55,
       orig: { atk: 50, def: 50 },
       moves: [
-        { name: 'Dominio dell\'Infante', target: 'enemies', cd: 3, pierce: true,
+        { name: 'Dominio dell\'Infante', target: 'enemies', cd: 3, pierce: true, hit: { mul: 0.5 },
           desc: 'Evoca bambini non-morti che attaccano tutti gli avversari da ogni direzione: impossibile schivare, ma l\'attacco è dimezzato.',
           use(g, u) { for (const f of enemies(g, u.owner)) attack(g, u, f, { mul: 0.5, pierce: true }); } },
-        { name: 'Siculazione Distorta', target: 'enemy', cd: 4,
+        { name: 'Siculazione Distorta', target: 'enemy', cd: 4, hit: { flat: 20 },
           desc: 'Stordisce il nemico con frasi incomprensibili (1 turno) e attacca con +20 danni.',
           use(g, u, t) { attack(g, u, t, { flat: 20 }); stun(g, t, u, 1); } },
       ],
@@ -180,7 +180,7 @@
         { name: 'Che Voglia di Vivere', target: 'any', cd: 2,
           desc: 'Toglie 40 punti DEF a qualsiasi carta in campo (anche a sé stessa) per 2 turni.',
           use(g, u, t) { addStatus(g, t, u, 'defAdd', 2, -40); log(g, `${nm(t)} perde 40 DEF. Che voglia di vivere...`); } },
-        { name: 'Spaccaossa', target: 'enemy', cd: 3,
+        { name: 'Spaccaossa', target: 'enemy', cd: 3, hit: {},
           desc: 'Colpisce e toglie 30 punti ATK alla carta bersagliata per 2 turni.',
           use(g, u, t) { attack(g, u, t); addStatus(g, t, u, 'atkAdd', 2, -30); } },
       ],
@@ -189,7 +189,7 @@
       id: 'vittorio', name: 'Vittorio Buosi', rank: 'A', cost: 2, hp: 110, atk: 45, def: 35,
       orig: { atk: 50, def: 30 },
       moves: [
-        { name: 'Depressione Istantanea', target: 'enemy', cd: 4,
+        { name: 'Depressione Istantanea', target: 'enemy', cd: 4, hit: { ignoreDef: true },
           desc: 'Azzera i punti difesa dell\'avversario per 1 turno (usabile una volta ogni 5 turni) e lo colpisce.',
           use(g, u, t) { addStatus(g, t, u, 'defZero', 1); attack(g, u, t); } },
         { name: 'Sparizione Ultragenitoriale', target: 'self', cd: 5, free: true, whileStunned: true, nocopy: true,
@@ -215,16 +215,16 @@
       id: 'grazia', name: 'Grazia Lecci', rank: 'A', cost: 2, hp: 120, atk: 55, def: 45,
       orig: { atk: 40, def: 45 },
       moves: [
-        { name: 'Peluche Ipercoccoloso', target: 'enemy', cd: 4,
+        { name: 'Peluche Ipercoccoloso', target: 'enemy', cd: 4, hit: { defMul: 0.5 },
           desc: 'L\'avversario si innamora del peluche: lo colpisce con la sua DEF dimezzata e lo stordisce per 1 turno.',
           use(g, u, t) { attack(g, u, t, { defMul: 0.5 }); stun(g, t, u, 1); } },
-        { name: 'Pubblicità Fotogenica', target: 'enemy', cd: 1,
+        { name: 'Pubblicità Fotogenica', target: 'enemy', cd: 1, hit: { flat: 10 },
           desc: 'Si mostra innocua per poi sferrare l\'attacco con 10 punti extra.',
           use(g, u, t) { attack(g, u, t, { flat: 10 }); } },
       ],
     },
     {
-      id: 'celeste', name: 'Celeste Brugnera', rank: 'A', cost: 2, hp: 150, atk: 55, def: 45,
+      id: 'celeste', name: 'Celeste Brugnera', rank: 'A', cost: 2, hp: 160, atk: 55, def: 45,
       orig: { atk: 30, def: 30 },
       moves: [
         { name: 'Chioma Rinata', target: 'anyOther', once: true, nocopy: true,
@@ -262,7 +262,7 @@
       id: 'flavio', name: 'Flavio Neso', rank: 'A', cost: 2, hp: 105, atk: 50, def: 35,
       orig: { atk: 40, def: 30 },
       moves: [
-        { name: 'Delirio Onnipotente', target: 'enemy', cd: 5, formula: true,
+        { name: 'Delirio Onnipotente', target: 'enemy', cd: 5, formula: true, hit: { ignoreDef: true },
           desc: 'Infligge danni irreparabili (ignorano la DEF) e stordisce il bersaglio per 1 turno. Effetto ×2 (danni e stordimento) se evocata con la formula "fate tiri fate titi luis zoratto".',
           use(g, u, t, a) {
             const x2 = !!(a && a.formula);
@@ -314,7 +314,7 @@
       id: 'federico', name: 'Federico Franc.', rank: 'A', cost: 2, hp: 125, atk: 65, def: 35,
       orig: { atk: 80, def: 30 },
       moves: [
-        { name: 'Domanda Ossessiva Compulsiva', target: 'enemy', cd: 3,
+        { name: 'Domanda Ossessiva Compulsiva', target: 'enemy', cd: 3, hit: {},
           desc: 'Punti di domanda che durano fino a 3 giorni: colpisce e applica stato confusionale per 3 turni. Effetto duplicato sulle carte Istruttore (probabilità doppia di colpirsi da sole).',
           use(g, u, t) { attack(g, u, t); confuse(g, t, u, 3, t.rank === 'I' ? CONFUSE_CHANCE * 2 : CONFUSE_CHANCE); } },
       ],
@@ -341,7 +341,7 @@
         { name: 'Apprendimento Fulmineo', target: 'copy', cd: 4, nocopy: true,
           desc: 'Copia e usa subito una mossa speciale di un avversario in campo.',
           use() {} },
-        { name: 'T-shirt Magistrali', target: 'unfaced', cd: 3,
+        { name: 'T-shirt Magistrali', target: 'unfaced', cd: 3, hit: {},
           desc: 'Paralizza per 1 turno un avversario che non ha mai affrontato (mai colpito né subito colpi da lui) e lo colpisce.',
           use(g, u, t) { attack(g, u, t); stun(g, t, u, 1, 'paralizzato'); } },
       ],
@@ -366,7 +366,7 @@
       id: 'alessandro', name: 'Alessandro Rizzo', rank: 'A', cost: 2, hp: 145, atk: 65, def: 30,
       orig: { atk: 60, def: 30 },
       moves: [
-        { name: 'Sudorazione Esplosiva', target: 'enemy', cd: 2,
+        { name: 'Sudorazione Esplosiva', target: 'enemy', cd: 2, hit: {},
           desc: 'Attacca e applica bruciore anale al tocco: 12 danni per 3 turni (ignorano la difesa).',
           use(g, u, t) { attack(g, u, t); addStatus(g, t, u, 'dot', 3, 12); } },
         { name: 'Piedi Lanosi', target: 'self', cd: 4,
@@ -392,10 +392,55 @@
     },
   ];
 
+  // ---------------------------------------------------------------- SINERGIE DI SQUADRA
+  const SYNERGIES = [
+    { id: 'maestri', name: 'Linea dei Maestri', desc: 'Almeno 2 Maestri in squadra: i Maestri hanno +15 PV.',
+      test: r => r.M >= 2, apply: f => { if (f.rank === 'M') { f.hp += 15; f.maxHp += 15; } } },
+    { id: 'istruttori', name: 'Istruttori affiatati', desc: 'Almeno 2 Istruttori in squadra: gli Istruttori hanno +8 ATK.',
+      test: r => r.I >= 2, apply: f => { if (f.rank === 'I') f.baseAtk += 8; } },
+    { id: 'allievi', name: 'Forza degli allievi', desc: 'Almeno 3 Allievi in squadra: gli Allievi hanno +8 DEF.',
+      test: r => r.A >= 3, apply: f => { if (f.rank === 'A') f.baseDef += 8; } },
+    { id: 'scuola', name: 'Scuola completa', desc: 'Almeno un Maestro, un Istruttore e un Allievo: tutte le carte hanno +10 PV.',
+      test: r => r.M >= 1 && r.I >= 1 && r.A >= 1, apply: f => { f.hp += 10; f.maxHp += 10; } },
+  ];
+  function synergiesFor(ids) {
+    const r = { M: 0, I: 0, A: 0 };
+    ids.forEach(id => { r[CARD[id].rank]++; });
+    return SYNERGIES.filter(x => x.test(r));
+  }
+
+  // ---------------------------------------------------------------- EVENTI DELLA PALESTRA
+  // Ogni 3 round capita qualcosa in palestra: vale per tutte le carte in campo, di entrambe le squadre, per un round.
+  const GYM_EVENTS = [
+    { id: 'lezione', name: 'Lezione extra', desc: 'Tutte le carte in campo recuperano 15 PV.',
+      run(g) { for (const f of field(g)) heal(g, f, 15); } },
+    { id: 'caldo', name: 'Aria condizionata rotta', desc: 'Che caldo! ATK −15% a tutti per questo round.',
+      run(g, src) { for (const f of field(g)) addStatus(g, f, src, 'atkMul', 1, 0.85, true); } },
+    { id: 'maestro', name: 'Il Maestro osserva', desc: 'Maestri e Istruttori danno il massimo: +10 ATK per questo round.',
+      run(g, src) { for (const f of field(g)) if (f.rank !== 'A') addStatus(g, f, src, 'atkAdd', 1, 10, true); } },
+    { id: 'musica', name: 'Musica a palla', desc: 'Tutti si caricano: +10 ATK per questo round.',
+      run(g, src) { for (const f of field(g)) addStatus(g, f, src, 'atkAdd', 1, 10, true); } },
+    { id: 'pulizie', name: 'Pulizie del tatami', desc: 'Si riparte puliti: spariscono tutti gli effetti negativi.',
+      run(g) { for (const f of field(g)) cleanse(g, f); } },
+    { id: 'riscaldamento', name: 'Riscaldamento', desc: 'Muscoli caldi: +15 DEF a tutti per questo round.',
+      run(g, src) { for (const f of field(g)) addStatus(g, f, src, 'defAdd', 1, 15, true); } },
+  ];
+  const EVENT_EVERY = 3;
+
+  function gymEvent(g) {
+    const e = GYM_EVENTS[Math.floor(rand(g) * GYM_EVENTS.length)];
+    // l'effetto dura un round intero: scade a fine turno dell'avversario di chi apre il round
+    const src = { owner: 1 - g.turn };
+    g.lastEvent = e.id;
+    log(g, `📣 Evento in palestra: ${e.name}! ${e.desc}`);
+    ev(g, { type: 'gymevent', id: e.id, name: e.name, desc: e.desc });
+    e.run(g, src);
+  }
+
   const CARD = {};
   CARDS.forEach(c => { CARD[c.id] = c; c.moves.forEach((m, i) => { m.ref = { card: c.id, i }; }); });
 
-  const BASIC = { name: 'Attacco', target: 'enemy', cd: 0, basic: true, desc: 'Attacco base: danni = ATK × 50 / (50 + DEF avversaria).' };
+  const BASIC = { name: 'Attacco', target: 'enemy', cd: 0, basic: true, hit: {}, desc: 'Attacco base: danni = ATK × 50 / (50 + DEF avversaria).' };
 
   const NEGATIVE = new Set(['stun', 'block', 'confuse', 'dot', 'defZero']);
   function isNegative(s) {
@@ -605,8 +650,12 @@
       players: [0, 1].map(i => {
         const p = opts.players[i];
         const fs = p.cards.map(id => makeFighter(id, i));
-        return { name: p.name, cpu: p.cpu || null, field: fs.slice(0, FIELD_SIZE), reserve: fs.slice(FIELD_SIZE), ko: [] };
+        const syn = opts.synergies === false ? [] : synergiesFor(p.cards);
+        fs.forEach(f => syn.forEach(x => x.apply(f)));
+        if (p.boost) fs.forEach(f => { f.hp = f.maxHp = Math.round(f.maxHp * p.boost); f.baseAtk = Math.round(f.baseAtk * (1 + (p.boost - 1) / 2)); });
+        return { name: p.name, cpu: p.cpu || null, field: fs.slice(0, FIELD_SIZE), reserve: fs.slice(FIELD_SIZE), ko: [], cards: p.cards.slice(), syn: syn.map(x => x.id) };
       }),
+      gymEvents: opts.gymEvents !== false,
       turn: opts.first === undefined ? 0 : opts.first,
       turnNo: 1, actions: 0, winner: null, log: [], events: [], lastSpecial: null, silent: !!opts.silent, passes: 0,
     };
@@ -620,6 +669,11 @@
     g.actions = 0;
     for (const f of p.field.concat(p.reserve)) f.acted = false;
     ev(g, { type: 'turn', player: g.turn });
+    // gli eventi si alternano: uno scatta nel turno di chi gioca per secondo, il successivo in quello di chi inizia
+    if (g.gymEvents) {
+      const round = Math.ceil(g.turnNo / 2), secondHalf = g.turnNo % 2 === 0;
+      if (round % EVENT_EVERY === 0 && ((round / EVENT_EVERY) % 2 === 1) === secondHalf) gymEvent(g);
+    }
     // danni nel tempo (bruciore, dolori)
     for (const f of team(g, g.turn).slice()) {
       for (const s of f.st.filter(x => x.type === 'dot')) {
@@ -824,6 +878,24 @@
     return d;
   }
 
+  // Anteprima dei danni di una mossa su un bersaglio: [minimo, massimo] oppure null se la mossa non colpisce direttamente.
+  function previewDamage(g, u, m, t) {
+    if (!m || !m.hit) return null;
+    const h = m.hit;
+    const blocked = !m.pierce && (has(t, 'invuln') || has(t, 'evade') || (t.card === 'celeste' && !t.form && t.cds[1] === 0));
+    if (blocked) return [0, 0];
+    let atk = effAtk(g, u) * (h.mul || 1);
+    const nx = get(u, 'nextAtkMul'); if (nx) atk *= nx.value;
+    const ignore = h.ignoreDef || has(u, 'feint');
+    const def = ignore ? 0 : Math.max(-25, effDef(g, t) * (h.defMul || 1));
+    let base = atk * K / (K + def), k = 1;
+    for (const s of u.st) if (s.type === 'dmgOut') k *= s.value;
+    for (const s of t.st) if (s.type === 'dmgIn') k *= s.value;
+    const lo = Math.max(1, Math.round((base * 0.9 + (h.flat || 0)) * k));
+    const hi = Math.max(1, Math.round((base * 1.1 + (h.flat || 0)) * k));
+    return [lo, hi];
+  }
+
   function rolloutStep(c) {
     let best = null, bestS = -Infinity;
     for (const u of team(c, c.turn)) {
@@ -893,11 +965,13 @@
   // ---------------------------------------------------------------- SQUADRE
   function teamCost(ids) { return ids.reduce((s, id) => s + CARD[id].cost, 0); }
 
-  function randomTeam(rng, minCost) {
+  // pool: elenco facoltativo di carte tra cui scegliere (per esempio solo quelle sbloccate)
+  function randomTeam(rng, minCost, only) {
     rng = rng || Math.random;
     minCost = minCost === undefined ? BUDGET - 1 : minCost;
     for (let tries = 0; tries < 5000; tries++) {
-      const pool = CARDS.map(c => c.id);
+      const pool = (only || CARDS.map(c => c.id)).slice();
+      if (pool.length < TEAM_SIZE) return null;
       const pick = [];
       while (pick.length < TEAM_SIZE) {
         const i = Math.floor(rng() * pool.length);
@@ -906,7 +980,7 @@
       const cost = teamCost(pick);
       if (cost <= BUDGET && cost >= minCost) return pick;
     }
-    return null;
+    return minCost > 0 ? randomTeam(rng, minCost - 1, only) : null;
   }
 
   const api = {
@@ -914,6 +988,7 @@
     createGame, legalActions, doAction, chooseAction, actorOptions, targetsFor, copyOptions, bottleMove, refMove,
     needsTarget, effAtk, effDef, team, enemies, field, byUid, cardOf, movesOf, isStunned, isNegative,
     teamCost, randomTeam, clone, canAct, passTurn, expectedHit,
+    SYNERGIES, synergiesFor, GYM_EVENTS, EVENT_EVERY, previewDamage,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.STT = api;
