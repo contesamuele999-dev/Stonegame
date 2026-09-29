@@ -22,8 +22,10 @@
     katya: ['#161616', '#6fb3e6'], lorenzo: ['#141414', '#d8412f'], niccolo: ['#f2f2f2', '#e8631c'],
     oksana: ['#5b2d82', '#b04cff'], samuele: ['#cfcac0', '#e8631c'], sara: ['#4a1466', '#b04cff'],
     strahinja: ['#2b4c8c', '#6fb3e6'], viola: ['#8c2b2b', '#ff9a3d'], vittorio: ['#151515', '#e8631c'],
+    signorello: ['#a3161b', '#d4ae62'], remigio: ['#2a5aa8', '#d8412f'], nicole: ['#f2ede6', '#e89ab0'],
+    annalisa: ['#e9f2ea', '#55b98a'], wangting: ['#6d6a5e', '#d4ae62'], zhenglei: ['#f4efe2', '#b04cff'],
   };
-  const BELT = { M: '#d4ae62', I: '#111111', A: '#f2efe6' };
+  const BELT = { M: '#d4ae62', I: '#111111', A: '#f2efe6', L: '#b04cff' };
 
   // come si anima ogni mossa: anim = gesto del corpo, fx = effetto, e = emoji, c = colore
   const MOVES = {
@@ -73,6 +75,18 @@
     'Sudorazione Esplosiva': { anim: 'punch', fx: 'steam', e: '💦', c: '#9be15d' },
     'Piedi Lanosi': { anim: 'stomp', fx: 'fluff', e: '🧦', c: '#f2efe6' },
     'Ballo Dirompente': { anim: 'dance', fx: 'shock', e: '🕺', c: '#ff9a3d' },
+    'Sussurro Eterno': { anim: 'summon', fx: 'kids', e: '⚔️', kid: '🪖', c: '#ffd24a' },
+    'Demassazione Fecale': { anim: 'powerup', fx: 'aura', e: '💨', c: '#b08050' },
+    'Potenziamento Tysoniano': { anim: 'powerup', fx: 'aura', e: '🥊', c: '#d8412f' },
+    'Manutenzione Post-Apocalittica': { anim: 'cast', fx: 'calm', e: '🔧', c: '#55b98a' },
+    'Cameraman Improvvisato': { anim: 'cast', fx: 'flash', e: '🎥', c: '#ffffff' },
+    'Gentilezza Ultrapremurosa': { anim: 'cast', fx: 'calm', e: '🥰', c: '#ff8fb1' },
+    'Saluto Caritatevole': { anim: 'shout', fx: 'wave', e: '✋', c: '#55b98a' },
+    'Ribaltamento Psicosomatico': { anim: 'cast', fx: 'vortex', e: '🔄', c: '#a978e0' },
+    'Creazione Marziale': { anim: 'meditate', fx: 'aura', e: '☯️', c: '#d4ae62' },
+    'Discendenza Impetuosa': { anim: 'point', fx: 'orb', e: '🙇', c: '#d4ae62' },
+    'Ciuffata Cosmica': { anim: 'dance', fx: 'shock', e: '🌌', c: '#b04cff' },
+    'Forma Universale': { anim: 'cast', fx: 'calm', e: '🌀', c: '#f5e27a' },
   };
 
   // ------------------------------------------------------------ stato
@@ -543,11 +557,11 @@
   function numberPop(ch, text, color, size) { return pop(headPos(ch).add(new T.Vector3(0, 0.35, 0)), textTex(text, color), size || 0.5, 1.1, 0.7); }
 
   // mini lottatori (Dominio dell'Infante)
-  function kid(from) {
+  function kid(from, emoji) {
     const g = new T.Group();
     const body = new T.Mesh(geo('kidb', () => new T.CylinderGeometry(0.1, 0.12, 0.3, 8)), toon('#6b8f5a'));
     body.position.y = 0.2; g.add(body);
-    const s = sprite(emojiTex('🧟'), 0.38); s.position.y = 0.48; g.add(s);
+    const s = sprite(emojiTex(emoji || '🧟'), 0.38); s.position.y = 0.48; g.add(s);
     g.position.copy(from); root.add(g);
     return g;
   }
@@ -738,7 +752,7 @@
         else if (fx === 'rain') { await orb(from, headPos(t.ch).add(new T.Vector3(0, 0.9, 0)), M.c, null, 0.35, 0.3); const c = headPos(t.ch).add(new T.Vector3(0, 0.95, 0)); pop(c, emojiTex('🌧️'), 0.8, 1.1, 0); for (let k = 0; k < 14; k++) { const m = new T.Mesh(geo('drop', () => new T.BoxGeometry(0.02, 0.12, 0.02)), new T.MeshBasicMaterial({ color: '#8fb8ff', transparent: true })); m.position.set(c.x + (Math.random() - .5) * 0.6, c.y - 0.1, c.z + (Math.random() - .5) * 0.4); root.add(m); parts.push({ obj: m, v: new T.Vector3(0, -3, 0), life: 0, max: 0.4 + Math.random() * 0.4 }); } await wait(0.3); }
         else if (fx === 'vortex') { await orb(from, to, M.c, M.e, 0.4, 0.2); for (let k = 0; k < 18; k++) { const a = k / 18 * Math.PI * 4; burst(new T.Vector3(to.x + Math.cos(a) * 0.5, 0.2 + k * 0.06, to.z + Math.sin(a) * 0.5), M.c, 1, 0.3, 0.05); } }
         else if (fx === 'drain') { await orb(from, to, M.c, M.e, 0.35, 0.1); await orb(to, chestPos(A), '#6fb3e6', '🛡️', 0.45, 0.4); aura(A, M.c, 0.5); }
-        else if (fx === 'kids') { const ks = [0, 1, 2].map(k => kid(new T.Vector3(A.g.position.x + (k - 1) * 0.3, 0, A.g.position.z + 0.2))); await Promise.all(ks.map((kd, k) => { const p0 = kd.position.clone(); const p1 = new T.Vector3(t.ch.g.position.x + (k - 1) * 0.35, 0, t.ch.g.position.z + 0.4); return tween(0.55 + k * 0.05, (tt, raw) => { kd.position.lerpVectors(p0, p1, tt); kd.position.y = Math.abs(Math.sin(raw * Math.PI * 4)) * 0.12; }, ease.in).then(() => { burst(kd.position.clone().setY(0.4), M.c, 6, 2); root.remove(kd); }); })); }
+        else if (fx === 'kids') { const ks = [0, 1, 2].map(k => kid(new T.Vector3(A.g.position.x + (k - 1) * 0.3, 0, A.g.position.z + 0.2), M.kid)); await Promise.all(ks.map((kd, k) => { const p0 = kd.position.clone(); const p1 = new T.Vector3(t.ch.g.position.x + (k - 1) * 0.35, 0, t.ch.g.position.z + 0.4); return tween(0.55 + k * 0.05, (tt, raw) => { kd.position.lerpVectors(p0, p1, tt); kd.position.y = Math.abs(Math.sin(raw * Math.PI * 4)) * 0.12; }, ease.in).then(() => { burst(kd.position.clone().setY(0.4), M.c, 6, 2); root.remove(kd); }); })); }
         else if (fx === 'flash') { await orb(from, to, '#ffffff', M.e, 0.3, 0.1); screenFlash('#ffffff', 0.9); }
         else if (fx === 'calm') { await orb(from, to, M.c, M.e, 0.4, 0.3); ring(new T.Vector3(t.ch.g.position.x, 0.04, t.ch.g.position.z), M.c, 1.2, 0.6, true); }
         else await orb(from, to, M.c, M.e, 0.42, 0.3);

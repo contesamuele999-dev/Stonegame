@@ -14,7 +14,9 @@
   const CONFUSE_CHANCE = 0.35;
   const FIRST_TURN_ACTIONS = 2; // chi inizia, al primo turno, agisce con due sole carte
 
-  const RANKS = { A: 'Allievo', I: 'Istruttore', M: 'Maestro' };
+  const RANKS = { A: 'Allievo', I: 'Istruttore', M: 'Maestro', L: 'Leggenda' };
+  // Maestri e Leggende contano entrambi come "Maestri" per mosse e sinergie
+  const isMaster = f => f.rank === 'M' || f.rank === 'L';
 
   // ---------------------------------------------------------------- RNG
   function rand(g) {
@@ -115,7 +117,7 @@
         { name: 'Gomiti di Ferro', target: 'self', cd: 4,
           desc: 'Invulnerabile per 1 turno e +10 ATK per ogni carta Maestro in campo (per 2 turni).',
           use(g, u) {
-            const m = field(g).filter(f => f.rank === 'M').length;
+            const m = field(g).filter(isMaster).length;
             addStatus(g, u, u, 'invuln', 1, 0, true);
             if (m) addStatus(g, u, u, 'atkAdd', 2, 10 * m, true);
             log(g, `${nm(u)} alza i gomiti di ferro: invulnerabile${m ? ` e +${10 * m} ATK` : ''}!`);
@@ -169,7 +171,7 @@
           desc: 'Stordisce per 1 turno TUTTE le altre carte in campo, anche le sue (Istruttori e Maestri per 2 turni).',
           use(g, u) {
             log(g, `${nm(u)}: "...e quindi?" 🙄`);
-            for (const f of field(g)) if (f !== u) stun(g, f, u, (f.rank === 'I' || f.rank === 'M') ? 2 : 1);
+            for (const f of field(g)) if (f !== u) stun(g, f, u, f.rank !== 'A' ? 2 : 1);
           } },
       ],
     },
@@ -300,7 +302,7 @@
         { name: 'Sputo dell\'Ultralama', target: 'enemies', cd: 4,
           desc: 'Rallenta tutti gli avversari in campo per 3 turni: ATK −30% (−60% sulle carte Istruttore).',
           use(g, u) { for (const f of enemies(g, u.owner)) addStatus(g, f, u, 'atkMul', 3, f.rank === 'I' ? 0.4 : 0.7); log(g, `${nm(u)} sputa come un ultralama! 🦙`); } },
-        { name: 'Rettifica Genealogica', target: 'ally', cd: 4, notRank: ['I', 'M'],
+        { name: 'Rettifica Genealogica', target: 'ally', cd: 4, notRank: ['I', 'M', 'L'],
           desc: 'Trasforma una carta alleata (non Istruttore/Maestro) in Istruttore: +20 ATK e +20 DEF per il resto della partita. Attenzione: alcune mosse fanno effetto doppio sugli Istruttori!',
           use(g, u, t) {
             t.rank = 'I';
@@ -390,12 +392,115 @@
           } },
       ],
     },
+    // ---------------------------------------------------------------- carte aggiunte il 29 settembre
+    {
+      id: 'signorello', name: 'Lorenzo Signorello', rank: 'I', cost: 4, hp: 160, atk: 90, def: 75,
+      orig: { atk: 100, def: 90 },
+      moves: [
+        { name: 'Sussurro Eterno', target: 'enemies', cd: 4, hit: { mul: 0.45 },
+          desc: 'Parla a ogni manifestazione dell\'esistenza ed evoca eserciti: tutti gli avversari subiscono un attacco al 45% della sua forza.',
+          use(g, u) { log(g, `${nm(u)} sussurra all'esistenza: arrivano gli eserciti!`); for (const f of enemies(g, u.owner)) attack(g, u, f, { mul: 0.45 }); } },
+        { name: 'Demassazione Fecale', target: 'self', cd: 3,
+          desc: 'Riduce la sua massa per diventare velocissimo: +10 ATK e +10 DEF per 2 turni e schiva il prossimo attacco.',
+          use(g, u) { addStatus(g, u, u, 'atkAdd', 2, 10, true); addStatus(g, u, u, 'defAdd', 2, 10, true); addStatus(g, u, u, 'evade', 1, 0, true); log(g, `${nm(u)} si alleggerisce… e diventa velocissimo! 💨`); } },
+      ],
+    },
+    {
+      id: 'remigio', name: 'Remigio Spinazzè', rank: 'A', cost: 2, hp: 140, atk: 65, def: 60,
+      orig: { atk: 70, def: 70 },
+      moves: [
+        { name: 'Potenziamento Tysoniano', target: 'self', cd: 2, maxUses: 3,
+          desc: 'Aumenta l\'attacco di 10 punti per il resto della partita (fino a 3 volte).',
+          use(g, u) { addStatus(g, u, u, 'atkAdd', 99, 10, true, true); log(g, `🥊 ${nm(u)} si potenzia: +10 ATK!`); } },
+        { name: 'Manutenzione Post-Apocalittica', target: 'allies', cd: 4,
+          desc: 'Cura tutta la squadra in campo di 20 PV.',
+          use(g, u) { for (const f of team(g, u.owner)) heal(g, f, 20); log(g, `🔧 ${nm(u)} rimette in sesto la squadra.`); } },
+      ],
+    },
+    {
+      id: 'nicole', name: 'Nicole Fava', rank: 'A', cost: 1, hp: 125, atk: 35, def: 35,
+      orig: { atk: 30, def: 35 },
+      moves: [
+        { name: 'Cameraman Improvvisato', target: 'enemy', cd: 3,
+          desc: 'Cattura l\'istante perfetto: prende fino a 30 punti DEF dell\'avversario e li aggiunge ai suoi per 2 turni; il suo prossimo attacco fa il 50% in più.',
+          use(g, u, t) {
+            const x = Math.max(0, Math.min(30, Math.round(effDef(g, t))));
+            addStatus(g, t, u, 'defAdd', 2, -x);
+            addStatus(g, u, u, 'defAdd', 2, x, true);
+            addStatus(g, u, u, 'nextAtkMul', 2, 1.5, true);
+            log(g, `🎥 ${nm(u)} cattura l'istante: prende ${x} DEF a ${nm(t)}!`);
+          } },
+        { name: 'Gentilezza Ultrapremurosa', target: 'allies', cd: 4,
+          desc: 'Il tocco magico della cura: +10 ATK e +10 DEF a ogni membro della squadra in campo per 2 turni, e 10 PV di cura.',
+          use(g, u) { for (const f of team(g, u.owner)) { addStatus(g, f, u, 'atkAdd', 2, 10, true); addStatus(g, f, u, 'defAdd', 2, 10, true); heal(g, f, 10); } log(g, `🥰 ${nm(u)} coccola tutta la squadra.`); } },
+      ],
+    },
+    {
+      id: 'annalisa', name: 'Annalisa Brino', rank: 'A', cost: 1, hp: 135, atk: 40, def: 50,
+      orig: { atk: 20, def: 50 },
+      moves: [
+        { name: 'Saluto Caritatevole', target: 'enemies', cd: 3,
+          desc: 'Abbassa di 25 i punti difesa di tutti gli avversari per 2 turni.',
+          use(g, u) { for (const f of enemies(g, u.owner)) addStatus(g, f, u, 'defAdd', 2, -25); log(g, `🙏 ${nm(u)} saluta tutti con grande carità.`); } },
+        { name: 'Ribaltamento Psicosomatico', target: 'enemy', cd: 4,
+          desc: 'Inverte i punti ATK e DEF dell\'avversario per 2 turni.',
+          use(g, u, t) { if (addStatus(g, t, u, 'swap', 2)) { log(g, `🔄 ${nm(t)} si ritrova con ATK e DEF invertiti!`); ev(g, { type: 'status', uid: t.uid, text: 'INVERTITO' }); } } },
+      ],
+    },
+    {
+      id: 'wangting', name: 'Chen Wangting', rank: 'L', title: 'Fondatore Supremo', cost: 6, hp: 170, atk: 85, def: 90,
+      orig: { atk: '∞', def: '∞' },
+      moves: [
+        { name: 'Creazione Marziale', target: 'self', cd: 3,
+          desc: 'Fino al suo prossimo turno restituisce ogni attacco con il doppio dei danni, senza subirne. Non ferma gli attacchi che ignorano le difese.',
+          use(g, u) { addStatus(g, u, u, 'reflect', 1, 2, true); log(g, `☯️ ${nm(u)} assume la posizione della Creazione Marziale.`); } },
+        { name: 'Discendenza Impetuosa', target: 'enemyWeak', once: true, nocopy: true,
+          desc: 'Una volta per partita: converte in suo discepolo un avversario con metà dei PV o meno (non una Leggenda), che passa nella sua squadra.',
+          use(g, u, t) { convert(g, u, t); } },
+      ],
+    },
+    {
+      id: 'zhenglei', name: 'Chen Zhenglei', rank: 'L', title: 'Gran Maestro', cost: 6, hp: 135, atk: 85, def: 70,
+      orig: { atk: 1000, def: 1000 },
+      moves: [
+        { name: 'Ciuffata Cosmica', target: 'enemies', once: true, offensive: true, nocopy: true,
+          desc: 'Una volta per partita: ogni avversario in campo perde metà dei PV che gli restano (ignora qualsiasi difesa).',
+          use(g, u) {
+            log(g, `🌌 ${nm(u)} scatena la Ciuffata Cosmica!`);
+            for (const f of enemies(g, u.owner)) if (f.hp > 1) damage(g, f, Math.floor(f.hp / 2), u);
+          } },
+        { name: 'Forma Universale', target: 'allies', cd: 6,
+          desc: 'Raddoppia ATK e DEF di tutta la sua squadra in campo per 1 turno.',
+          use(g, u) { for (const f of team(g, u.owner)) { addStatus(g, f, u, 'atkMul', 1, 2, true); addStatus(g, f, u, 'defMul', 1, 2, true); } log(g, `🌀 ${nm(u)} assume la Forma Universale: la squadra raddoppia!`); } },
+      ],
+    },
   ];
+
+  // Discendenza Impetuosa: l'avversario passa nella squadra di chi lo converte
+  function convert(g, u, t) {
+    const from = g.players[t.owner], to = g.players[u.owner];
+    const i = from.field.indexOf(t);
+    if (i < 0) return;
+    from.field.splice(i, 1);
+    t.owner = u.owner;
+    t.acted = true;
+    t.st = t.st.filter(s => !isNegative(s) || s.perm);
+    to.field.push(t);
+    log(g, `🙇 ${nm(t)} diventa discepolo di ${nm(u)} e passa nella sua squadra!`);
+    ev(g, { type: 'status', uid: t.uid, text: 'DISCEPOLO' });
+    if (from.reserve.length && from.field.length < FIELD_SIZE) {
+      const r = from.reserve.shift();
+      from.field.splice(i, 0, r);
+      log(g, `${nm(r)} entra in campo!`);
+      ev(g, { type: 'enter', uid: r.uid });
+    }
+    checkWin(g);
+  }
 
   // ---------------------------------------------------------------- SINERGIE DI SQUADRA
   const SYNERGIES = [
     { id: 'maestri', name: 'Linea dei Maestri', desc: 'Almeno 2 Maestri in squadra: i Maestri hanno +15 PV.',
-      test: r => r.M >= 2, apply: f => { if (f.rank === 'M') { f.hp += 15; f.maxHp += 15; } } },
+      test: r => r.M >= 2, apply: f => { if (isMaster(f)) { f.hp += 15; f.maxHp += 15; } } },
     { id: 'istruttori', name: 'Istruttori affiatati', desc: 'Almeno 2 Istruttori in squadra: gli Istruttori hanno +8 ATK.',
       test: r => r.I >= 2, apply: f => { if (f.rank === 'I') f.baseAtk += 8; } },
     { id: 'allievi', name: 'Forza degli allievi', desc: 'Almeno 3 Allievi in squadra: gli Allievi hanno +8 DEF.',
@@ -405,7 +510,7 @@
   ];
   function synergiesFor(ids) {
     const r = { M: 0, I: 0, A: 0 };
-    ids.forEach(id => { r[CARD[id].rank]++; });
+    ids.forEach(id => { const k = CARD[id].rank === 'L' ? 'M' : CARD[id].rank; r[k]++; });
     return SYNERGIES.filter(x => x.test(r));
   }
 
@@ -442,7 +547,7 @@
 
   const BASIC = { name: 'Attacco', target: 'enemy', cd: 0, basic: true, hit: {}, desc: 'Attacco base: danni = ATK × 50 / (50 + DEF avversaria).' };
 
-  const NEGATIVE = new Set(['stun', 'block', 'confuse', 'dot', 'defZero']);
+  const NEGATIVE = new Set(['stun', 'block', 'confuse', 'dot', 'defZero', 'swap']);
   function isNegative(s) {
     if (NEGATIVE.has(s.type)) return true;
     if ((s.type === 'atkAdd' || s.type === 'defAdd') && s.value < 0) return true;
@@ -516,7 +621,11 @@
     if (f.hp > before) ev(g, { type: 'heal', uid: f.uid, amount: f.hp - before });
   }
 
-  function effAtk(g, f, w) {
+  // Ribaltamento Psicosomatico: con lo stato "swap" ATK e DEF si scambiano
+  function effAtk(g, f, w) { return has(f, 'swap') ? Math.max(0, rawDef(g, f, w)) : rawAtk(g, f, w); }
+  function effDef(g, f, w) { return has(f, 'swap') ? Math.max(-25, rawAtk(g, f, w)) : rawDef(g, f, w); }
+
+  function rawAtk(g, f, w) {
     w = w === undefined ? 1 : w;
     let add = 0, mul = 1;
     for (const s of f.st) {
@@ -526,7 +635,7 @@
     }
     return Math.max(0, (f.baseAtk + add) * mul);
   }
-  function effDef(g, f, w) {
+  function rawDef(g, f, w) {
     w = w === undefined ? 1 : w;
     const zero = has(f, 'defZero');
     if (zero && w === 1) return 0;
@@ -611,6 +720,14 @@
     let dmg = atk * K / (K + def) * (0.9 + rand(g) * 0.2) + (opts.flat || 0);
     for (const s of u.st) if (s.type === 'dmgOut') dmg *= s.value;
     for (const s of t.st) if (s.type === 'dmgIn') dmg *= s.value;
+    const rf = get(t, 'reflect');
+    if (rf && !opts.pierce) {
+      log(g, `☯️ ${nm(t)} restituisce il colpo con il doppio della forza!`);
+      ev(g, { type: 'status', uid: t.uid, text: 'RESPINTO' });
+      const back = damage(g, u, dmg * rf.value, t);
+      log(g, `${nm(u)} subisce il suo stesso colpo: −${back} PV`);
+      return 0;
+    }
     const dealt = damage(g, t, dmg, u);
     log(g, `${nm(u)} colpisce ${nm(t)}: −${dealt} PV`);
     const c = get(t, 'counter');
@@ -744,6 +861,7 @@
       else if (stunned && !m.whileStunned) { ok = false; why = 'Stordimento'; }
       else if (blocked) { ok = false; why = 'Tecniche bloccate'; }
       else if (m.once && f.used[i]) { ok = false; why = 'Già usata'; }
+      else if (m.maxUses && (f.used[i] || 0) >= m.maxUses) { ok = false; why = 'Già al massimo'; }
       else if (f.cds[i] > 0) { ok = false; why = `Ricarica: ${f.cds[i]}`; }
       else if (m.needsReserve && !g.players[f.owner].reserve.length) { ok = false; why = 'Nessuna riserva'; }
       else if (m.target === 'bottle' && !usableInner(g, f, bottleMove(g))) { ok = false; why = 'Nessuna mossa da catturare'; }
@@ -761,13 +879,14 @@
     return true;
   }
 
-  function needsTarget(m) { return ['enemy', 'ally', 'any', 'anyOther', 'unfaced'].includes(m.target); }
+  function needsTarget(m) { return ['enemy', 'ally', 'any', 'anyOther', 'unfaced', 'enemyWeak'].includes(m.target); }
 
   function targetsFor(g, u, m) {
     const pierce = m.pierce;
     const visible = f => pierce || !has(f, 'hidden');
     switch (m.target) {
       case 'enemy': return enemies(g, u.owner).filter(visible);
+      case 'enemyWeak': return enemies(g, u.owner).filter(visible).filter(f => f.rank !== 'L' && f.hp <= f.maxHp / 2);
       case 'unfaced': return enemies(g, u.owner).filter(visible).filter(f => !u.faced.includes(f.uid));
       case 'ally': return team(g, u.owner).filter(f => !(m.notRank && m.notRank.includes(f.rank)));
       case 'any': return field(g).filter(f => f.owner === u.owner || visible(f));
@@ -835,7 +954,7 @@
     if (!m.basic) log(g, `✨ ${nm(u)} usa ${label}!`);
 
     // confusione: può colpirsi da solo invece di agire (solo azioni offensive)
-    const offensive = ['enemy', 'enemies', 'unfaced'].includes(exec.target) || exec.basic || exec.offensive;
+    const offensive = ['enemy', 'enemies', 'unfaced', 'enemyWeak'].includes(exec.target) || exec.basic || exec.offensive;
     const conf = get(u, 'confuse');
     if (conf && offensive && !m.free && rand(g) < conf.value) {
       log(g, `❓ Confusione: ${nm(u)} perde il controllo...`);
@@ -849,7 +968,7 @@
       if (!exec.nocopy) g.lastSpecial = { card: exec.ref.card, i: exec.ref.i };
     }
     if (!m.basic) {
-      if (m.once) u.used[a.move] = true;
+      if (m.once || m.maxUses) u.used[a.move] = (u.used[a.move] || 0) + 1;
       if (m.cd) u.cds[a.move] = m.cd + 1;
     }
     if (!m.free) { u.acted = true; g.actions++; }
@@ -867,7 +986,7 @@
   function clone(g) { const c = JSON.parse(JSON.stringify(g)); c.silent = true; c.events = []; c.log = []; return c; }
 
   function expectedHit(g, u, t) {
-    if (has(t, 'invuln') || has(t, 'evade') || has(t, 'hidden')) return 0;
+    if (has(t, 'invuln') || has(t, 'evade') || has(t, 'hidden') || has(t, 'reflect')) return 0;
     if (t.card === 'celeste' && !t.form && t.cds[1] === 0) return 0;
     let atk = effAtk(g, u);
     const nx = get(u, 'nextAtkMul'); if (nx) atk *= nx.value;
@@ -882,7 +1001,7 @@
   function previewDamage(g, u, m, t) {
     if (!m || !m.hit) return null;
     const h = m.hit;
-    const blocked = !m.pierce && (has(t, 'invuln') || has(t, 'evade') || (t.card === 'celeste' && !t.form && t.cds[1] === 0));
+    const blocked = !m.pierce && (has(t, 'invuln') || has(t, 'evade') || has(t, 'reflect') || (t.card === 'celeste' && !t.form && t.cds[1] === 0));
     if (blocked) return [0, 0];
     let atk = effAtk(g, u) * (h.mul || 1);
     const nx = get(u, 'nextAtkMul'); if (nx) atk *= nx.value;
@@ -905,6 +1024,7 @@
         const d = expectedHit(c, u, t);
         let sc = Math.min(d, t.hp) + (d >= t.hp ? 60 : 0);
         const ct = get(t, 'counter'); if (ct) sc -= u.hp * ct.value * 1.2;
+        if (has(t, 'reflect')) sc -= 150;
         if (sc > bestS) { bestS = sc; best = { actor: u.uid, move: -1, target: t.uid }; }
       }
     }
@@ -988,7 +1108,7 @@
     createGame, legalActions, doAction, chooseAction, actorOptions, targetsFor, copyOptions, bottleMove, refMove,
     needsTarget, effAtk, effDef, team, enemies, field, byUid, cardOf, movesOf, isStunned, isNegative,
     teamCost, randomTeam, clone, canAct, passTurn, expectedHit,
-    SYNERGIES, synergiesFor, GYM_EVENTS, EVENT_EVERY, previewDamage,
+    SYNERGIES, synergiesFor, GYM_EVENTS, EVENT_EVERY, previewDamage, isMaster,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.STT = api;

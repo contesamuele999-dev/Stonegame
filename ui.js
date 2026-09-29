@@ -34,7 +34,7 @@
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const face = id => `background-image:url(img/volti/${id}.jpg)`;
-  const RANK_SHORT = { A: 'Allievo', I: 'Istruttore', M: 'Maestro' };
+  const RANK_SHORT = { A: 'Allievo', I: 'Istruttore', M: 'Maestro', L: 'Leggenda' };
   const ANIM_LABEL = { full: '3D', fast: '3D veloce', off: 'Senza 3D' };
   const LEVEL_LABEL = { facile: 'Facile', normale: 'Normale', difficile: 'Difficile' };
 
@@ -47,15 +47,19 @@
 
   // ------------------------------------------------------------ carte sbloccate
   const STARTERS = ['samuele', 'katya', 'niccolo', 'federica', 'grazia', 'vittorio', 'annastella', 'alessandro', 'viola', 'caterina'];
+  // Le Leggende (i due Chen) si sbloccano solo vincendo il torneo
+  const LEGENDS = S.CARDS.filter(c => c.rank === 'L').map(c => c.id);
   function unlocked() {
     if (settings.allUnlocked) return S.CARDS.map(c => c.id);
-    const u = load('unlocked', STARTERS).filter(id => S.CARD[id]);
-    return u.length >= S.TEAM_SIZE ? u : STARTERS.slice();
+    let u = load('unlocked', STARTERS).filter(id => S.CARD[id]);
+    if (u.length < S.TEAM_SIZE) u = STARTERS.slice();
+    if ((torneo().titles || 0) > 0) u = u.concat(LEGENDS.filter(id => !u.includes(id)));
+    return u;
   }
   function unlockRandom(n) {
     if (settings.allUnlocked) return [];
     const have = unlocked();
-    const locked = S.CARDS.map(c => c.id).filter(id => !have.includes(id));
+    const locked = S.CARDS.map(c => c.id).filter(id => !have.includes(id) && !LEGENDS.includes(id));
     const got = [];
     while (got.length < n && locked.length) got.push(locked.splice(Math.floor(Math.random() * locked.length), 1)[0]);
     if (got.length) store('unlocked', have.concat(got));
@@ -82,9 +86,9 @@
   const TORNEO = [
     { name: 'Gli allievi del lunedì', level: 'facile', cards: ['grazia', 'viola', 'annastella', 'caterina'], text: 'Si parte con calma: la classe dei principianti.' },
     { name: 'Il corso serale', level: 'normale', cards: ['vittorio', 'alessandro', 'christian', 'carla'], text: 'Dopo il lavoro, ma pieni di energia.' },
-    { name: 'Gli istruttori', level: 'normale', cards: ['niccolo', 'strahinja', 'federica', 'caterina'], text: 'Chi insegna sa anche combattere.' },
     { name: 'La squadra agonistica', level: 'difficile', cards: ['lorenzo', 'sara', 'federico', 'chicca'], text: 'Allenati per le gare: non regalano niente.' },
-    { name: 'Il Tempio dei Maestri', level: 'difficile', cards: ['andrea', 'chen', 'grazia', 'caterina'], text: 'La sfida finale: i Maestri e le loro allieve migliori.' },
+    { name: 'Gli istruttori', level: 'facile', cards: ['samuele', 'niccolo', 'strahinja', 'federica'], text: 'Tutti gli Istruttori insieme: chi insegna sa anche combattere.' },
+    { name: 'Il Tempio dei Maestri', level: 'difficile', cards: ['andrea', 'chen', 'katya'], boost: 1.1, text: 'La sfida finale: tre Maestri, più forti del solito. Chi vince sblocca le Leggende.' },
   ];
   const torneo = () => load('torneo', { stage: 0, titles: 0 });
 
@@ -115,6 +119,8 @@
         case 'dmgIn': out.push(['bad', `Subisce ×${v}${d(s)}`]); break;
         case 'stunGuard': if (!compact) out.push(['info', `Non stordibile${d(s)}`]); break;
         case 'vibrOff': if (!compact) out.push(['info', `Vibrazione spenta${d(s)}`]); break;
+        case 'reflect': out.push(['good', compact ? `Respinge${d(s)}` : `Respinge i colpi ×2${d(s)}`]); break;
+        case 'swap': out.push(['bad', compact ? `ATK⇄DEF${d(s)}` : `ATK e DEF invertiti${d(s)}`]); break;
       }
     }
     if (f.card === 'adriano' && !f.form && !f.st.some(s => s.type === 'vibrOff')) out.push(['info', compact ? 'Immune' : 'Vibrazione: immune']);
@@ -262,8 +268,8 @@
     const locked = !unlocked().includes(id);
     const st = stats().cards[id];
     openLayer(`<div class="sheet-wrap" data-act="close"><div class="sheet" role="dialog" aria-label="${esc(c.name)}" data-stop>
-      <div class="sheet-head"><div><h3>${esc(c.name)}${locked ? ' 🔒' : ''}</h3><p>${RANK_SHORT[c.rank]} · costo ${c.cost} Punti Dojo${st ? ` · vinte ${st.w} su ${st.p}` : ''}</p></div></div>
-      ${locked ? '<p class="hint" style="text-align:left">Carta da sbloccare: vinci una partita per ottenerne una nuova.</p>' : ''}
+      <div class="sheet-head"><div><h3>${esc(c.name)}${locked ? ' 🔒' : ''}</h3><p>${esc(c.title || RANK_SHORT[c.rank])} · costo ${c.cost} Punti Dojo${st ? ` · vinte ${st.w} su ${st.p}` : ''}</p></div></div>
+      ${locked ? `<p class="hint" style="text-align:left">${c.rank === 'L' ? 'Leggenda: si sblocca vincendo il torneo.' : 'Carta da sbloccare: vinci una partita per ottenerne una nuova.'}</p>` : ''}
       <div class="statline num"><span>PV <b>${c.hp}</b></span><span>ATK ${diff('atk')}<b>${c.atk}</b></span><span>DEF ${diff('def')}<b>${c.def}</b></span></div>
       ${c.moves.map(m => `<div class="move special"><div class="mh"><span class="mn">${esc(m.name)}</span><span class="why">${esc(moveMeta(m))}</span></div><div class="md">${esc(m.desc)}</div></div>`).join('')}
       <div class="card-full"><img src="img/${id}.jpg" alt="Carta originale di ${esc(c.name)}"></div>
@@ -328,7 +334,7 @@
     return `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">Torneo${t.titles ? ` · 🏆 ${t.titles}` : ''}</div></div>
     <div class="setup">
       <h2>Torneo del Tempio</h2>
-      <p class="hint" style="text-align:left">Cinque incontri contro squadre sempre più forti. Se perdi puoi ritentare l'incontro. Ogni vittoria sblocca una carta, il titolo finale ne sblocca tre.</p>
+      <p class="hint" style="text-align:left">Cinque incontri contro squadre sempre più forti. Se perdi puoi ritentare l'incontro. Ogni vittoria sblocca una carta; il primo titolo sblocca anche le Leggende (Chen Wangting e Chen Zhenglei).</p>
       <ol class="ladder">${TORNEO.map((o, i) => `<li class="${i < t.stage ? 'done' : i === t.stage ? 'now' : ''}">
         <div class="lad-head"><span class="num">${i + 1}</span><b>${esc(o.name)}</b><em>${LEVEL_LABEL[o.level]}</em></div>
         <div class="lad-body"><div class="faces-row">${o.cards.map(id => `<i style="${face(id)}"></i>`).join('')}</div><small>${esc(o.text)}</small></div>
@@ -366,6 +372,7 @@
         <li><b>Tecniche bloccate</b>: può fare solo l'attacco base.</li>
         <li>Gli effetti durano i turni indicati sul chip. Uno stesso effetto non si somma: si rinnova.</li>
         <li><b>Istruttori e Maestri</b> contano per alcune mosse (per esempio lo Sputo dell'Ultralama è doppio sugli Istruttori).</li>
+        <li><b>Leggende</b>: Chen Wangting (Fondatore Supremo) e Chen Zhenglei (Gran Maestro) costano 6 Punti Dojo, contano come Maestri e si sbloccano vincendo il torneo.</li>
       </ul>
       <h3>Eventi in palestra</h3>
       <p>Ogni 3 round capita qualcosa (lezione extra, aria condizionata rotta, musica a palla…) che vale per tutte le carte in campo, di entrambe le squadre. Si possono spegnere dalle impostazioni.</p>
@@ -511,7 +518,7 @@
   ];
   function tutorialHtml() {
     if (A.mode !== 'tutorial' || A.tut < 0 || A.tut >= TUT.length || !A.game || A.game.winner !== null) return '';
-    return `<div class="tut" role="status"><i style="${face('samuele')}"></i><div><b>Maestro Samuele</b><p>${esc(TUT[A.tut])}</p>${A.tut === TUT.length - 1 ? '<button class="btn small" data-act="tut-done">Ho capito</button>' : ''}</div></div>`;
+    return `<div class="tut" role="status"><i style="${face('samuele')}"></i><div><b>Samuele Contessa · Istruttore</b><p>${esc(TUT[A.tut])}</p>${A.tut === TUT.length - 1 ? '<button class="btn small" data-act="tut-done">Ho capito</button>' : ''}</div></div>`;
   }
   // avanza il tutorial quando succede la cosa giusta
   function tutEvent(kind) {
@@ -632,7 +639,9 @@
         if (e.text === 'PARALIZZATO') { x.stun = true; x.para = true; }
         if (e.text === 'CONFUSO') x.confuse = true;
         if (e.text === 'SCHIVATA') x.dodge = true;
-        if (e.text === 'IMMUNE') x.immune = true;
+        if (e.text === 'IMMUNE' || e.text === 'RESPINTO') x.immune = true;
+        if (e.text === 'DISCEPOLO') x.buff = 'DISCEPOLO';
+        if (e.text === 'INVERTITO') x.buff = 'ATK ⇄ DEF';
       } else if (e.type === 'log') {
         if (e.text.includes('Prodigy')) flags.prodigy = true;
         if (e.text.includes('perde il controllo')) flags.confused = true;
@@ -783,7 +792,12 @@
       const t = torneo();
       if (g.winner === 0) {
         t.stage++;
-        if (t.stage >= TORNEO.length) { t.stage = 0; t.titles = (t.titles || 0) + 1; got = got.concat(unlockRandom(3)); torneoMsg = '🏆 Campione del Tempio! Hai vinto il torneo.'; }
+        if (t.stage >= TORNEO.length) {
+          const first = !(t.titles > 0);
+          t.stage = 0; t.titles = (t.titles || 0) + 1; got = got.concat(unlockRandom(3));
+          if (first && !settings.allUnlocked) got = got.concat(LEGENDS);
+          torneoMsg = first ? '🏆 Campione del Tempio! Hai sbloccato le Leggende: Chen Wangting e Chen Zhenglei.' : '🏆 Campione del Tempio! Hai vinto il torneo.';
+        }
         else torneoMsg = `Incontro vinto! Prossimo: ${TORNEO[t.stage].name}.`;
       } else torneoMsg = 'Incontro perso: puoi ritentarlo quando vuoi.';
       store('torneo', t);
@@ -885,7 +899,7 @@
     const t = torneo(), o = TORNEO[t.stage];
     const setup = newSetup([
       { name: A.names[0] || 'Giocatore 1', cards: A.teams[0] },
-      { name: o.name, cards: o.cards, cpu: o.level },
+      { name: o.name, cards: o.cards, cpu: o.level, boost: o.boost },
     ]);
     A.first = setup.first;
     launch(setup, { view: 0 });

@@ -6,7 +6,9 @@ FOCUS = {  # centro del volto (x, y) in frazione di larghezza/altezza, lato del 
     'chicca': (.42, .31, .46), 'christian': (.50, .26, .46), 'elia': (.50, .30, .48), 'federica': (.50, .28, .50),
     'federico': (.40, .29, .48), 'flavio': (.56, .27, .46), 'grazia': (.50, .28, .48), 'katya': (.45, .31, .48),
     'lorenzo': (.55, .28, .46), 'niccolo': (.55, .31, .48), 'oksana': (.50, .30, .46), 'samuele': (.50, .31, .50),
-    'sara': (.45, .30, .46), 'strahinja': (.50, .32, .46), 'viola': (.50, .30, .46), 'vittorio': (.50, .30, .48),
+    'sara': (.45, .30, .46),
+    'wangting': (.49, .24, .48), 'remigio': (.50, .26, .50), 'nicole': (.50, .30, .50),
+    'signorello': (.46, .26, .50), 'annalisa': (.50, .30, .50), 'zhenglei': (.47, .26, .48), 'strahinja': (.50, .32, .46), 'viola': (.50, .30, .46), 'vittorio': (.50, .30, .48),
 }
 for cid, (fx, fy, side) in FOCUS.items():
     im = Image.open(f'img/{cid}.jpg')

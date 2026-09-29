@@ -1,6 +1,6 @@
 # Stone Temple Tao: il torneo di carte
 
-Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal telefono con i 24 personaggi della palestra.
+Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal telefono con i 28 personaggi della palestra e 2 Leggende del Taijiquan stile Chen.
 
 - **Contro il computer**, con tre livelli di difficoltà: facile, normale e difficile.
 - **Torneo**: 5 incontri contro squadre sempre più forti, fino al Tempio dei Maestri.
@@ -47,6 +47,8 @@ Nella schermata prima della squadra (e con il pulsante in alto durante la partit
 
 **Eventi in palestra.** Ogni 3 round capita qualcosa che vale per tutte le carte in campo, di entrambe le squadre, per un round: Lezione extra (+15 PV), Aria condizionata rotta (ATK −15%), Il Maestro osserva (+10 ATK a Maestri e Istruttori), Musica a palla (+10 ATK), Pulizie del tatami (via gli effetti negativi), Riscaldamento (+15 DEF). Si possono spegnere dalle impostazioni.
 
+**Gradi.** Il grado è quello stampato sulla carta: Maestri (Andrea, Chen Delang, Chicca Fossa, Elia Moretton, Katya), Istruttori (Samuele Contessa, Niccolò Cividini, Strahinja Crnic, Federica Siciliano, Lorenzo Signorello), Allievi (tutte le carte senza grado stampato). Le **Leggende** Chen Wangting (Fondatore Supremo) e Chen Zhenglei (Gran Maestro) costano 6 Punti Dojo, contano come Maestri e si sbloccano vincendo il torneo.
+
 **Vittoria.** Vince chi manda K.O. tutte le carte avversarie, riserva compresa.
 
 **Segreti.** Prima del *Delirio Onnipotente*, Flavio ha 10 secondi per scrivere la formula "fate tiri fate titi luis zoratto": se è giusta, l'effetto raddoppia. Quando Chen usa la *Spallata del Prodigio*, a volte parte la musica dei Prodigy e i danni raddoppiano.
@@ -63,9 +65,12 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 
 | Carta | Grado | Costo | PV | ATK | DEF |
 |---|---|---|---|---|---|
+| Chen Wangting | Fondatore Supremo | 6 | 170 | ∞ → **85** | ∞ → **90** |
+| Chen Zhenglei | Gran Maestro | 6 | 135 | 1000 → **85** | 1000 → **70** |
 | Andrea | Maestro | 4 | 150 | 120 → **90** | 95 → **75** |
 | Chen Delang | Maestro | 4 | 160 | 100 → **80** | 100 → **70** |
-| Elia Moretton | Maestro | 4 | 140 | 90 | 90 → **75** |
+| Elia Moretton | Maestro | 4 | 135 | 90 → **85** | 90 → **75** |
+| Lorenzo Signorello | Istruttore | 4 | 160 | 100 → **90** | 90 → **75** |
 | Samuele Contessa | Istruttore | 4 | 170 | 100 → **90** | 90 → **70** |
 | Chicca Fossa | Maestro | 3 | 140 | 70 → **65** | 60 |
 | Federica Siciliano | Istruttore | 3 | 140 | 50 → **60** | 50 → **55** |
@@ -77,16 +82,19 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 | Alessandro Rizzo | Allievo | 2 | 145 | 60 → **65** | 30 |
 | Annastella Bettiol | Allievo | 2 | 140 | 40 → **55** | 50 |
 | Carla Smania | Allievo | 2 | 120 | 50 | 70 → **55** |
-| Celeste Brugnera | Allievo | 2 | 150 | 30 → **55** | 30 → **45** |
+| Celeste Brugnera | Allievo | 2 | 160 | 30 → **55** | 30 → **45** |
 | Christian Cecchin | Allievo | 2 | 115 | 40 → **45** | 50 |
 | Federico Franc. | Allievo | 2 | 125 | 80 → **65** | 30 → **35** |
 | Flavio Neso | Allievo | 2 | 105 | 40 → **50** | 30 → **35** |
 | Grazia Lecci | Allievo | 2 | 120 | 40 → **55** | 45 |
 | Oksana Chorna | Allievo | 2 | 150 | 65 → **70** | 0 → **30** |
+| Remigio Spinazzè | Allievo | 2 | 140 | 70 → **65** | 70 → **60** |
 | Sara Semenzin | Allievo | 2 | 165 | 75 → **90** | -20 → **10** |
 | Viola Donadi | Allievo | 2 | 125 | 40 → **50** | 50 |
 | Vittorio Buosi | Allievo | 2 | 110 | 50 → **45** | 30 → **35** |
+| Annalisa Brino | Allievo | 1 | 135 | 20 → **40** | 50 |
 | Caterina Fighera | Allievo | 1 | 125 | 35 → **45** | 35 |
+| Nicole Fava | Allievo | 1 | 125 | 30 → **35** | 35 |
 
 ### Le mosse in gioco
 
@@ -101,6 +109,10 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 **Andrea**
 - *Calma Sovrastante* (ricarica 3): Annulla stordimento e ogni malus su tutta la sua squadra. Gli alleati non possono essere storditi per 2 turni.
 - *Rimprovero Costruttivo* (ricarica 3): Assorbe la DEF dell'avversario (fino a 40): il bersaglio perde quei punti DEF e Andrea li somma al suo ATK per il turno successivo.
+
+**Annalisa Brino**
+- *Saluto Caritatevole* (ricarica 3): Abbassa di 25 i punti difesa di tutti gli avversari per 2 turni.
+- *Ribaltamento Psicosomatico* (ricarica 4): Inverte i punti ATK e DEF dell'avversario per 2 turni.
 
 **Annastella Bettiol**
 - *Che Voglia di Vivere* (ricarica 2): Toglie 40 punti DEF a qualsiasi carta in campo (anche a sé stessa) per 2 turni.
@@ -121,6 +133,14 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 **Chen Delang**
 - *Spallata del Prodigio* (ricarica 2): Attacco che apre un varco: ignora invulnerabilità, schivate e contrattacchi. 1 su 3: parte la musica dei Prodigy e i danni raddoppiano!
 - *Addestramento Anticinese* (ricarica 3): Raddoppia i punti attacco per il prossimo attacco (entro il turno successivo).
+
+**Chen Wangting**
+- *Creazione Marziale* (ricarica 3): Fino al suo prossimo turno restituisce ogni attacco con il doppio dei danni, senza subirne. Non ferma gli attacchi che ignorano le difese.
+- *Discendenza Impetuosa* (una volta per partita): Una volta per partita: converte in suo discepolo un avversario con metà dei PV o meno (non una Leggenda), che passa nella sua squadra.
+
+**Chen Zhenglei**
+- *Ciuffata Cosmica* (una volta per partita): Una volta per partita: ogni avversario in campo perde metà dei PV che gli restano (ignora qualsiasi difesa).
+- *Forma Universale* (ricarica 6): Raddoppia ATK e DEF di tutta la sua squadra in campo per 1 turno.
 
 **Chicca Fossa**
 - *Blocco Telematico* (ricarica 3): Rallenta l'avversario (ATK −25% per 2 turni) e lo colpisce con la sua difesa dimezzata.
@@ -157,13 +177,25 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 - *Berserker dell'Ingiustizia* (ricarica 3): Ottiene +20 ATK per 2 turni.
 - *Risposta Scazzata* (ricarica 5): Stordisce per 1 turno TUTTE le altre carte in campo, anche le sue (Istruttori e Maestri per 2 turni).
 
+**Lorenzo Signorello**
+- *Sussurro Eterno* (ricarica 4): Parla a ogni manifestazione dell'esistenza ed evoca eserciti: tutti gli avversari subiscono un attacco al 45% della sua forza.
+- *Demassazione Fecale* (ricarica 3): Riduce la sua massa per diventare velocissimo: +10 ATK e +10 DEF per 2 turni e schiva il prossimo attacco.
+
 **Niccolò Cividini**
 - *Terza Persona Colloquiale* (ricarica 4): Stordisce il nemico dandogli del "Lei" per 2 turni.
 - *Mutandone Dirompente* (ricarica 3): Indossa la divisa da Sumo: +20 ATK e +20 DEF per 3 turni.
 
+**Nicole Fava**
+- *Cameraman Improvvisato* (ricarica 3): Cattura l'istante perfetto: prende fino a 30 punti DEF dell'avversario e li aggiunge ai suoi per 2 turni; il suo prossimo attacco fa il 50% in più.
+- *Gentilezza Ultrapremurosa* (ricarica 4): Il tocco magico della cura: +10 ATK e +10 DEF a ogni membro della squadra in campo per 2 turni, e 10 PV di cura.
+
 **Oksana Chorna**
 - *Sputo dell'Ultralama* (ricarica 4): Rallenta tutti gli avversari in campo per 3 turni: ATK −30% (−60% sulle carte Istruttore).
 - *Rettifica Genealogica* (ricarica 4): Trasforma una carta alleata (non Istruttore/Maestro) in Istruttore: +20 ATK e +20 DEF per il resto della partita. Attenzione: alcune mosse fanno effetto doppio sugli Istruttori!
+
+**Remigio Spinazzè**
+- *Potenziamento Tysoniano* (ricarica 2, al massimo 3 volte): Aumenta l'attacco di 10 punti per il resto della partita (fino a 3 volte).
+- *Manutenzione Post-Apocalittica* (ricarica 4): Cura tutta la squadra in campo di 20 PV.
 
 **Samuele Contessa**
 - *Videopatia* (ricarica 3): Chi entra nell'obiettivo subisce ansia da prestazione: ATK e DEF −50% per 2 turni.
@@ -194,9 +226,9 @@ node tools/simulate.js 8000          # 8000 partite al livello "normale"
 node tools/livelli.js facile normale 300   # confronto tra livelli dell'IA
 ```
 
-Ultimo risultato su 8000 partite, con sinergie ed eventi attivi (in `tools/ultimo-bilanciamento.txt`): tutte le carte tra il **46% e il 53%** di vittorie, chi inizia vince il **49%** delle partite, una partita dura in media **9 turni** per giocatore.
+Ultimo risultato su 8000 partite con 30 carte, sinergie ed eventi attivi (in `tools/ultimo-bilanciamento.txt`): le carte normali tra il **45% e il 55%** di vittorie, le due Leggende intorno al **55-58%** (volutamente un po' sopra, perché vanno sbloccate), chi inizia vince il **50%** delle partite.
 
-Il boss del torneo (Andrea, Chen, Grazia, Caterina a livello difficile) viene battuto da una squadra casuale giocata dal computer circa 1 volta su 4.
+Il boss del torneo (Andrea, Chen Delang e Katya a livello difficile, un po' potenziati) viene battuto da una squadra casuale giocata dal computer circa 1 volta su 4.
 
 Livelli dell'IA: la *facile* vince circa 1 partita su 4 contro la *normale*; la *normale* vince circa il 41% contro la *difficile*.
 

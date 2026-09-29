@@ -7,7 +7,9 @@ HEAD = {  # centro della faccia (x, y) in frazione di larghezza/altezza della ca
     'chicca': (0.510, 0.180, 0.15), 'christian': (.50, .22, .30), 'elia': (0.500, 0.220, 0.17), 'federica': (0.505, 0.200, 0.12),
     'federico': (.42, .25, .34), 'flavio': (.56, .24, .30), 'grazia': (.50, .23, .22), 'katya': (0.470, 0.235, 0.18),
     'lorenzo': (0.500, 0.235, 0.18), 'niccolo': (.54, .23, .20), 'oksana': (.48, .27, .28), 'samuele': (0.600, 0.210, 0.14),
-    'sara': (.46, .27, .28), 'strahinja': (.48, .27, .24), 'viola': (.50, .27, .28), 'vittorio': (.49, .26, .28),
+    'sara': (.46, .27, .28),
+    'wangting': (.49, .185, .17), 'remigio': (.49, .20, .24), 'nicole': (.51, .25, .23),
+    'signorello': (.46, .22, .19), 'annalisa': (.51, .28, .27), 'zhenglei': (.46, .20, .21), 'strahinja': (.48, .27, .24), 'viola': (.50, .27, .28), 'vittorio': (.49, .26, .28),
 }
 os.makedirs('img/teste', exist_ok=True)
 for cid, (fx, fy, side) in HEAD.items():
