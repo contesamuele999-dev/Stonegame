@@ -1,5 +1,5 @@
 /* Service worker: salva il gioco sul telefono per aprirlo anche senza internet. */
-const CACHE = 'stonetao-v2';
+const CACHE = 'stonetao-v3';
 const FILES = [
   "./",
   "index.html",
@@ -27,6 +27,7 @@ const FILES = [
   "img/federico.jpg",
   "img/flavio.jpg",
   "img/grazia.jpg",
+  "img/favicon.svg",
   "img/icona-192.png",
   "img/icona-512.png",
   "img/icona-maskable.png",

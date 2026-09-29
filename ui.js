@@ -159,7 +159,7 @@
         <img src="img/retro.jpg" alt="Retro delle carte Stone Temple Tao">
         <div>
           <div class="eyebrow">Scuola di Tradizionali Arti Orientali</div>
-          <h1>Stone Temple Tao</h1>
+          <h1>Stone Temple Game</h1>
           <p>Il torneo di carte della palestra: ${S.CARDS.length} combattenti, 3 contro 3, una riserva a testa.</p>
         </div>
       </div>

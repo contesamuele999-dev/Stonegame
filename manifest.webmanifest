@@ -1,6 +1,6 @@
 {
-  "name": "Stone Temple Tao — il torneo di carte",
-  "short_name": "Stone Tao",
+  "name": "Stone Temple Game",
+  "short_name": "Stone Game",
   "description": "Il gioco di carte della palestra Stone Temple Tao, con lottatori 3D.",
   "lang": "it",
   "start_url": "./",
