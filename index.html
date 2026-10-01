@@ -191,6 +191,22 @@
   .share-link { width: min(100%, 420px); height: 110px; border-radius: 6px; border: 1.5px solid var(--line); background: var(--ink-2); color: var(--paper); font: 12px var(--body); padding: 8px; word-break: break-all; }
   .overlay .menu-2 { width: min(100%, 340px); }
   .overlay .menu-2 .btn { min-width: 0; }
+  /* torneo dal vivo */
+  .live-names { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .live-names input { min-height: 44px; border-radius: 6px; border: 1.5px solid var(--line); background: var(--ink-2); color: var(--paper); padding: 6px 10px; font: 16px var(--body); min-width: 0; }
+  .lm-list { display: grid; gap: 8px; }
+  .lm { border: 1.5px solid var(--line); border-radius: 8px; background: var(--ink-2); padding: 8px 10px; display: grid; gap: 2px; }
+  .lm-row { font-family: var(--label); font-weight: 700; font-size: 17px; color: var(--paper); }
+  .lm-row i { font-weight: 500; color: var(--muted); }
+  .lm-row.win { color: var(--gold); }
+  .lm-row.lose { color: var(--muted); text-decoration: line-through; }
+  .lm-vs { font-family: var(--label); font-size: 12px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); }
+  .lm-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; margin-top: 6px; }
+  .lm-btns .btn { min-height: 40px; font-size: 13.5px; padding: 4px 6px; }
+  .lm-fix { align-self: center; font-family: var(--label); font-size: 13px; color: var(--muted); text-align: center; }
+  .champion { text-align: center; border: 2px solid var(--gold); border-radius: 12px; padding: 14px; background: radial-gradient(circle at 50% 0%, #4a3510, #1f1810); animation: drop .5s ease-out; }
+  .champion .trophy { font-size: 64px; line-height: 1; animation: vs-slam .7s cubic-bezier(.2, 1.6, .4, 1) both; }
+  .champion b { display: block; font-family: var(--display); font-weight: 400; font-size: 36px; color: var(--gold); margin-top: 4px; }
   /* carte effetto */
   .hand { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .fx-card { display: flex; align-items: center; gap: 6px; text-align: left; padding: 6px 8px; border-radius: 7px; border: 1.5px solid var(--gold); background: linear-gradient(135deg, #2a1f10, #1a140d); cursor: pointer; min-height: 52px; }

@@ -92,6 +92,8 @@ Armi e palestre sono state bilanciate come le carte: con migliaia di partite sim
 - 🔄 *Cambio in panchina*: una tua carta in campo torna in riserva e la riserva entra al suo posto.
 - 💥 *Kiai*: 20 danni a un avversario, che ignorano la difesa.
 
+**Torneo dal vivo.** Per le serate in palestra: chi organizza sceglie 4 o 8 giocatori e scrive i nomi, l'app li mescola e prepara il tabellone (quarti, semifinali, finale). Ogni incontro si gioca sul telefono di chi organizza ("Gioca qui", in 2 sullo stesso telefono) oppure altrove, segnando chi ha vinto; un risultato si può correggere finché il turno dopo non è giocato. Alla fine, la schermata del campione.
+
 **Replay.** A fine partita "📤 Condividi" crea un link (WhatsApp, email…) con dentro, compressi, il setup della sfida e tutte le mosse: chi lo apre rivede l'intera sfida in 3D. "▶ Rivedi" la riguarda subito. Le sfide con carte segrete si rivedono solo se le si è sbloccate.
 
 **Consiglio.** Nel proprio turno (non online) il pulsante 💡 mostra la mossa che sceglierebbe il computer; "Fai così" la esegue.

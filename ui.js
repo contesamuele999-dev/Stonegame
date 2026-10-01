@@ -216,7 +216,7 @@
   function render() {
     const fn = {
       home: renderHome, setup: renderSetup, build: renderBuild, battle: renderBattle, collection: renderCollection,
-      rules: renderRules, ranking: renderRanking, settings: renderSettings, torneo: renderTorneo, online: renderOnline,
+      rules: renderRules, ranking: renderRanking, settings: renderSettings, torneo: renderTorneo, online: renderOnline, live: renderLive,
       account: renderAccount,
     }[A.screen];
     $app.innerHTML = fn();
@@ -253,6 +253,7 @@
         ${save ? `<button class="btn primary" data-act="resume">Riprendi partita · turno ${Math.ceil(save.turnNo / 2)}</button>` : ''}
         ${!tutDone ? `<button class="btn ${save ? '' : 'primary'}" data-act="tutorial">Prima volta? Fai il tutorial</button>` : ''}
         <button class="btn ${save || !tutDone ? '' : 'primary'}" data-act="mode" data-v="cpu">Sfida il computer</button>
+        <button class="btn" data-act="go" data-v="live">🏆 Torneo dal vivo<small>4 o 8 giocatori, tabellone sul telefono di chi organizza</small></button>
         <button class="btn" data-act="go" data-v="torneo">Torneo · incontro ${Math.min(t.stage + 1, 5)} di 5${t.titles ? ` · 🏆 ${t.titles}` : ''}</button>
         <div class="menu-2">
           <button class="btn" data-act="mode" data-v="pvp">2 giocatori<small>stesso telefono</small></button>
@@ -460,6 +461,67 @@
       <button class="btn primary" data-act="torneo-go">Combatti l'incontro ${t.stage + 1}</button>
       ${t.stage > 0 ? '<button class="btn ghost" data-act="torneo-reset">Ricomincia il torneo</button>' : ''}
     </div>`;
+  }
+
+  // ------------------------------------------------------------ TORNEO DAL VIVO (serata in palestra)
+  // Tabellone a eliminazione diretta per 4 o 8 persone. Ogni incontro si gioca qui (in 2 sullo stesso
+  // telefono) oppure altrove, segnando a mano chi ha vinto. Salvato sul telefono.
+  const ROUND_NAMES = { 1: 'Finale', 2: 'Semifinali', 4: 'Quarti di finale' };
+  const live = () => load('live', null);
+  // ricostruisce i turni successivi dai vincitori, tenendo i risultati già validi
+  function liveRebuild(L) {
+    for (let r = 1; r < L.rounds.length; r++) {
+      const prev = L.rounds[r - 1];
+      L.rounds[r] = L.rounds[r].map((m, i) => {
+        const a = prev[2 * i].w || null, b = prev[2 * i + 1].w || null;
+        return m.a === a && m.b === b ? m : { a, b, w: null };
+      });
+    }
+    const fin = L.rounds[L.rounds.length - 1][0];
+    L.champion = fin.w || null;
+    return L;
+  }
+  function liveNew(names) {
+    const p = names.slice().sort(() => Math.random() - 0.5);
+    const rounds = [];
+    let n = p.length / 2;
+    rounds.push(Array.from({ length: n }, (_, i) => ({ a: p[2 * i], b: p[2 * i + 1], w: null })));
+    while ((n /= 2) >= 1) rounds.push(Array.from({ length: n }, () => ({ a: null, b: null, w: null })));
+    return { rounds, champion: null };
+  }
+  function renderLive() {
+    const L = live();
+    const top = `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">Serata in palestra</div></div>`;
+    if (!L) {
+      const size = A.liveSize || 8, names = load('liveNames', []);
+      return `${top}<div class="setup"><h2>Torneo dal vivo</h2>
+        <p class="hint" style="text-align:left">Scrivi i nomi dei partecipanti: l'app li mescola e prepara il tabellone. Ogni incontro si gioca su questo telefono o altrove, segnando chi ha vinto.</p>
+        <div class="eyebrow">Quanti giocatori?</div>
+        <div class="seg" role="group">${[4, 8].map(n => `<button data-act="live-size" data-v="${n}" aria-pressed="${size === n}">${n}</button>`).join('')}</div>
+        <div class="live-names">${Array.from({ length: size }, (_, i) => `<input id="ln${i}" maxlength="16" placeholder="Giocatore ${i + 1}" value="${esc(names[i] || '')}" aria-label="Giocatore ${i + 1}">`).join('')}</div>
+        <button class="btn primary" data-act="live-start">Mescola e crea il tabellone</button></div>`;
+    }
+    const rounds = L.rounds.map((round, r) => `<h3 class="sec">${ROUND_NAMES[round.length]}</h3><div class="lm-list">${round.map((m, i) => {
+      const ready = m.a && m.b;
+      const locked = r + 1 < L.rounds.length && L.rounds[r + 1][i >> 1].w; // il turno dopo è già stato giocato
+      const row = who => `<div class="lm-row ${who && m.w === who ? 'win' : ''} ${who && m.w && m.w !== who ? 'lose' : ''}">${who ? esc(who) : '<i>in attesa</i>'}${who && m.w === who ? ' 🏆' : ''}</div>`;
+      return `<div class="lm">${row(m.a)}<div class="lm-vs">contro</div>${row(m.b)}
+        ${ready && !locked ? `<div class="lm-btns">${m.w ? '<span class="lm-fix">Correggi:</span>' : `<button class="btn small primary" data-act="live-play" data-r="${r}" data-i="${i}">Gioca qui</button>`}
+          <button class="btn small" data-act="live-win" data-r="${r}" data-i="${i}" data-v="a">Vince ${esc(m.a.split(' ')[0])}</button>
+          <button class="btn small" data-act="live-win" data-r="${r}" data-i="${i}" data-v="b">Vince ${esc(m.b.split(' ')[0])}</button></div>` : ''}</div>`;
+    }).join('')}</div>`).join('');
+    return `${top}<div class="setup"><h2>Torneo dal vivo</h2>
+      ${L.champion ? `<div class="champion" role="status"><div class="trophy">🏆</div><div class="eyebrow">Campione della serata</div><b>${esc(L.champion)}</b></div>` : ''}
+      ${rounds}
+      <button class="btn ghost" data-act="live-reset">${L.champion ? 'Nuovo torneo' : 'Annulla il torneo'}</button></div>`;
+  }
+  function liveResult(r, i, winner) {
+    const L = live();
+    if (!L) return;
+    L.rounds[r][i].w = winner;
+    liveRebuild(L);
+    store('live', L);
+    if (L.champion) { sfx('win'); if (window.Sound) Sound.buzz([80, 40, 80, 40, 200]); }
   }
 
   // ------------------------------------------------------------ REGOLE
@@ -1083,7 +1145,9 @@
     if (got.length) extra += `<div class="unlock"><div class="eyebrow">Nuov${got.length > 1 ? 'e carte sbloccate' : 'a carta sbloccata'}!</div><div class="faces">${got.map(id => `<i style="${face(id)}" title="${esc(S.CARD[id].name)}"></i>`).join('')}</div><p>${got.map(id => esc(S.CARD[id].name)).join(', ')}</p></div>`;
     const title = A.mode === 'pvp' ? 'Vittoria!' : (localWin ? (torneoMsg.startsWith('🏆') ? 'Campione!' : 'Vittoria!') : 'Sconfitta');
     const alive = w.field.concat(w.reserve);
-    const btns = A.mode === 'torneo'
+    if (A.liveMatch) { const { r, i } = A.liveMatch; liveResult(r, i, w.name); }
+    const btns = A.liveMatch ? '<button class="btn primary" data-act="live-back">Torna al tabellone</button>'
+      : A.mode === 'torneo'
       ? `<button class="btn primary" data-act="torneo-next">${g.winner === 0 ? (torneo().stage === 0 ? 'Torna al torneo' : 'Prossimo incontro') : 'Ritenta'}</button><button class="btn ghost" data-act="quit-now">Menu</button>`
       : A.mode === 'tutorial'
         ? '<button class="btn primary" data-act="quit-now">Vai al menu</button>'
@@ -1554,11 +1618,33 @@
         A.weapons = [load('weapon0', null), A.mode === 'pvp' ? load('weapon1', null) : null].map(w => (w && S.WEAPON[w.id] ? w : null));
         go('build'); break;
       case 'build-back':
-        if (A.mode === 'online') { leaveOnline(); go('home'); }
+        if (A.liveMatch && A.builder === 0) { A.liveMatch = null; go('live'); }
+        else if (A.mode === 'online') { leaveOnline(); go('home'); }
         else if (A.mode === 'torneo') go('torneo');
         else if (A.builder === 1) { A.builder = 0; render(); } else go('setup');
         break;
       case 'filter': A.filter = v; render(); break;
+      case 'live-size': A.liveSize = +v; render(); break;
+      case 'live-start': {
+        const size = A.liveSize || 8;
+        const names = Array.from({ length: size }, (_, i) => ((document.getElementById('ln' + i) || {}).value || '').trim() || `Giocatore ${i + 1}`);
+        if (new Set(names).size !== names.length) { toastQuick('Ogni giocatore deve avere un nome diverso.'); break; }
+        store('liveNames', names); store('live', liveNew(names)); render(); break;
+      }
+      case 'live-win': {
+        const L = live(), m = L.rounds[+el.dataset.r][+el.dataset.i];
+        liveResult(+el.dataset.r, +el.dataset.i, v === 'a' ? m.a : m.b); render(); break;
+      }
+      case 'live-play': {
+        const L = live(), r = +el.dataset.r, i = +el.dataset.i, m = L.rounds[r][i];
+        A.liveMatch = { r, i };
+        A.mode = 'pvp'; A.names = [m.a, m.b]; A.teams = [[], []]; A.weapons = [null, null];
+        A.builder = 0; A.filter = 'all';
+        go('build'); break;
+      }
+      case 'live-back': A.liveMatch = null; A.game = null; go('live'); break;
+      case 'live-reset': confirmBox('Chiudere il torneo?', 'Il tabellone verrà cancellato. I nomi restano per il prossimo.', 'live-reset-yes', 'Chiudi il torneo'); break;
+      case 'live-reset-yes': drop('live'); closeLayer(); render(); break;
       case 'acc-mode': A.acc.mode = v; A.acc.msg = ''; A.acc.info = ''; render(); break;
       case 'acc-guest': try { sessionStorage.setItem('stt_ospite', '1'); } catch (err) { /* niente */ } go('home'); break;
       case 'acc-login': case 'acc-signup': case 'acc-recover': {
@@ -1700,6 +1786,7 @@
         break;
       case 'quit-now':
         if (A.mode === 'online') leaveOnline();
+        A.liveMatch = null;
         A.game = null; A.tut = -1; go('home'); break;
       case 'rematch': closeLayer(); startGame(1 - A.first, true); break;
       case 'new-game': A.game = null; closeLayer(); A.builder = 0; go('build'); break;
