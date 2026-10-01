@@ -1,5 +1,5 @@
 /* Service worker: salva il gioco sul telefono per aprirlo anche senza internet. */
-const CACHE = 'stonetao-v11';
+const CACHE = 'stonetao-v12';
 const FILES = [
   "./",
   "index.html",
@@ -17,7 +17,6 @@ const FILES = [
   "img/andrea.jpg",
   "img/annalisa.jpg",
   "img/annastella.jpg",
-  "img/carla.jpg",
   "img/caterina.jpg",
   "img/celeste.jpg",
   "img/chen.jpg",
@@ -37,7 +36,6 @@ const FILES = [
   "img/remigio.jpg",
   "img/retro.jpg",
   "img/samuele.jpg",
-  "img/sara.jpg",
   "img/signorello.jpg",
   "img/strahinja.jpg",
   "img/viola.jpg",
@@ -49,7 +47,6 @@ const FILES = [
   "img/volti/andrea.jpg",
   "img/volti/annalisa.jpg",
   "img/volti/annastella.jpg",
-  "img/volti/carla.jpg",
   "img/volti/caterina.jpg",
   "img/volti/celeste.jpg",
   "img/volti/chen.jpg",
@@ -64,7 +61,6 @@ const FILES = [
   "img/volti/nicole.jpg",
   "img/volti/remigio.jpg",
   "img/volti/samuele.jpg",
-  "img/volti/sara.jpg",
   "img/volti/signorello.jpg",
   "img/volti/strahinja.jpg",
   "img/volti/viola.jpg",

@@ -261,39 +261,6 @@
       ],
     },
     {
-      id: 'sara', name: 'Sara Semenzin', rank: 'A', cost: 2, hp: 165, atk: 90, def: 10,
-      orig: { atk: 75, def: -20 },
-      moves: [
-        { name: 'Stupro Mentale', target: 'enemy', cd: 3,
-          desc: 'Paralizza una carta per 2 turni. Effetto ×2 se la carta di Samuele è in campo: paralizza anche un secondo avversario.',
-          use(g, u, t) {
-            stun(g, t, u, 2, 'paralizzato');
-            if (field(g).some(f => f.card === 'samuele')) {
-              const others = enemies(g, u.owner).filter(f => f !== t);
-              if (others.length) { log(g, 'Samuele è in campo: effetto raddoppiato!'); stun(g, others[Math.floor(rand(g) * others.length)], u, 2, 'paralizzato'); }
-            }
-          } },
-        { name: 'Intenzione Fasulla', target: 'self', cd: 3,
-          desc: 'Finge un attacco: schiva il prossimo colpo e il suo attacco successivo ignora la DEF avversaria.',
-          use(g, u) { addStatus(g, u, u, 'evade', 1, 0, true); addStatus(g, u, u, 'feint', 1, 0, true); log(g, `${nm(u)} finge un attacco...`); } },
-      ],
-    },
-    {
-      id: 'carla', name: 'Carla Smania', rank: 'A', cost: 2, hp: 120, atk: 50, def: 55,
-      orig: { atk: 50, def: 70 },
-      moves: [
-        { name: 'Stato Confusionale', target: 'enemies', cd: 4,
-          desc: 'Confonde gli Istruttori avversari per 1 turno e tutti gli altri avversari per 2. Può essere così forte da colpire anche lei (25%).',
-          use(g, u) {
-            for (const f of enemies(g, u.owner)) confuse(g, f, u, f.rank === 'I' ? 1 : 2);
-            if (rand(g) < 0.25) { log(g, `L'effetto è così forte che confonde anche ${nm(u)}!`); confuse(g, u, u, 1); }
-          } },
-        { name: 'Bottiglia Eterna', target: 'bottle', cd: 3, nocopy: true,
-          desc: 'Riutilizza a volontà l\'ultima mossa speciale usata in campo da chiunque.',
-          use() {} },
-      ],
-    },
-    {
       id: 'christian', name: 'Christian Cecchin', rank: 'A', cost: 2, hp: 115, atk: 50, def: 50,
       orig: { atk: 40, def: 50 },
       moves: [

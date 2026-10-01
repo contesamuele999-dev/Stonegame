@@ -1,6 +1,6 @@
 # Stone Temple Card Game
 
-Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal telefono con i 25 personaggi della palestra e 2 Leggende del Taijiquan stile Chen.
+Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal telefono con i 23 personaggi della palestra e 2 Leggende del Taijiquan stile Chen.
 
 - **Contro il computer**, con tre livelli di difficoltà: facile, normale e difficile.
 - **Torneo**: 5 incontri contro squadre sempre più forti, fino al Tempio dei Maestri.
@@ -114,12 +114,10 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 | Adriano Rossetto | Allievo | 2 | 145 | 30 → **50** | 90 → **80** |
 | Alessandro Rizzo | Allievo | 2 | 150 | 60 → **65** | 30 → **35** |
 | Annastella Bettiol | Allievo | 2 | 150 | 40 → **60** | 50 |
-| Carla Smania | Allievo | 2 | 120 | 50 | 70 → **55** |
 | Celeste Brugnera | Allievo | 2 | 175 | 30 → **60** | 30 → **55** |
 | Christian Cecchin | Allievo | 2 | 115 | 40 → **50** | 50 |
 | Grazia Lecci | Allievo | 2 | 120 | 40 → **55** | 45 |
 | Remigio Spinazzè | Allievo | 2 | 140 | 70 → **65** | 70 → **60** |
-| Sara Semenzin | Allievo | 2 | 165 | 75 → **90** | -20 → **10** |
 | Viola Donadi | Allievo | 2 | 125 | 40 → **50** | 50 |
 | Vittorio Buosi | Allievo | 2 | 100 | 50 → **40** | 30 → **35** |
 | Annalisa Brino | Allievo | 1 | 145 | 20 → **45** | 50 → **55** |
@@ -147,10 +145,6 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 **Annastella Bettiol**
 - *Che Voglia di Vivere* (ricarica 2): Toglie 40 punti DEF a qualsiasi carta in campo (anche a sé stessa) per 2 turni.
 - *Spaccaossa* (ricarica 3): Colpisce e toglie 30 punti ATK alla carta bersagliata per 2 turni.
-
-**Carla Smania**
-- *Stato Confusionale* (ricarica 4): Confonde gli Istruttori avversari per 1 turno e tutti gli altri avversari per 2. Può essere così forte da colpire anche lei (25%).
-- *Bottiglia Eterna* (ricarica 3): Riutilizza a volontà l'ultima mossa speciale usata in campo da chiunque.
 
 **Caterina Fighera**
 - *Incazzatura Interstellare* (ricarica 3): Per 2 turni moltiplica ×2 tutti i danni che infligge… ma anche quelli che subisce.
@@ -219,10 +213,6 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 **Samuele Contessa**
 - *Videopatia* (ricarica 3): Chi entra nell'obiettivo subisce ansia da prestazione: ATK e DEF −50% per 2 turni.
 - *Gomiti di Ferro* (ricarica 4): Invulnerabile per 1 turno e +10 ATK per ogni carta Maestro in campo (per 2 turni).
-
-**Sara Semenzin**
-- *Stupro Mentale* (ricarica 3): Paralizza una carta per 2 turni. Effetto ×2 se la carta di Samuele è in campo: paralizza anche un secondo avversario.
-- *Intenzione Fasulla* (ricarica 3): Finge un attacco: schiva il prossimo colpo e il suo attacco successivo ignora la DEF avversaria.
 
 **Strahinja Crnic**
 - *Dolori Omnidirezionali* (ricarica 4): Dolori che nessuno nota: ogni avversario in campo subisce 10 danni per 3 turni (ignorano la difesa).

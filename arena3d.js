@@ -15,12 +15,12 @@
   // colore della divisa e dei bordi per ogni carta
   const LOOK = {
     adriano: ['#c0521f', '#f0a040'], alessandro: ['#2f2f35', '#e8631c'], andrea: ['#4b2d7a', '#d4ae62'],
-    annastella: ['#2f7d3a', '#9be15d'], carla: ['#7a3fa0', '#ff9a3d'], caterina: ['#5b2590', '#b04cff'],
+    annastella: ['#2f7d3a', '#9be15d'], caterina: ['#5b2590', '#b04cff'],
     celeste: ['#2b3a6b', '#d4ae62'], chen: ['#8f1f1f', '#f2efe6'], chicca: ['#e8e2d6', '#e8631c'],
     christian: ['#26262b', '#e8631c'], elia: ['#5d6070', '#6fb3e6'], federica: ['#1a1a1f', '#ffd24a'],
     grazia: ['#8f1f1f', '#ffd24a'],
     katya: ['#161616', '#6fb3e6'], lorenzo: ['#141414', '#d8412f'], niccolo: ['#f2f2f2', '#e8631c'],
-    samuele: ['#cfcac0', '#e8631c'], sara: ['#4a1466', '#b04cff'],
+    samuele: ['#cfcac0', '#e8631c'],
     strahinja: ['#2b4c8c', '#6fb3e6'], viola: ['#8c2b2b', '#ff9a3d'], vittorio: ['#151515', '#e8631c'],
     signorello: ['#a3161b', '#d4ae62'], remigio: ['#2a5aa8', '#d8412f'], nicole: ['#f2ede6', '#e89ab0'],
     annalisa: ['#e9f2ea', '#55b98a'], wangting: ['#6d6a5e', '#d4ae62'], zhenglei: ['#f4efe2', '#b04cff'],
@@ -59,10 +59,6 @@
     'Chioma Rinata': { anim: 'powerup', fx: 'aura', e: '✨', c: '#f5e27a' },
     'Incazzatura Interstellare': { anim: 'powerup', fx: 'lightning', e: '💥', c: '#b04cff' },
     'Intenditrice Seriale': { anim: 'cast', fx: 'aura', e: '🃏', c: '#d4ae62' },
-    'Stupro Mentale': { anim: 'cast', fx: 'wave', e: '🧠', c: '#b04cff' },
-    'Intenzione Fasulla': { anim: 'feint', fx: 'ghost', e: '👻', c: '#b04cff' },
-    'Stato Confusionale': { anim: 'dance', fx: 'wave', e: '❓', c: '#a978e0' },
-    'Bottiglia Eterna': { anim: 'cast', fx: 'orb', e: '🍾', c: '#55b98a' },
     'Apprendimento Fulmineo': { anim: 'cast', fx: 'orb', e: '⚡', c: '#ffd24a' },
     'T-shirt Magistrali': { anim: 'throw', fx: 'lob', e: '👕', c: '#eadbc0' },
     'Volto Marmoreo': { anim: 'meditate', fx: 'marble', e: '🗿', c: '#d8d8d8' },
@@ -165,12 +161,12 @@
   // Il volto si prende dalla carta intera perché è sempre completo (i vecchi ritagli tagliavano naso o mento).
   const FACE = {
     adriano: [0.507, 0.332, 0.306], alessandro: [0.5, 0.343, 0.306], andrea: [0.489, 0.245, 0.08, '#231a16'],
-    annalisa: [0.51, 0.31, 0.122, '#4a3a30'], annastella: [0.465, 0.305, 0.156], carla: [0.514, 0.287, 0.168],
+    annalisa: [0.51, 0.31, 0.122, '#4a3a30'], annastella: [0.465, 0.305, 0.156],
     caterina: [0.502, 0.34, 0.192], celeste: [0.5, 0.311, 0.224], chen: [0.523, 0.226, 0.094, '#1d1612'],
     chicca: [0.525, 0.204, 0.06, '#2a1c14'], christian: [0.515, 0.3, 0.2, '#2b1f18'], elia: [0.5, 0.228, 0.077, '#4a3222'],
-    federica: [0.527, 0.195, 0.034], grazia: [0.504, 0.274, 0.11, '#d9a95a'], katya: [0.47, 0.257, 0.081, '#d8d4d0'],
-    lorenzo: [0.5, 0.267, 0.09, '#1e1712'], niccolo: [0.54, 0.249, 0.09, '#2a1f1a'], nicole: [0.515, 0.296, 0.127, '#8a6440'],
-    remigio: [0.502, 0.24, 0.12], samuele: [0.576, 0.216, 0.063, '#2b2018'], sara: [0.46, 0.288, 0.126],
+    federica: [0.542, 0.203, 0.045, '#241812'], grazia: [0.504, 0.274, 0.11, '#d9a95a'], katya: [0.47, 0.257, 0.081, '#d8d4d0'],
+    lorenzo: [0.478, 0.267, 0.09, '#1e1712'], niccolo: [0.54, 0.249, 0.09, '#2a1f1a'], nicole: [0.515, 0.296, 0.127, '#8a6440'],
+    remigio: [0.502, 0.24, 0.12], samuele: [0.576, 0.216, 0.063, '#2b2018'],
     signorello: [0.479, 0.23, 0.086], strahinja: [0.48, 0.255, 0.096], viola: [0.5, 0.283, 0.168, '#5a3a24'],
     vittorio: [0.476, 0.288, 0.196], wangting: [0.49, 0.191, 0.085], zhenglei: [0.46, 0.21, 0.105],
   };
@@ -219,7 +215,11 @@
       tex.needsUpdate = true;
       (info.onLoad || []).forEach(f => f(info));
     };
-    img.src = window.STT.img(`${card}.jpg`);
+    // se la rete perde l'immagine riprovo due volte (altrimenti il viso resterebbe vuoto per tutta la partita)
+    const url = window.STT.img(`${card}.jpg`);
+    let tries = 0;
+    img.onerror = () => { if (tries++ < 2) setTimeout(() => { img.src = url.startsWith('blob:') ? url : `${url}?r=${tries}`; }, 800); };
+    img.src = url;
     faceCache[card] = info;
     return info;
   }
@@ -930,7 +930,13 @@
     const k = 'c:' + card;
     if (!texCache[k]) {
       const cbs = [];
-      const t = new T.TextureLoader().load(window.STT.img(`${card}.jpg`), () => cbs.forEach(f => f()));
+      const t = new T.Texture();
+      const url = window.STT.img(`${card}.jpg`);
+      // come per i volti: due nuovi tentativi se l'immagine non arriva
+      const get = n => new T.ImageLoader().load(n && !url.startsWith('blob:') ? `${url}?r=${n}` : url,
+        im => { t.image = im; t.needsUpdate = true; cbs.forEach(f => f()); },
+        undefined, () => { if (n < 2) setTimeout(() => get(n + 1), 800); });
+      get(0);
       t.minFilter = T.LinearFilter; t.generateMipmaps = false;
       t.onReady = f => { if (t.image && t.image.width) f(); else cbs.push(f); };
       texCache[k] = t;

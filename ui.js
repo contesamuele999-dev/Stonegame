@@ -162,8 +162,8 @@
   // ------------------------------------------------------------ torneo
   const TORNEO = [
     { name: 'Gli allievi del lunedì', level: 'facile', terrain: 'priula', weapon: { id: 'dagan', card: 'viola' }, cards: ['grazia', 'viola', 'annastella', 'caterina'], text: 'Si parte con calma: la classe dei principianti.' },
-    { name: 'Il corso serale', level: 'normale', terrain: 'lancenigo', weapon: { id: 'dao', card: 'alessandro' }, cards: ['vittorio', 'alessandro', 'christian', 'carla'], text: 'Dopo il lavoro, ma pieni di energia.' },
-    { name: 'La squadra agonistica', level: 'difficile', terrain: 'priula', weapon: { id: 'qiang', card: 'lorenzo' }, cards: ['lorenzo', 'sara', 'remigio', 'chicca'], text: 'Allenati per le gare: non regalano niente.' },
+    { name: 'Il corso serale', level: 'normale', terrain: 'lancenigo', weapon: { id: 'dao', card: 'alessandro' }, cards: ['vittorio', 'alessandro', 'christian', 'adriano'], text: 'Dopo il lavoro, ma pieni di energia.' },
+    { name: 'La squadra agonistica', level: 'difficile', terrain: 'priula', weapon: { id: 'qiang', card: 'lorenzo' }, cards: ['lorenzo', 'celeste', 'remigio', 'chicca'], text: 'Allenati per le gare: non regalano niente.' },
     { name: 'Gli istruttori', level: 'facile', terrain: 'liming', weapon: { id: 'shuangjian', card: 'samuele' }, cards: ['samuele', 'niccolo', 'strahinja', 'federica'], text: 'Tutti gli Istruttori insieme: chi insegna sa anche combattere.' },
     { name: 'Il Tempio dei Maestri', level: 'difficile', terrain: 'chenjiagou', weapon: { id: 'jian', card: 'andrea' }, cards: ['andrea', 'chen', 'katya'], boost: 1.1, text: 'La sfida finale: tre Maestri, più forti del solito. Chi vince sblocca le Leggende.' },
   ];
