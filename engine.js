@@ -32,7 +32,7 @@
   // cd = turni di ricarica dopo l'uso. once = una volta per partita.
   const CARDS = [
     {
-      id: 'andrea', name: 'Andrea', rank: 'M', cost: 4, hp: 150, atk: 90, def: 75,
+      id: 'andrea', name: 'Andrea', rank: 'M', cost: 4, hp: 145, atk: 85, def: 75,
       orig: { atk: 120, def: 95 },
       moves: [
         { name: 'Calma Sovrastante', target: 'allies', cd: 3,
@@ -52,7 +52,7 @@
       ],
     },
     {
-      id: 'chen', name: 'Chen Delang', rank: 'M', cost: 4, hp: 160, atk: 80, def: 70,
+      id: 'chen', name: 'Chen Delang', rank: 'M', cost: 4, hp: 155, atk: 80, def: 70,
       orig: { atk: 100, def: 100 },
       moves: [
         { name: 'Spallata del Prodigio', target: 'enemy', cd: 2, pierce: true, hit: {},
@@ -68,7 +68,7 @@
       ],
     },
     {
-      id: 'elia', name: 'Elia Moretton', rank: 'M', cost: 4, hp: 135, atk: 85, def: 75,
+      id: 'elia', name: 'Elia Moretton', rank: 'M', cost: 4, hp: 140, atk: 85, def: 75,
       orig: { atk: 90, def: 90 },
       moves: [
         { name: 'Perfezionismo Compulsivo', target: 'enemy', cd: 3,
@@ -84,7 +84,7 @@
       ],
     },
     {
-      id: 'katya', name: 'Katya', rank: 'M', cost: 3, hp: 140, atk: 65, def: 75,
+      id: 'katya', name: 'Katya', rank: 'M', cost: 3, hp: 130, atk: 65, def: 70,
       orig: { atk: 60, def: 80 },
       moves: [
         { name: 'Firma Urgente', target: 'enemies', cd: 3,
@@ -108,7 +108,7 @@
       ],
     },
     {
-      id: 'samuele', name: 'Samuele Contessa', rank: 'I', cost: 4, hp: 170, atk: 90, def: 70,
+      id: 'samuele', name: 'Samuele Contessa', rank: 'I', cost: 4, hp: 165, atk: 90, def: 70,
       orig: { atk: 100, def: 90 },
       moves: [
         { name: 'Videopatia', target: 'enemy', cd: 3,
@@ -125,7 +125,7 @@
       ],
     },
     {
-      id: 'niccolo', name: 'Niccolò Cividini', rank: 'I', cost: 3, hp: 140, atk: 75, def: 65,
+      id: 'niccolo', name: 'Niccolò Cividini', rank: 'I', cost: 3, hp: 135, atk: 70, def: 65,
       orig: { atk: 70, def: 65 },
       moves: [
         { name: 'Terza Persona Colloquiale', target: 'enemy', cd: 4,
@@ -149,7 +149,7 @@
       ],
     },
     {
-      id: 'federica', name: 'Federica Siciliano', rank: 'I', cost: 3, hp: 140, atk: 60, def: 55,
+      id: 'federica', name: 'Federica Siciliano', rank: 'I', cost: 3, hp: 135, atk: 60, def: 55,
       orig: { atk: 50, def: 50 },
       moves: [
         { name: 'Dominio dell\'Infante', target: 'enemies', cd: 3, pierce: true, hit: { mul: 0.5 },
@@ -176,7 +176,7 @@
       ],
     },
     {
-      id: 'annastella', name: 'Annastella Bettiol', rank: 'A', cost: 2, hp: 140, atk: 55, def: 50,
+      id: 'annastella', name: 'Annastella Bettiol', rank: 'A', cost: 2, hp: 150, atk: 60, def: 50,
       orig: { atk: 40, def: 50 },
       moves: [
         { name: 'Che Voglia di Vivere', target: 'any', cd: 2,
@@ -188,7 +188,7 @@
       ],
     },
     {
-      id: 'vittorio', name: 'Vittorio Buosi', rank: 'A', cost: 2, hp: 110, atk: 45, def: 35,
+      id: 'vittorio', name: 'Vittorio Buosi', rank: 'A', cost: 2, hp: 100, atk: 40, def: 35,
       orig: { atk: 50, def: 30 },
       moves: [
         { name: 'Depressione Istantanea', target: 'enemy', cd: 4, hit: { ignoreDef: true },
@@ -226,7 +226,7 @@
       ],
     },
     {
-      id: 'celeste', name: 'Celeste Brugnera', rank: 'A', cost: 2, hp: 160, atk: 55, def: 45,
+      id: 'celeste', name: 'Celeste Brugnera', rank: 'A', cost: 2, hp: 175, atk: 60, def: 55,
       orig: { atk: 30, def: 30 },
       moves: [
         { name: 'Chioma Rinata', target: 'anyOther', once: true, nocopy: true,
@@ -294,7 +294,7 @@
       ],
     },
     {
-      id: 'christian', name: 'Christian Cecchin', rank: 'A', cost: 2, hp: 115, atk: 45, def: 50,
+      id: 'christian', name: 'Christian Cecchin', rank: 'A', cost: 2, hp: 115, atk: 50, def: 50,
       orig: { atk: 40, def: 50 },
       moves: [
         { name: 'Apprendimento Fulmineo', target: 'copy', cd: 4, nocopy: true,
@@ -322,7 +322,7 @@
       ],
     },
     {
-      id: 'alessandro', name: 'Alessandro Rizzo', rank: 'A', cost: 2, hp: 145, atk: 65, def: 30,
+      id: 'alessandro', name: 'Alessandro Rizzo', rank: 'A', cost: 2, hp: 150, atk: 65, def: 35,
       orig: { atk: 60, def: 30 },
       moves: [
         { name: 'Sudorazione Esplosiva', target: 'enemy', cd: 2, hit: {},
@@ -375,7 +375,7 @@
       ],
     },
     {
-      id: 'nicole', name: 'Nicole Fava', rank: 'A', cost: 1, hp: 125, atk: 35, def: 35,
+      id: 'nicole', name: 'Nicole Fava', rank: 'A', cost: 1, hp: 130, atk: 35, def: 35,
       orig: { atk: 30, def: 35 },
       moves: [
         { name: 'Cameraman Improvvisato', target: 'enemy', cd: 3,
@@ -393,7 +393,7 @@
       ],
     },
     {
-      id: 'annalisa', name: 'Annalisa Brino', rank: 'A', cost: 1, hp: 135, atk: 40, def: 50,
+      id: 'annalisa', name: 'Annalisa Brino', rank: 'A', cost: 1, hp: 145, atk: 45, def: 55,
       orig: { atk: 20, def: 50 },
       moves: [
         { name: 'Saluto Caritatevole', target: 'enemies', cd: 3,

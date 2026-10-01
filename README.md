@@ -97,31 +97,31 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 |---|---|---|---|---|---|
 | Chen Wangting | Fondatore Supremo | 6 | 170 | ∞ → **85** | ∞ → **90** |
 | Chen Zhenglei | Gran Maestro | 6 | 135 | 1000 → **85** | 1000 → **70** |
-| Andrea | Maestro | 4 | 150 | 120 → **90** | 95 → **75** |
-| Chen Delang | Maestro | 4 | 160 | 100 → **80** | 100 → **70** |
-| Elia Moretton | Maestro | 4 | 135 | 90 → **85** | 90 → **75** |
-| Samuele Contessa | Istruttore | 4 | 170 | 100 → **90** | 90 → **70** |
+| Andrea | Maestro | 4 | 145 | 120 → **85** | 95 → **75** |
+| Chen Delang | Maestro | 4 | 155 | 100 → **80** | 100 → **70** |
+| Elia Moretton | Maestro | 4 | 140 | 90 → **85** | 90 → **75** |
+| Samuele Contessa | Istruttore | 4 | 165 | 100 → **90** | 90 → **70** |
 | Chicca Fossa | Maestro | 3 | 140 | 70 → **65** | 60 |
-| Federica Siciliano | Istruttore | 3 | 140 | 50 → **60** | 50 → **55** |
-| Katya | Maestro | 3 | 140 | 60 → **65** | 80 → **75** |
-| Lorenzo Pattaro | Allievo | 3 | 145 | 90 → **80** | 80 → **55** |
+| Katya | Maestro | 3 | 130 | 60 → **65** | 80 → **70** |
+| Federica Siciliano | Istruttore | 3 | 135 | 50 → **60** | 50 → **55** |
 | Lorenzo Signorello | Istruttore | 3 | 145 | 100 → **80** | 90 → **65** |
-| Niccolò Cividini | Istruttore | 3 | 140 | 70 → **75** | 65 |
+| Niccolò Cividini | Istruttore | 3 | 135 | 70 | 65 |
 | Strahinja Crnic | Istruttore | 3 | 140 | 80 → **75** | 50 |
+| Lorenzo Pattaro | Allievo | 3 | 145 | 90 → **80** | 80 → **55** |
 | Adriano Rossetto | Allievo | 2 | 145 | 30 → **50** | 90 → **80** |
-| Alessandro Rizzo | Allievo | 2 | 145 | 60 → **65** | 30 |
-| Annastella Bettiol | Allievo | 2 | 140 | 40 → **55** | 50 |
+| Alessandro Rizzo | Allievo | 2 | 150 | 60 → **65** | 30 → **35** |
+| Annastella Bettiol | Allievo | 2 | 150 | 40 → **60** | 50 |
 | Carla Smania | Allievo | 2 | 120 | 50 | 70 → **55** |
-| Celeste Brugnera | Allievo | 2 | 160 | 30 → **55** | 30 → **45** |
-| Christian Cecchin | Allievo | 2 | 115 | 40 → **45** | 50 |
+| Celeste Brugnera | Allievo | 2 | 175 | 30 → **60** | 30 → **55** |
+| Christian Cecchin | Allievo | 2 | 115 | 40 → **50** | 50 |
 | Grazia Lecci | Allievo | 2 | 120 | 40 → **55** | 45 |
 | Remigio Spinazzè | Allievo | 2 | 140 | 70 → **65** | 70 → **60** |
 | Sara Semenzin | Allievo | 2 | 165 | 75 → **90** | -20 → **10** |
 | Viola Donadi | Allievo | 2 | 125 | 40 → **50** | 50 |
-| Vittorio Buosi | Allievo | 2 | 110 | 50 → **45** | 30 → **35** |
-| Annalisa Brino | Allievo | 1 | 135 | 20 → **40** | 50 |
+| Vittorio Buosi | Allievo | 2 | 100 | 50 → **40** | 30 → **35** |
+| Annalisa Brino | Allievo | 1 | 145 | 20 → **45** | 50 → **55** |
 | Caterina Fighera | Allievo | 1 | 125 | 35 → **45** | 35 |
-| Nicole Fava | Allievo | 1 | 125 | 30 → **35** | 35 |
+| Nicole Fava | Allievo | 1 | 130 | 30 → **35** | 35 |
 
 ### Le mosse in gioco
 

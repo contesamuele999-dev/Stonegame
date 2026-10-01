@@ -6,7 +6,9 @@ const os = require('os');
 const path = require('path');
 const S = require(path.join(__dirname, '..', 'engine.js'));
 // --segrete: include le carte del pacchetto segreto (solo in locale, cartella segrete/)
-if (process.argv.includes('--segrete')) S.addCards(require(path.join(__dirname, '..', 'segrete', 'carte.js'))(S.H).cards);
+// (passa ai processi paralleli come variabile d'ambiente: gli argomenti non li ricevono)
+if (process.argv.includes('--segrete')) process.env.STT_SEGRETE = '1';
+if (process.env.STT_SEGRETE) S.addCards(require(path.join(__dirname, '..', 'segrete', 'carte.js'))(S.H).cards);
 
 function mulberry(seed) { return () => { let t = (seed = (seed + 0x6D2B79F5) | 0); t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
