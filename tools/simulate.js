@@ -20,12 +20,13 @@ function play(seed, level) {
   const terrain = pick([null].concat(S.TERRAINS.map(t => t.id)));
   const arm = t => { const w = pick([null].concat(S.WEAPONS.map(x => x.id))); return w ? { id: w, card: pick(t) } : null; };
   const w0 = arm(t0), w1 = arm(t1);
-  const g = S.createGame({ seed, silent: true, first: seed % 2, terrain, players: [{ name: 'A', cards: t0, weapon: w0 }, { name: 'B', cards: t1, weapon: w1 }] });
+  const g = S.createGame({ seed, silent: true, first: seed % 2, terrain, effects: true, players: [{ name: 'A', cards: t0, weapon: w0 }, { name: 'B', cards: t1, weapon: w1 }] });
   let n = 0;
   const used = {};
   while (g.winner === null && n < 400) {
     const a = S.chooseAction(g, level);
     if (!a) break;
+    if (a.effect) { used['fx:' + a.effect] = (used['fx:' + a.effect] || 0) + 1; S.doAction(g, a); n++; continue; }
     const f = S.byUid(g, a.actor);
     const key = S.cardOf(f).id + ':' + a.move;
     used[key] = (used[key] || 0) + 1;

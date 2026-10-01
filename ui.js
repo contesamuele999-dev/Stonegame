@@ -11,7 +11,7 @@
   function drop(k) { try { localStorage.removeItem('stt_' + k); } catch (e) { /* niente */ } }
 
   const reduced = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
-  const DEFAULTS = { sfx: true, music: true, vibration: true, anim: reduced ? 'off' : 'full', speed: 'normale', events: true, allUnlocked: false, bigText: false };
+  const DEFAULTS = { sfx: true, music: true, vibration: true, anim: reduced ? 'off' : 'full', speed: 'normale', events: true, allUnlocked: false, bigText: false, effectCards: true };
   const settings = Object.assign({}, DEFAULTS, load('settings', {}));
   if (load('anim', null)) { settings.anim = load('anim', settings.anim); drop('anim'); }
   // il vecchio "3D veloce" ora è 3D + velocità veloce
@@ -437,6 +437,8 @@
       <div class="eyebrow">Vibrazione</div>${yn('vibration')}
       <div class="eyebrow">Eventi in palestra</div>${yn('events')}
       <p class="hint" style="text-align:left">Ogni 3 round capita qualcosa in palestra (lezione extra, aria condizionata rotta…) che vale per entrambe le squadre.</p>
+      <div class="eyebrow">Carte effetto</div>${yn('effectCards')}
+      <p class="hint" style="text-align:left">Ogni giocatore pesca 2 carte effetto (pausa acqua, kiai…) da usare una volta durante la sfida.</p>
       <div class="eyebrow">Tutte le carte sbloccate</div>${yn('allUnlocked')}
       <p class="hint" style="text-align:left">Utile per le serate in palestra: tutti possono usare tutte le carte subito.</p>
       <button class="btn ghost" data-act="replay-tutorial">Rifai il tutorial</button>
@@ -498,6 +500,9 @@
       <h3>Armi</h3>
       <p>Mentre scegli la squadra puoi dare un'arma dello stile Chen a una tua carta. Non costa Punti Dojo.</p>
       <ul>${S.WEAPONS.map(w => `<li><b>${esc(w.name)}</b> (${esc(w.cn)}): ${esc(w.desc)}</li>`).join('')}</ul>
+      <h3>Carte effetto</h3>
+      <p>All'inizio ognuno pesca 2 carte effetto (si vedono sotto la propria squadra). Dal secondo turno se ne può giocare una per turno, senza usare l'azione di una carta; ognuna vale una volta sola. Si possono spegnere dalle impostazioni.</p>
+      <ul>${S.EFFECTS.map(x => `<li>${x.e} <b>${esc(x.name)}</b>: ${esc(x.desc)}</li>`).join('')}</ul>
       <h3>Vittoria</h3>
       <p>Vince chi manda K.O. tutte le carte avversarie, riserva compresa. Ogni vittoria sblocca una nuova carta.</p>
       <h3>Segreti</h3>
@@ -698,12 +703,25 @@
     const pl = g.players[p];
     const res = pl.reserve.length ? `Riserva: ${pl.reserve.map(f => esc(f.name.split(' ')[0])).join(', ')}` : 'Nessuna riserva';
     const syn = pl.syn && pl.syn.length ? pl.syn.map(id => S.SYNERGIES.find(x => x.id === id).name).map(esc).join(', ') : '';
-    return `<div class="bar"><div class="side-name ${g.turn === p && g.winner === null ? 'active' : ''}"><i class="turn-dot"></i><span>${esc(pl.name)}</span></div><div class="res-info">${res} · K.O. ${pl.ko.length}<span class="syn-tag">${syn}</span></div></div>`;
+    const fx = pl.hand ? ` · 🃏 ${pl.hand.length - pl.usedFx.length}` : '';
+    return `<div class="bar"><div class="side-name ${g.turn === p && g.winner === null ? 'active' : ''}"><i class="turn-dot"></i><span>${esc(pl.name)}</span></div><div class="res-info">${res} · K.O. ${pl.ko.length}${fx}<span class="syn-tag">${syn}</span></div></div>`;
+  }
+  // le carte effetto in mano a chi tiene il telefono
+  function handHtml(g, p) {
+    const pl = g.players[p];
+    if (!pl.hand) return '';
+    const usable = isLocalTurn() && g.turn === p && !A.busy ? S.effectOptions(g).map(x => x.id) : [];
+    return `<div class="hand" aria-label="Carte effetto">${pl.hand.map(id => {
+      const x = S.EFFECT[id], used = pl.usedFx.includes(id), on = A.sel && A.sel.effect === id;
+      return `<button class="fx-card ${used ? 'used' : ''} ${on ? 'on' : ''}" data-act="effect" data-v="${id}" ${usable.includes(id) && !used ? '' : 'disabled'} aria-label="${esc(x.name)}: ${esc(x.desc)}">
+        <span class="fx-e">${x.e}</span><span class="fx-t"><b>${esc(x.name)}</b><small>${used ? 'Usata' : esc(x.desc)}</small></span></button>`;
+    }).join('')}</div>`;
   }
 
   // il consiglio c'è nel proprio turno, ma non online (sarebbe un aiuto contro un'altra persona)
   const canHint = () => isLocalTurn() && !A.busy && !A.sel && A.mode !== 'online';
   function hintText(g, a) {
+    if (a.effect) { const t = a.target ? S.byUid(g, a.target) : null; return `Gioca ${S.EFFECT[a.effect].name}${t ? ` su ${t.name}` : ''}`; }
     const u = S.byUid(g, a.actor), opt = S.actorOptions(g, u).find(o => o.i === a.move);
     const m = opt ? opt.move : S.BASIC, t = a.target ? S.byUid(g, a.target) : null;
     const label = a.pick ? `${m.name} → ${S.refMove(a.pick).name}` : m.name;
@@ -742,6 +760,7 @@
       </div>
       ${rowHtml(g, me)}
       ${sideBar(g, me)}
+      ${handHtml(g, me)}
       <div class="actions-row ${canHint() ? 'three' : ''}">
         ${A.sel ? '<button class="btn" data-act="cancel-sel">Annulla</button>' : `<button class="btn ghost" data-act="log">${A.logOpen ? 'Chiudi registro' : 'Registro'}</button>`}
         ${canHint() ? '<button class="btn" data-act="hint">💡 Consiglio</button>' : ''}
@@ -907,7 +926,7 @@
 
   async function perform(a, local) {
     const g = A.game;
-    const d = !a.pass && use3D() ? describe(g, a) : null;
+    const d = !a.pass && !a.effect && use3D() ? describe(g, a) : null;
     const turnBefore = g.turn;
     applyAct(a);
     if (local && A.mode === 'online') Net.send({ t: 'act', n: A.log.length - 1, a });
@@ -944,13 +963,16 @@
     while (A.game === g && g.winner === null && g.players[g.turn].cpu && guard++ < 30) {
       const a = S.chooseAction(g, g.players[g.turn].cpu);
       if (!a) { applyAct({ pass: true }); g.events.splice(0); break; }
-      const u = S.byUid(g, a.actor);
-      const opt = S.actorOptions(g, u).find(o => o.i === a.move);
-      let label = opt ? opt.move.name : '';
-      if (opt && a.pick) label = `${opt.move.name} → ${S.refMove(a.pick).name}`;
-      A.banner = `${u.name}: ${label}`;
+      if (a.effect) A.banner = `${g.players[g.turn].name} gioca ${S.EFFECT[a.effect].name}`;
+      else {
+        const u = S.byUid(g, a.actor);
+        const opt = S.actorOptions(g, u).find(o => o.i === a.move);
+        let label = opt ? opt.move.name : '';
+        if (opt && a.pick) label = `${opt.move.name} → ${S.refMove(a.pick).name}`;
+        A.banner = `${u.name}: ${label}`;
+      }
       render();
-      mark(a.actor, 'acting'); if (a.target) mark(a.target, 'target');
+      if (a.actor) mark(a.actor, 'acting'); if (a.target) mark(a.target, 'target');
       await sleep(pace(use3D() ? 450 : 900));
       await perform(a);
       A.banner = '';
@@ -990,16 +1012,17 @@
         await sleep(pace(160));
       } else if (e.type === 'ko') { mark(e.uid, 'ko'); sfx('ko'); if (window.Sound) Sound.buzz([90, 50, 160]); fx = true; }
       else if (e.type === 'gymevent') { if (fx) { await sleep(pace(500)); fx = false; } await showToast(e.name, e.desc); }
+      else if (e.type === 'effect') { const x = S.EFFECT[e.id]; await showToast(`${x.e} ${x.name}`, x.desc, `🃏 Carta effetto · ${A.game.players[e.player].name}`); }
     }
     if (fx) await sleep(pace(650));
   }
 
   // annuncio degli eventi in palestra
-  async function showToast(title, text) {
+  async function showToast(title, text, eyebrow) {
     sfx('event');
     const el = document.createElement('div');
     el.className = 'toast'; el.setAttribute('role', 'status');
-    el.innerHTML = `<div class="eyebrow">📣 Evento in palestra</div><b>${esc(title)}</b><p>${esc(text)}</p>`;
+    el.innerHTML = `<div class="eyebrow">${esc(eyebrow || '📣 Evento in palestra')}</div><b>${esc(title)}</b><p>${esc(text)}</p>`;
     document.body.appendChild(el);
     await sleep(pace(2600));
     el.classList.add('out');
@@ -1143,6 +1166,7 @@
       seed: Math.floor(Math.random() * 2 ** 31),
       first: first === undefined ? (Math.random() < 0.5 ? 0 : 1) : first,
       gymEvents: settings.events,
+      effects: settings.effectCards,
       terrain: pickTerrain(terrain === undefined ? A.terrain : terrain),
       players,
     };
@@ -1179,6 +1203,7 @@
       { name: 'Computer', cards: ['vittorio', 'celeste', 'annastella', 'adriano'], cpu: 'facile' },
     ], 0, 'lancenigo');
     setup.gymEvents = false;
+    setup.effects = false;
     A.first = 0;
     launch(setup, { view: 0 });
   }
@@ -1550,7 +1575,10 @@
         const f = S.byUid(g, v);
         if (!f) break;
         if (A.sel) {
-          if (A.sel.targets.includes(v)) act({ actor: A.sel.actor, move: A.sel.move, pick: A.sel.pick, target: v }, A.sel.inner);
+          if (A.sel.targets.includes(v)) {
+            if (A.sel.effect) act({ effect: A.sel.effect, target: v });
+            else act({ actor: A.sel.actor, move: A.sel.move, pick: A.sel.pick, target: v }, A.sel.inner);
+          }
           else if (v === A.sel.actor) { A.sel = null; A.banner = ''; render(); }
           break;
         }
@@ -1560,6 +1588,17 @@
       case 'move': if (!A.busy) chooseMove(el.dataset.uid, +el.dataset.i); break;
       case 'copy-pick': chooseMove(el.dataset.uid, +el.dataset.i, { card: el.dataset.card, i: +el.dataset.mi }); break;
       case 'cancel-sel': A.sel = null; A.banner = ''; render(); break;
+      case 'effect': {
+        if (!isLocalTurn() || A.busy) break;
+        A.hint = null;
+        const x = S.EFFECT[v];
+        if (!S.effectOptions(g).includes(x)) break;
+        if (A.sel && A.sel.effect === v) { A.sel = null; A.banner = ''; render(); break; }
+        if (x.target === 'none') { act({ effect: v, target: null }); break; }
+        A.sel = { effect: v, targets: S.effectTargets(g, g.turn, x).map(f => f.uid) };
+        A.banner = `${x.name}: tocca il bersaglio`;
+        render(); break;
+      }
       case 'hint': {
         // il computer pensa come al livello normale e propone la mossa che sceglierebbe
         const a = S.chooseAction(g, 'normale');
@@ -1568,6 +1607,7 @@
       }
       case 'hint-do': {
         const h = A.hint && A.hint.a;
+        if (h && h.effect && !A.busy) { act({ effect: h.effect, target: h.target }); break; }
         if (!h || !h.actor || A.busy) break;
         const u = S.byUid(g, h.actor), opt = S.actorOptions(g, u).find(o => o.i === h.move);
         if (!opt || !opt.ok) { A.hint = null; render(); break; }

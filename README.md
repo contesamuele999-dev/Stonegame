@@ -82,6 +82,18 @@ Nelle impostazioni di Supabase:
 
 Armi e palestre sono state bilanciate come le carte: con migliaia di partite simulate, ogni arma vince fra il 49 e il 52% delle volte (chi non ne porta nessuna si ferma al 42%, quindi conviene sempre sceglierne una).
 
+**Carte effetto.** All'inizio ognuno pesca 2 carte effetto da un mazzo di 8 (la pesca dipende dal seme della partita: è identica sui due telefoni online e nei replay). Dal secondo turno se ne può giocare una per turno, senza usare l'azione di una carta; ognuna vale una volta sola. Il computer le usa anche lui. Si possono spegnere dalle impostazioni.
+- 💧 *Pausa acqua*: una tua carta recupera 30 PV.
+- 🍵 *Tè del Maestro*: toglie tutti gli effetti negativi a una tua carta.
+- 📣 *Grido di battaglia*: tutta la tua squadra in campo +15 ATK fino al tuo prossimo turno.
+- 🛡️ *Guardia alta*: tutta la tua squadra in campo +20 DEF fino al tuo prossimo turno.
+- 🧘 *Concentrazione*: le mosse speciali di una tua carta tornano subito pronte.
+- 🫧 *Tatami scivoloso*: un avversario resta stordito per 1 turno.
+- 🔄 *Cambio in panchina*: una tua carta in campo torna in riserva e la riserva entra al suo posto.
+- 💥 *Kiai*: 20 danni a un avversario, che ignorano la difesa.
+
+**Consiglio.** Nel proprio turno (non online) il pulsante 💡 mostra la mossa che sceglierebbe il computer; "Fai così" la esegue.
+
 **Vittoria.** Vince chi manda K.O. tutte le carte avversarie, riserva compresa.
 
 **Segreti.** Quando Chen usa la *Spallata del Prodigio*, a volte parte la musica dei Prodigy e i danni raddoppiano.

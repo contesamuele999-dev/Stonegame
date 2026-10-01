@@ -501,6 +501,63 @@
   WEAPONS.forEach(w => { WEAPON[w.id] = w; });
   const weaponOf = f => WEAPON[f.weapon] || null;
 
+  // ---------------------------------------------------------------- CARTE EFFETTO
+  // Ogni giocatore ne pesca 2 a inizio partita (dal seme: uguali su entrambi i telefoni e nei replay).
+  // Si usano senza spendere l'azione di una carta, al massimo una per turno, ognuna una volta sola.
+  // target: ally (una tua carta) | enemy (un avversario) | none (tutta la squadra) | bench (una tua carta, se c'è riserva)
+  const EFFECTS = [
+    { id: 'acqua', name: 'Pausa acqua', e: '💧', target: 'ally', desc: 'Una tua carta recupera 30 PV.',
+      use(g, p, t) { heal(g, t, 30); log(g, `💧 Pausa acqua per ${nm(t)}.`); } },
+    { id: 'te', name: 'Tè del Maestro', e: '🍵', target: 'ally', desc: 'Toglie tutti gli effetti negativi a una tua carta.',
+      use(g, p, t) { cleanse(g, t); log(g, `🍵 ${nm(t)} beve il tè del Maestro: via tutti i malus.`); ev(g, { type: 'status', uid: t.uid, text: 'PULITO' }); } },
+    { id: 'grido', name: 'Grido di battaglia', e: '📣', target: 'none', desc: 'Tutta la tua squadra in campo: +15 ATK fino al tuo prossimo turno.',
+      use(g, p) { for (const f of team(g, p)) addStatus(g, f, { owner: p }, 'atkAdd', 1, 15, true); log(g, '📣 Grido di battaglia: +15 ATK a tutta la squadra!'); } },
+    { id: 'guardia', name: 'Guardia alta', e: '🛡️', target: 'none', desc: 'Tutta la tua squadra in campo: +20 DEF fino al tuo prossimo turno.',
+      use(g, p) { for (const f of team(g, p)) addStatus(g, f, { owner: p }, 'defAdd', 1, 20, true); log(g, '🛡️ Guardia alta: +20 DEF a tutta la squadra!'); } },
+    { id: 'concentrazione', name: 'Concentrazione', e: '🧘', target: 'ally', desc: 'Le mosse speciali di una tua carta tornano subito pronte.',
+      use(g, p, t) { t.cds = t.cds.map(() => 0); log(g, `🧘 ${nm(t)} si concentra: mosse speciali pronte.`); } },
+    { id: 'tatami', name: 'Tatami scivoloso', e: '🫧', target: 'enemy', desc: 'Un avversario scivola e resta stordito per 1 turno.',
+      use(g, p, t) { log(g, `🫧 ${nm(t)} scivola sul tatami!`); stun(g, t, { owner: p }, 1); } },
+    { id: 'cambio', name: 'Cambio in panchina', e: '🔄', target: 'bench', desc: 'Una tua carta in campo torna in riserva e la riserva entra al suo posto.',
+      use(g, p, t) {
+        const pl = g.players[p], r = pl.reserve.shift(), i = pl.field.indexOf(t);
+        pl.field[i] = r; pl.reserve.push(t); r.acted = t.acted;
+        log(g, `🔄 Cambio: esce ${nm(t)}, entra ${nm(r)}!`); ev(g, { type: 'enter', uid: r.uid });
+      } },
+    { id: 'kiai', name: 'Kiai', e: '💥', target: 'enemy', desc: 'Un urlo che colpisce: 20 danni che ignorano la difesa.',
+      use(g, p, t) { const n = damage(g, t, 20, null); log(g, `💥 Kiai! ${nm(t)} perde ${n} PV.`); } },
+  ];
+  const EFFECT = {};
+  EFFECTS.forEach(x => { EFFECT[x.id] = x; });
+  const HAND = 2;
+
+  function effectTargets(g, p, x) {
+    if (x.target === 'ally') return team(g, p);
+    if (x.target === 'enemy') return enemies(g, p).filter(f => !has(f, 'hidden'));
+    if (x.target === 'bench') return g.players[p].reserve.length ? team(g, p) : [];
+    return [];
+  }
+  // carte effetto che il giocatore di turno può usare adesso
+  function effectOptions(g) {
+    const pl = g.players[g.turn];
+    if (!pl.hand || g.effectThisTurn || g.turnNo === 1 || g.winner !== null) return [];
+    return pl.hand.filter(id => !pl.usedFx.includes(id)).map(id => EFFECT[id])
+      .filter(x => x.target === 'none' || effectTargets(g, g.turn, x).length);
+  }
+  function playEffect(g, a) {
+    const x = EFFECT[a.effect];
+    if (!x || !effectOptions(g).includes(x)) return false;
+    const p = g.turn, t = a.target ? byUid(g, a.target) : null;
+    if (x.target !== 'none' && (!t || !effectTargets(g, p, x).includes(t))) return false;
+    g.players[p].usedFx.push(x.id);
+    g.effectThisTurn = true;
+    ev(g, { type: 'effect', id: x.id, player: p, target: t ? t.uid : null });
+    x.use(g, p, t);
+    checkWin(g);
+    if (g.winner === null && !canAct(g)) endTurn(g);
+    return true;
+  }
+
   const CARD = {};
   CARDS.forEach(c => { CARD[c.id] = c; c.moves.forEach((m, i) => { m.ref = { card: c.id, i }; }); });
 
@@ -743,6 +800,14 @@
       turn: opts.first === undefined ? 0 : opts.first,
       turnNo: 1, actions: 0, winner: null, log: [], events: [], lastSpecial: null, silent: !!opts.silent, passes: 0,
     };
+    // carte effetto: si pescano solo se la partita le prevede (le partite vecchie restano identiche)
+    g.players.forEach(pl => {
+      pl.usedFx = [];
+      if (!opts.effects) return;
+      const pool = EFFECTS.map(x => x.id);
+      pl.hand = [];
+      while (pl.hand.length < HAND) pl.hand.push(pool.splice(Math.floor(rand(g) * pool.length), 1)[0]);
+    });
     startTurn(g);
     return g;
   }
@@ -751,6 +816,7 @@
     if (g.winner !== null) return;
     const p = g.players[g.turn];
     g.actions = 0;
+    g.effectThisTurn = false;
     for (const f of p.field.concat(p.reserve)) f.acted = false;
     ev(g, { type: 'turn', player: g.turn });
     // gli eventi si alternano: uno scatta nel turno di chi gioca per secondo, il successivo in quello di chi inizia
@@ -900,11 +966,16 @@
         } else acts.push({ actor: f.uid, move: o.i, target: null });
       }
     }
+    for (const x of effectOptions(g)) {
+      if (x.target === 'none') acts.push({ effect: x.id, target: null });
+      else for (const t of effectTargets(g, g.turn, x)) acts.push({ effect: x.id, target: t.uid });
+    }
     return acts;
   }
 
   function doAction(g, a) {
     if (g.winner !== null) return false;
+    if (a.effect) return playEffect(g, a);
     const u = byUid(g, a.actor);
     if (!u || u.owner !== g.turn || u.hp <= 0) return false;
     const opt = actorOptions(g, u).find(o => o.i === a.move);
@@ -1105,7 +1176,7 @@
     needsTarget, effAtk, effDef, team, enemies, field, byUid, cardOf, movesOf, isStunned, isNegative,
     teamCost, randomTeam, clone, canAct, passTurn, expectedHit,
     SYNERGIES, synergiesFor, GYM_EVENTS, EVENT_EVERY, previewDamage, isMaster,
-    TERRAINS, TERRAIN, WEAPONS, WEAPON, H, addCards, IMG, img,
+    TERRAINS, TERRAIN, WEAPONS, WEAPON, H, addCards, IMG, img, EFFECTS, EFFECT, effectOptions, effectTargets,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.STT = api;
