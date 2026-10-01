@@ -90,7 +90,7 @@
   };
 
   // ------------------------------------------------------------ stato
-  let renderer, scene, camera, clock, root, overlay, titleEl, subEl, flashEl, ready = false, failed = false;
+  let renderer, scene, camera, clock, root, overlay, titleEl, subEl, flashEl, ctrlEl, ready = false, failed = false;
   let running = false, speed = 1, skipping = false;
   const tweens = [], parts = [], updaters = [];
   const faceCache = {}, texCache = {};
@@ -206,13 +206,14 @@
     try {
       overlay = document.createElement('div');
       overlay.className = 'arena3d';
-      overlay.innerHTML = '<div class="arena-title"><div class="arena-who"></div><div class="arena-move"></div></div><div class="arena-flash"></div><div class="arena-skip">Tocca per saltare</div>';
+      overlay.innerHTML = '<div class="arena-title"><div class="arena-who"></div><div class="arena-move"></div></div><div class="arena-flash"></div><div class="arena-skip">Tocca per saltare</div><div class="arena-speed"></div>';
       overlay.hidden = true;
       document.body.appendChild(overlay);
       titleEl = overlay.querySelector('.arena-move');
       subEl = overlay.querySelector('.arena-who');
       flashEl = overlay.querySelector('.arena-flash');
-      overlay.addEventListener('click', skip);
+      ctrlEl = overlay.querySelector('.arena-speed');
+      overlay.addEventListener('click', e => { if (!e.target.closest('[data-act]')) skip(); });
 
       renderer = new T.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
       renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
@@ -404,7 +405,7 @@
     [J.rh, J.rk, J.rft] = leg(-1);
 
     const shadow = new T.Mesh(new T.CircleGeometry(0.42, 20), new T.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.38, depthWrite: false }));
-    shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.012; g.add(shadow);
+    shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.03; g.add(shadow);
 
     const ch = { d, g, J, pose: pose('guard'), mats: [gi, pants, trim, skin, belt], body: [chest, pelvis], idle: true, t: Math.random() * 6, face: fs, facing: 0 };
     ch.apply = () => applyPose(ch);
@@ -566,6 +567,122 @@
     return g;
   }
 
+  // ------------------------------------------------------------ ologrammi (stile Yu-Gi-Oh)
+  // Ogni lottatore sta sulla propria carta, appoggiata sul tatami, e si materializza da lì.
+  const HOLO = '#7fe8ff';
+  const RANK_GLOW = { M: '#d4ae62', I: '#6fb3e6', A: '#8fe0b5', L: '#b04cff' };
+  function cardTex(card) {
+    const k = 'c:' + card;
+    if (!texCache[k]) {
+      const cbs = [];
+      const t = new T.TextureLoader().load(`img/${card}.jpg`, () => cbs.forEach(f => f()));
+      t.minFilter = T.LinearFilter; t.generateMipmaps = false;
+      t.onReady = f => { if (t.image && t.image.width) f(); else cbs.push(f); };
+      texCache[k] = t;
+    }
+    return texCache[k];
+  }
+  const cardAspect = t => (t.image && t.image.width ? t.image.height / t.image.width : 1.4);
+  function holoTex() {
+    if (!texCache.holo) texCache.holo = canvasTex(4, 128, (x, w, h) => {
+      const gr = x.createLinearGradient(0, 0, 0, h);
+      gr.addColorStop(0, 'rgba(255,255,255,0)'); gr.addColorStop(1, 'rgba(255,255,255,1)');
+      x.fillStyle = gr; x.fillRect(0, 0, w, h);
+    });
+    return texCache.holo;
+  }
+  const plane = () => geo('plane', () => new T.PlaneGeometry(1, 1));
+  const addMat = (color, extra) => new T.MeshBasicMaterial(Object.assign({ color, transparent: true, blending: T.AdditiveBlending, depthWrite: false, side: T.DoubleSide }, extra || {}));
+
+  function cardPad(ch, width, lift) {
+    const p = ch.g.position;
+    const grp = new T.Group(); grp.position.set(p.x, lift, p.z);
+    const tex = cardTex(ch.d.card);
+    const card = new T.Mesh(plane(), new T.MeshBasicMaterial({ map: tex, transparent: true, opacity: 0 }));
+    const glow = new T.Mesh(plane(), addMat(RANK_GLOW[ch.d.rank] || HOLO, { opacity: 0 }));
+    card.rotation.x = glow.rotation.x = -Math.PI / 2;
+    card.position.y = 0.022; glow.position.y = 0.018;
+    // finché l'immagine non è arrivata la carta resta invisibile (altrimenti sarebbe un rettangolo bianco)
+    card.visible = false;
+    const size = () => { const a = cardAspect(tex); card.scale.set(width, width * a, 1); glow.scale.set(width + 0.12, width * a + 0.12, 1); card.visible = !!(tex.image && tex.image.width); };
+    size(); tex.onReady(size);
+    grp.add(glow, card); root.add(grp);
+    ch.pad = { grp, card, glow, base: glow.material.color.clone() };
+  }
+
+  // tinta olografica: 1 = tutto azzurro e trasparente, 0 = normale
+  function holo(ch, k) {
+    const c = new T.Color(HOLO);
+    ch.mats.forEach(m => { m.emissive.copy(c).multiplyScalar(0.9 * k); m.transparent = k > 0; m.opacity = 1 - 0.55 * k; });
+    ch.face.material.color.set('#ffffff').lerp(c, k);
+    ch.face.material.opacity = 1 - 0.4 * k;
+  }
+
+  async function summon(ch, delay) {
+    const { grp, card, glow } = ch.pad;
+    const x = ch.g.position.x, z = ch.g.position.z;
+    ch.g.scale.set(0.5, 0.01, 0.5); holo(ch, 1);
+    await wait(delay);
+    // la carta cala sul tatami
+    await tween(0.12, t => { card.material.opacity = t; glow.material.opacity = 0.9 * t; grp.scale.setScalar(1.4 - 0.4 * t); }, ease.out);
+    ring(new T.Vector3(x, 0.05, z), HOLO, 1.1, 0.4, true);
+    // fascio di luce e ologramma che sale dalla carta
+    const beam = new T.Mesh(geo('beam', () => new T.CylinderGeometry(0.36, 0.44, 2.3, 24, 1, true)), addMat(HOLO, { map: holoTex(), opacity: 0 }));
+    beam.position.set(x, 1.15, z); root.add(beam);
+    const scan = new T.Mesh(geo('ring', () => new T.RingGeometry(0.85, 1, 48)), addMat(HOLO));
+    scan.rotation.x = -Math.PI / 2; scan.scale.setScalar(0.5); root.add(scan);
+    await tween(0.34, (t, raw) => {
+      beam.material.opacity = 0.55 * Math.sin(raw * Math.PI);
+      ch.g.scale.set(lerp(0.5, 1, t), lerp(0.01, 1, t), lerp(0.5, 1, t));
+      scan.position.set(x, 1.9 * raw, z); scan.material.opacity = 1 - raw * 0.7;
+      holo(ch, 1 - raw);
+    }, ease.out);
+    root.remove(beam); root.remove(scan); beam.material.dispose(); scan.material.dispose();
+    ch.g.scale.set(1, 1, 1); holo(ch, 0);
+    glow.material.opacity = 0.35;
+  }
+
+  // mossa speciale: la carta si alza dal tatami e si attiva, come una carta magia
+  async function activate(ch, color) {
+    const tex = cardTex(ch.d.card), a = cardAspect(tex), W = 0.62;
+    const grp = new T.Group();
+    const frame = new T.Mesh(plane(), addMat(color));
+    frame.scale.set(W + 0.12, W * a + 0.12, 1); frame.position.z = -0.01;
+    const face = new T.Mesh(plane(), new T.MeshBasicMaterial({ map: tex, transparent: true, side: T.DoubleSide, depthWrite: false }));
+    face.scale.set(W, W * a, 1); face.visible = !!(tex.image && tex.image.width);
+    grp.add(frame, face); root.add(grp);
+    const base = ch.pad.grp.position;
+    const from = new T.Vector3(base.x, 0.05, base.z), to = new T.Vector3(base.x - 0.65, 1.6, base.z - 0.7);
+    grp.position.copy(to); grp.lookAt(camera.position);
+    const qTo = grp.quaternion.clone(), qFrom = new T.Quaternion().setFromEuler(new T.Euler(-Math.PI / 2, 0, 0));
+    sfx('magic');
+    await tween(0.3, t => { grp.position.lerpVectors(from, to, t); grp.quaternion.copy(qFrom).slerp(qTo, t); grp.scale.setScalar(lerp(0.6, 1, t)); }, ease.out);
+    screenFlash(color, 0.35);
+    ring(grp.position.clone(), color, 1.4, 0.45, false, camera.position);
+    await tween(0.22, t => { frame.material.opacity = 0.6 + 0.4 * Math.sin(t * Math.PI * 4); }, ease.lin);
+    // la carta si dissolve in scintille mentre parte la mossa
+    burst(grp.position, color, 16, 2.4);
+    tween(0.2, t => { grp.scale.setScalar(1 + t * 0.3); face.material.opacity = frame.material.opacity = 1 - t; }, ease.in)
+      .then(() => { root.remove(grp); face.material.dispose(); frame.material.dispose(); });
+  }
+
+  function padFlash(ch, color) {
+    if (!ch.pad) return;
+    const m = ch.pad.glow.material, c = new T.Color(color);
+    tween(0.45, t => { m.color.copy(c).lerp(ch.pad.base, t); m.opacity = lerp(0.95, 0.35, t); }, ease.out);
+  }
+  function padOff(ch) {
+    if (!ch.pad) return;
+    const { card, glow, grp } = ch.pad;
+    burst(new T.Vector3(grp.position.x, 0.1, grp.position.z), RANK_GLOW[ch.d.rank] || HOLO, 14, 2);
+    tween(0.5, t => { card.material.color.setScalar(1 - 0.65 * t); card.material.opacity = 1 - 0.5 * t; glow.material.opacity = 0.35 * (1 - t); }, ease.out);
+  }
+  // l'ologramma colpito "sfarfalla" per un istante
+  function glitch(ch) {
+    const h = ch.J.hips;
+    return tween(0.16, (t, raw) => { const k = raw < 1 ? 0.07 : 0; h.position.x = (Math.random() - .5) * k; h.position.z = (Math.random() - .5) * k; holo(ch, raw < 1 && Math.random() < 0.5 ? 0.6 : 0); }, ease.lin);
+  }
+
   // suoni e vibrazione (audio.js), se presenti
   const sfx = (n, k) => { if (window.Sound) window.Sound.play(n, k); };
   const buzz = p => { if (window.Sound) window.Sound.buzz(p); };
@@ -595,7 +712,8 @@
       burst(chestPos(ch), color || '#ffb347', 14, 3.2);
       burst(chestPos(ch), '#ffffff', 5, 2);
       shake(out.dmg > 45 ? 0.16 : 0.08, 0.22);
-      flashChar(ch, '#ff5a3c');
+      glitch(ch).then(() => flashChar(ch, '#ff5a3c'));
+      padFlash(ch, '#ff3b30');
       const back = -0.35;
       const x0 = ch.g.position.x, z0 = ch.g.position.z;
       const dx = Math.cos(ch.facing) * back, dz = -Math.sin(ch.facing) * back;
@@ -603,7 +721,7 @@
       pr.push(toPose(ch, 'hit', 0.12, ease.out).then(() => tween(0.25, t => { ch.g.position.x = x0 + dx * Math.sin(t * Math.PI); ch.g.position.z = z0 + dz * Math.sin(t * Math.PI); })));
       pr.push(numberPop(ch, '−' + out.dmg, '#ff6a50'));
     }
-    if (out.heal) { rise(new T.Vector3(ch.g.position.x, 0.2, ch.g.position.z), '#8fe0b5', 16, 0.5); pr.push(numberPop(ch, '+' + out.heal, '#8fe0b5')); }
+    if (out.heal) { padFlash(ch, '#8fe0b5'); rise(new T.Vector3(ch.g.position.x, 0.2, ch.g.position.z), '#8fe0b5', 16, 0.5); pr.push(numberPop(ch, '+' + out.heal, '#8fe0b5')); }
     if (out.stun) { pr.push(orbit(ch, '⭐', 3, 0.3, 1.1)); pr.push(wait(0.25).then(() => pop(headPos(ch).add(new T.Vector3(0, 1.05, 0)), textTex(out.para ? 'PARALISI' : 'STORDITO', '#ffd24a'), 0.3, 1.1, 0.15))); }
     if (out.confuse) { pr.push(orbit(ch, '❓', 3, 0.32, 1.1)); if (!out.stun) pr.push(wait(0.25).then(() => pop(headPos(ch).add(new T.Vector3(0, 1.05, 0)), textTex('CONFUSIONE', '#d4bdf5'), 0.3, 1.1, 0.15))); }
     if (out.buff) pr.push(pop(headPos(ch).add(new T.Vector3(0, 0.8, 0)), textTex(out.buff, '#8fe0b5'), 0.32, 1.1, 0.2));
@@ -613,6 +731,7 @@
       ch.idle = false;
       pop(headPos(ch).add(new T.Vector3(0, 0.5, 0)), textTex('K.O.', '#ff6a50'), 0.6, 1.2, 0.3);
       await toPose(ch, 'ko', 0.45, ease.in);
+      padOff(ch);
       shake(0.1, 0.15);
       burst(new T.Vector3(ch.g.position.x, 0.1, ch.g.position.z), '#b8a88d', 12, 2);
       await Promise.all(pr);
@@ -662,6 +781,7 @@
     overlay.hidden = false;
     document.body.classList.add('arena-open');
     subEl.textContent = spec.attacker.name;
+    ctrlEl.innerHTML = spec.controls || '';
     titleEl.textContent = spec.label || spec.move;
     flashEl.style.opacity = '0';
     resize();
@@ -689,10 +809,15 @@
     const idle = (dt) => all.forEach(c => { c.t += dt; c.apply(); });
     updaters.push(idle);
 
+    // ogni lottatore sulla sua carta (più piccole se i bersagli sono tanti)
+    all.forEach((c, i) => cardPad(c, tgs.length > 3 && c !== A ? 0.46 : 0.72, i * 0.003));
+
     running = true; clock.getDelta(); loop();
-    // ingresso
+    // ingresso: i lottatori si materializzano dalle carte
     overlay.classList.remove('show'); void overlay.offsetWidth; overlay.classList.add('show');
-    await wait(0.35);
+    await Promise.all(all.map((c, i) => summon(c, i * 0.04)));
+    // le mosse speciali attivano la carta di chi le usa
+    if (spec.move !== 'Attacco' && !(spec.flags && spec.flags.confused)) await activate(A, M.c);
 
     const impactAll = async () => {
       await Promise.all(tgs.map(t => react(t.ch, t.out, M.c)));
@@ -829,5 +954,9 @@
 
   function skip() { skipping = true; }
 
-  window.Arena3D = { available, play, skip, MOVES };
+  function setSpeed(k) { speed = k; }
+  // scarica in anticipo le immagini delle carte della partita
+  function preload(cards) { if (T) cards.forEach(cardTex); }
+
+  window.Arena3D = { available, play, skip, setSpeed, preload, MOVES };
 })();

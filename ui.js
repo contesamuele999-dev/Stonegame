@@ -11,10 +11,25 @@
   function drop(k) { try { localStorage.removeItem('stt_' + k); } catch (e) { /* niente */ } }
 
   const reduced = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
-  const DEFAULTS = { sfx: true, music: true, vibration: true, anim: reduced ? 'off' : 'full', events: true, allUnlocked: false };
+  const DEFAULTS = { sfx: true, music: true, vibration: true, anim: reduced ? 'off' : 'full', speed: 'normale', events: true, allUnlocked: false };
   const settings = Object.assign({}, DEFAULTS, load('settings', {}));
   if (load('anim', null)) { settings.anim = load('anim', settings.anim); drop('anim'); }
-  function saveSettings() { store('settings', settings); applySound(); }
+  // il vecchio "3D veloce" ora è 3D + velocità veloce
+  if (settings.anim === 'fast') { settings.anim = 'full'; settings.speed = 'veloce'; }
+
+  // velocità di gioco: moltiplica animazioni 3D, pause del computer e scritte
+  const SPEED = { lenta: 0.55, normale: 1, veloce: 1.8 };
+  const SPEED_OPTS = [['lenta', '🐢', 'Lenta'], ['normale', '▶︎', 'Normale'], ['veloce', '🐇', 'Veloce']];
+  const speedK = () => SPEED[settings.speed] || 1;
+  const pace = ms => ms / speedK();
+  function applyPace() { document.documentElement.style.setProperty('--pace', String(1 / speedK())); }
+  applyPace();
+  function speedHtml() {
+    return `<div class="speed" role="group" aria-label="Velocità di gioco">${SPEED_OPTS.map(([v, ic, l]) =>
+      `<button data-act="speed" data-v="${v}" aria-pressed="${settings.speed === v}" aria-label="Velocità ${l.toLowerCase()}" title="Velocità ${l.toLowerCase()}">${ic}</button>`).join('')}</div>`;
+  }
+
+  function saveSettings() { store('settings', settings); applySound(); applyPace(); }
   function applySound() {
     if (!window.Sound) return;
     Sound.setSfx(settings.sfx); Sound.setMusic(settings.music); Sound.setVibration(settings.vibration);
@@ -35,7 +50,6 @@
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
   const face = id => `background-image:url(img/volti/${id}.jpg)`;
   const RANK_SHORT = { A: 'Allievo', I: 'Istruttore', M: 'Maestro', L: 'Leggenda' };
-  const ANIM_LABEL = { full: '3D', fast: '3D veloce', off: 'Senza 3D' };
   const LEVEL_LABEL = { facile: 'Facile', normale: 'Normale', difficile: 'Difficile' };
 
   function moveMeta(m) {
@@ -315,7 +329,9 @@
     return `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">Impostazioni</div></div>
     <div class="setup">
       <h2>Impostazioni</h2>
-      <div class="eyebrow">Animazioni</div>${seg('anim', [['full', '3D'], ['fast', '3D veloce'], ['off', 'Senza 3D']])}
+      <div class="eyebrow">Velocità di gioco</div>${seg('speed', SPEED_OPTS.map(([v, ic, l]) => [v, `${ic} ${l}`]))}
+      <p class="hint" style="text-align:left">Si cambia anche durante la partita, con i tasti in alto a destra.</p>
+      <div class="eyebrow">Animazioni 3D</div>${seg('anim', [['full', 'Sì'], ['off', 'No']])}
       <div class="eyebrow">Effetti sonori</div>${yn('sfx')}
       <div class="eyebrow">Musica</div>${yn('music')}
       <div class="eyebrow">Vibrazione</div>${yn('vibration')}
@@ -490,7 +506,7 @@
     }
     const canEnd = isLocalTurn() && !A.busy;
     return `<div class="battle">
-      <div class="bar"><button class="back" data-act="quit">← Esci</button><div class="eyebrow num">Turno ${Math.ceil(g.turnNo / 2)}${A.mode === 'torneo' ? ` · Torneo ${torneo().stage + 1}/5` : ''}</div><button class="back" data-act="anim-cycle" aria-label="Animazioni: ${ANIM_LABEL[settings.anim]}">${ANIM_LABEL[settings.anim]}</button></div>
+      <div class="bar"><button class="back" data-act="quit">← Esci</button><div class="eyebrow num turn-lbl">Turno ${Math.ceil(g.turnNo / 2)}${A.mode === 'torneo' ? ` · Torneo ${torneo().stage + 1}/5` : ''}</div>${speedHtml()}</div>
       ${sideBar(g, opp)}
       ${rowHtml(g, opp)}
       <div class="mid">
@@ -655,7 +671,7 @@
       .map(t => Object.assign({}, t, { ally: t.owner === d.actor.owner, out: out[t.uid] }));
     const self = out[d.actor.uid];
     if (self && flags.confused) self.confuse = false;
-    return { attacker: d.actor, move: d.move, label: d.label, targets, self, flags, speed: settings.anim === 'fast' ? 1.8 : 1 };
+    return { attacker: d.actor, move: d.move, label: d.label, targets, self, flags, speed: speedK(), controls: speedHtml() };
   }
 
   async function perform(a, local) {
@@ -691,7 +707,7 @@
   async function runCPU() {
     const g = A.game;
     A.busy = true; render();
-    await sleep(700);
+    await sleep(pace(700));
     let guard = 0;
     while (A.game === g && g.winner === null && g.players[g.turn].cpu && guard++ < 30) {
       const a = S.chooseAction(g, g.players[g.turn].cpu);
@@ -703,18 +719,18 @@
       A.banner = `${u.name}: ${label}`;
       render();
       mark(a.actor, 'acting'); if (a.target) mark(a.target, 'target');
-      await sleep(use3D() ? 450 : 900);
+      await sleep(pace(use3D() ? 450 : 900));
       await perform(a);
       A.banner = '';
       render();
-      await sleep(250);
+      await sleep(pace(250));
     }
     if (A.game !== g) return;
     A.busy = false;
     A.banner = g.winner === null ? `Tocca a te, ${g.players[g.turn].name}!` : '';
     render();
     if (g.winner === null) { sfx('turn'); tutEvent('myturn'); }
-    setTimeout(() => { if (A.banner.startsWith('Tocca a te')) { A.banner = ''; if (A.screen === 'battle' && !A.sel) render(); } }, 2200);
+    setTimeout(() => { if (A.banner.startsWith('Tocca a te')) { A.banner = ''; if (A.screen === 'battle' && !A.sel) render(); } }, pace(2200));
     if (g.winner !== null) setTimeout(showWinner, 700);
   }
 
@@ -739,11 +755,11 @@
         if (e.type === 'heal') { floatOn(e.uid, `+${e.amount}`, 'heal', n - 1); sfx('heal'); }
         if (e.type === 'status') { floatOn(e.uid, e.text, 'st', n - 1); sfx(e.text === 'SCHIVATA' ? 'dodge' : e.text === 'CONFUSO' ? 'confuse' : e.text === 'IMMUNE' ? 'shield' : 'stun'); }
         fx = true;
-        await sleep(160);
+        await sleep(pace(160));
       } else if (e.type === 'ko') { mark(e.uid, 'ko'); sfx('ko'); if (window.Sound) Sound.buzz([90, 50, 160]); fx = true; }
-      else if (e.type === 'gymevent') { if (fx) { await sleep(500); fx = false; } await showToast(e.name, e.desc); }
+      else if (e.type === 'gymevent') { if (fx) { await sleep(pace(500)); fx = false; } await showToast(e.name, e.desc); }
     }
-    if (fx) await sleep(650);
+    if (fx) await sleep(pace(650));
   }
 
   // annuncio degli eventi in palestra
@@ -753,7 +769,7 @@
     el.className = 'toast'; el.setAttribute('role', 'status');
     el.innerHTML = `<div class="eyebrow">📣 Evento in palestra</div><b>${esc(title)}</b><p>${esc(text)}</p>`;
     document.body.appendChild(el);
-    await sleep(2600);
+    await sleep(pace(2600));
     el.classList.add('out');
     await sleep(300);
     el.remove();
@@ -867,6 +883,7 @@
     A.log = [];
     A.game = S.createGame(setup);
     A.game.events = [];
+    if (use3D()) Arena3D.preload(setup.players.flatMap(p => p.cards));
     A.ended = null;
     A.sel = null; A.logOpen = false; A.busy = false; A.banner = '';
     A.view = opts.view !== undefined ? opts.view : 0;
@@ -1062,7 +1079,7 @@
         const a = m.a || {};
         if (!a.pass) {
           const u = S.byUid(g, a.actor);
-          if (u) { A.banner = `${u.name} (${g.players[u.owner].name})`; render(); mark(a.actor, 'acting'); if (a.target) mark(a.target, 'target'); await sleep(use3D() ? 350 : 700); }
+          if (u) { A.banner = `${u.name} (${g.players[u.owner].name})`; render(); mark(a.actor, 'acting'); if (a.target) mark(a.target, 'target'); await sleep(pace(use3D() ? 350 : 700)); }
         }
         await perform(a.pass ? { pass: true } : a);
         A.banner = '';
@@ -1163,7 +1180,12 @@
         settings[key] = v === 'true' ? true : v === 'false' ? false : v;
         saveSettings(); render(); break;
       }
-      case 'anim-cycle': settings.anim = { full: 'fast', fast: 'off', off: 'full' }[settings.anim]; saveSettings(); render(); break;
+      case 'speed':
+        settings.speed = v; saveSettings();
+        if (window.Arena3D && Arena3D.setSpeed) Arena3D.setSpeed(speedK());
+        // aggiorno solo i tasti: un render interromperebbe le scritte sulle carte
+        document.querySelectorAll('.speed button').forEach(b => b.setAttribute('aria-pressed', String(b.dataset.v === v)));
+        break;
       case 'to-build':
         saveNames();
         A.builder = 0; A.filter = 'all';

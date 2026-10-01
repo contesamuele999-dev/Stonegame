@@ -12,6 +12,8 @@ Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal tele
 - **Suoni e musica** sintetizzati nel browser, **vibrazione** sui colpi forti, **partita salvata** in automatico e **installabile come app**, anche offline.
 - **Collezione** con tutte le carte originali e i valori usati in gioco.
 - **Animazioni 3D**: a ogni azione parte una scena in un'arena 3D. I lottatori hanno il volto preso dalla propria carta, la divisa nei colori della carta e la cintura del grado (oro Maestro, nera Istruttore, bianca Allievo). Ogni mossa ha il suo gesto e il suo effetto, e il bersaglio reagisce al risultato vero: danni, schivata, immunità, stordimento, confusione, K.O.
+- **Ologrammi** in stile Yu-Gi-Oh: ogni lottatore sta sulla propria carta appoggiata sul tatami e si materializza da lì con un fascio di luce. Con le mosse speciali la carta si alza e si attiva; quando un lottatore va K.O. la sua carta si spegne.
+- **Velocità di gioco** regolabile in ogni momento (lenta, normale, veloce): pensata anche per chi ha bisogno di più tempo per leggere.
 
 ## Come aprirlo
 
@@ -22,7 +24,7 @@ Il gioco è una pagina web statica (`index.html` + `engine.js` + `ui.js` + carte
 
 ### Animazioni
 
-Nella schermata prima della squadra (e con il pulsante in alto durante la partita) si sceglie fra **3D**, **3D veloce** e **Senza 3D**. Toccando lo schermo durante una scena la si fa scorrere velocemente. Se il telefono non supporta la grafica 3D (WebGL) il gioco usa automaticamente le animazioni semplici.
+Dalle impostazioni si accendono o spengono le **animazioni 3D**. La **velocità di gioco** (🐢 lenta, ▶ normale, 🐇 veloce) si sceglie dalle impostazioni e con i tre tasti sempre visibili in alto a destra durante la partita (e in basso a destra durante le scene 3D): rallenta o accelera le scene, le mosse del computer e le scritte. Toccando lo schermo durante una scena la si fa scorrere velocemente. Se il telefono non supporta la grafica 3D (WebGL) il gioco usa automaticamente le animazioni semplici.
 
 ## Regolamento
 
@@ -70,12 +72,12 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 | Andrea | Maestro | 4 | 150 | 120 → **90** | 95 → **75** |
 | Chen Delang | Maestro | 4 | 160 | 100 → **80** | 100 → **70** |
 | Elia Moretton | Maestro | 4 | 135 | 90 → **85** | 90 → **75** |
-| Lorenzo Signorello | Istruttore | 4 | 160 | 100 → **90** | 90 → **75** |
 | Samuele Contessa | Istruttore | 4 | 170 | 100 → **90** | 90 → **70** |
 | Chicca Fossa | Maestro | 3 | 140 | 70 → **65** | 60 |
 | Federica Siciliano | Istruttore | 3 | 140 | 50 → **60** | 50 → **55** |
 | Katya | Maestro | 3 | 140 | 60 → **65** | 80 → **75** |
 | Lorenzo Pattaro | Allievo | 3 | 145 | 90 → **80** | 80 → **55** |
+| Lorenzo Signorello | Istruttore | 3 | 145 | 100 → **80** | 90 → **65** |
 | Niccolò Cividini | Istruttore | 3 | 140 | 70 → **75** | 65 |
 | Strahinja Crnic | Istruttore | 3 | 140 | 80 → **75** | 50 |
 | Adriano Rossetto | Allievo | 2 | 145 | 30 → **50** | 90 → **80** |

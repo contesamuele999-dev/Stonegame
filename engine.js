@@ -394,7 +394,7 @@
     },
     // ---------------------------------------------------------------- carte aggiunte il 29 settembre
     {
-      id: 'signorello', name: 'Lorenzo Signorello', rank: 'I', cost: 4, hp: 160, atk: 90, def: 75,
+      id: 'signorello', name: 'Lorenzo Signorello', rank: 'I', cost: 3, hp: 145, atk: 80, def: 65,
       orig: { atk: 100, def: 90 },
       moves: [
         { name: 'Sussurro Eterno', target: 'enemies', cd: 4, hit: { mul: 0.45 },
