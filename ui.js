@@ -58,13 +58,19 @@
 
   // ------------------------------------------------------------ palestre (carte terreno) e armi
   const terrainBg = id => (S.TERRAIN[id] && window.Arena3D && Arena3D.terrainArt ? Arena3D.terrainArt(id) : '');
-  const pickTerrain = v => (S.TERRAIN[v] ? v : S.TERRAINS[Math.floor(Math.random() * S.TERRAINS.length)].id);
+  // la palestra scelta (se sbloccata) o una a caso fra quelle sbloccate
+  function pickTerrain(v) {
+    if (S.TERRAIN[v] && !lockedAt('terrain', v)) return v;
+    const ok = S.TERRAINS.filter(t => !lockedAt('terrain', t.id));
+    return ok[Math.floor(Math.random() * ok.length)].id;
+  }
   const randomWeapon = cards => ({ id: S.WEAPONS[Math.floor(Math.random() * S.WEAPONS.length)].id, card: cards[Math.floor(Math.random() * cards.length)] });
   function sanitizeWeapon(w, cards) {
     return w && typeof w === 'object' && S.WEAPON[w.id] && Array.isArray(cards) && cards.includes(w.card) ? { id: w.id, card: w.card } : null;
   }
   // l'arma resta a una carta della squadra: se quella carta esce, passa alla prima
   function fixWeapon(b) {
+    if (A.weapons[b] && lockedAt('weapon', A.weapons[b].id)) A.weapons[b] = null; // arma non ancora sbloccata
     const w = A.weapons[b], t = A.teams[b];
     if (w && !t.includes(w.card)) w.card = t[0] || null;
   }
@@ -109,7 +115,7 @@
       for (const k in pack.img) S.IMG[k] = URL.createObjectURL(new Blob([fromB64(pack.img[k])], { type: 'image/jpeg' }));
       secretKey = toB64(raw);
     }
-    if (opt.persist) { secretOwned = true; store('chiave', secretKey); }
+    if (opt.persist) { secretOwned = true; store('chiave', secretKey); if (award('segreto')) toastQuick('🏅 Medaglia segreta: Custode del segreto'); }
   }
   const secretFor = ids => (secretKey && ids.some(id => S.CARD[id] && S.CARD[id].secret) ? secretKey : undefined);
   function secretPrompt() {
@@ -143,6 +149,7 @@
     const got = [];
     while (got.length < n && locked.length) got.push(locked.splice(Math.floor(Math.random() * locked.length), 1)[0]);
     if (got.length) store('unlocked', have.concat(got));
+    if (got.length && !shown().some(c => !c.secret && !LEGENDS.includes(c.id) && !have.concat(got).includes(c.id))) award('collezione');
     return got;
   }
 
@@ -216,7 +223,7 @@
   function render() {
     const fn = {
       home: renderHome, setup: renderSetup, build: renderBuild, battle: renderBattle, collection: renderCollection,
-      rules: renderRules, ranking: renderRanking, settings: renderSettings, torneo: renderTorneo, online: renderOnline, live: renderLive,
+      rules: renderRules, ranking: renderRanking, settings: renderSettings, torneo: renderTorneo, online: renderOnline, live: renderLive, missioni: renderMissioni, medaglie: renderMedaglie,
       account: renderAccount,
     }[A.screen];
     $app.innerHTML = fn();
@@ -264,6 +271,10 @@
           <button class="btn ghost" data-act="go" data-v="ranking">Classifica</button>
         </div>
         <div class="menu-2">
+          <button class="btn ${readyMissions() ? 'primary' : ''}" data-act="go" data-v="missioni">🎯 Missioni<small>${readyMissions() ? `${readyMissions()} premi da riscuotere` : `livello ${myLevel()}`}</small></button>
+          <button class="btn" data-act="go" data-v="medaglie">🏅 Medaglie<small>${MEDALS.filter(x => myMedals()[x.id]).length}/${MEDALS.length}</small></button>
+        </div>
+        <div class="menu-2">
           <button class="btn ghost" data-act="go" data-v="rules">Regole</button>
           <button class="btn ghost" data-act="go" data-v="settings">Impostazioni</button>
         </div>
@@ -301,7 +312,7 @@
     const sel = opts.find(o => o.id === A.terrain) || opts[0];
     return `<div class="eyebrow">Dove si combatte?</div>
       <div class="terrains">${opts.map(o => `<button class="terrain" data-act="terrain" data-v="${o.id}" aria-pressed="${sel.id === o.id}">
-        <span class="art" ${o.id === 'random' ? '' : `style="background-image:url(${terrainBg(o.id)})"`}>${o.id === 'random' ? '🎲' : ''}</span>
+        <span class="art" ${o.id === 'random' ? '' : `style="background-image:url(${terrainBg(o.id)})"`}>${o.id === 'random' ? '🎲' : lockedAt('terrain', o.id) ? `<span class="lock-lv">🔒 Liv. ${lockedAt('terrain', o.id)}</span>` : ''}</span>
         <span class="tn">${esc(o.name)}</span><span class="tp">${esc(o.place)}</span></button>`).join('')}</div>
       <p class="hint" style="text-align:left"><b>${esc(sel.name)}</b> · ${esc(sel.desc)}</p>`;
   }
@@ -318,7 +329,7 @@
   }
   function weaponBox() {
     const team = A.teams[A.builder], w = A.weapons[A.builder];
-    const opts = ['<option value="">Nessuna arma</option>'].concat(S.WEAPONS.map(x => `<option value="${x.id}" ${w && w.id === x.id ? 'selected' : ''}>${esc(x.name)} · ${esc(x.cn)}</option>`)).join('');
+    const opts = ['<option value="">Nessuna arma</option>'].concat(S.WEAPONS.map(x => { const l = lockedAt('weapon', x.id); return `<option value="${x.id}" ${w && w.id === x.id ? 'selected' : ''} ${l ? 'disabled' : ''}>${l ? `🔒 ${esc(x.name)} · livello ${l}` : `${esc(x.name)} · ${esc(x.cn)}`}</option>`; })).join('');
     const who = team.map(id => `<option value="${id}" ${w && w.card === id ? 'selected' : ''}>${esc(S.CARD[id].name)}</option>`).join('');
     return `<div class="weapon-box"><div class="eyebrow">⚔️ Arma della squadra</div>
       <div class="wrow"><select data-change="weapon" aria-label="Arma">${opts}</select>
@@ -342,7 +353,7 @@
       const locked = !pool.includes(c.id);
       const chosen = team.includes(c.id);
       const nope = !chosen && (locked || team.length >= S.TEAM_SIZE || cost + c.cost > S.BUDGET);
-      return `<div class="pick ${chosen ? 'chosen' : ''} ${nope ? 'nope' : ''} ${locked ? 'locked' : ''}" role="button" tabindex="0" data-act="pick" data-v="${c.id}" aria-label="${esc(c.name)}, costo ${c.cost}${locked ? ', da sbloccare' : ''}">
+      return `<div class="pick ${chosen ? 'chosen' : ''} ${nope ? 'nope' : ''} ${locked ? 'locked' : ''} ${variantOf(c.id)}" role="button" tabindex="0" data-act="pick" data-v="${c.id}" aria-label="${esc(c.name)}, costo ${c.cost}${locked ? ', da sbloccare' : ''}">
         <span class="face" style="${face(c.id)}"></span>
         <span class="rank ${c.rank}">${RANK_SHORT[c.rank]}</span>
         <span class="cost num">${c.cost}</span>
@@ -391,7 +402,7 @@
     const pool = unlocked();
     return `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">${pool.length}/${shown().length} sbloccate</div></div>
     <h2 style="margin-bottom:12px">Collezione</h2>
-    <div class="collection">${shown().map(c => { const lk = !pool.includes(c.id); return `<div class="pick ${lk ? 'locked' : ''}" role="button" tabindex="0" data-act="card" data-v="${c.id}">
+    <div class="collection">${shown().map(c => { const lk = !pool.includes(c.id); return `<div class="pick ${lk ? 'locked' : ''} ${variantOf(c.id)}" role="button" tabindex="0" data-act="card" data-v="${c.id}">
       <span class="face" style="${face(c.id)}"></span><span class="rank ${c.rank}">${RANK_SHORT[c.rank]}</span><span class="cost num">${c.cost}</span>${lk ? '<span class="lock">🔒</span>' : ''}
       <span class="meta"><span class="nm">${esc(c.name)}</span><span class="st num">PV ${c.hp} · ATK ${c.atk} · DEF ${c.def}</span></span></div>`; }).join('')}</div>
     <h3 class="sec">Palestre</h3>
@@ -524,6 +535,251 @@
     if (L.champion) { sfx('win'); if (window.Sound) Sound.buzz([80, 40, 80, 40, 200]); }
   }
 
+  // ------------------------------------------------------------ PROGRESSI: livelli, premi, carte speciali, medaglie, missioni
+  // Con l'account i punti stanno online; senza, sul telefono (stessa tabella dei punti).
+  const XP_WIN = { facile: 20, normale: 30, difficile: 45 };
+  const xpFor = (mode, level, win) => (!win ? 10 : mode === 'online' ? 50 : mode === 'torneo' ? 40 : mode === 'tutorial' ? 10 : XP_WIN[level] || 20);
+  const lv = xp => Math.floor(Math.sqrt(Math.max(0, xp) / 25)) + 1;
+  const lvXp = l => 25 * (l - 1) * (l - 1);
+  const signedIn = () => cloudOn() && Cloud.signedIn();
+  function myXp() { if (signedIn()) { const p = load('profilo', null); return p ? p.xp : 0; } return load('xp_locale', 0); }
+  const myLevel = () => lv(myXp());
+  // da quale parte del tavolo sta chi tiene il telefono (in 2 sullo stesso telefono e nei replay: nessuna)
+  const mySide = () => (A.mode === 'online' ? A.me : (A.mode === 'pvp' || A.mode === 'replay' ? -1 : 0));
+
+  // premi di livello: armi e palestre in più (le altre ci sono da subito)
+  const REWARDS = [
+    { lv: 2, weapon: 'shuangjian' }, { lv: 3, weapon: 'qiang' }, { lv: 4, terrain: 'liming' },
+    { lv: 5, weapon: 'shuangdao' }, { lv: 6, weapon: 'dadao' }, { lv: 8, terrain: 'chenjiagou' },
+  ];
+  const rewardName = r => (r.weapon ? `l'arma ${S.WEAPON[r.weapon].name}` : `la palestra ${S.TERRAIN[r.terrain].name}`);
+  function lockedAt(kind, id) {
+    if (settings.allUnlocked) return 0;
+    const r = REWARDS.find(x => x[kind] === id);
+    return r && myLevel() < r.lv ? r.lv : 0;
+  }
+  // dopo aver guadagnato punti: livello nuovo e premi sbloccati
+  function levelUp(before, after) {
+    const a = lv(before), b = lv(after);
+    if (b <= a) return '';
+    const got = REWARDS.filter(r => r.lv > a && r.lv <= b && !settings.allUnlocked).map(rewardName);
+    sfx('win');
+    return `<div class="unlock"><div class="eyebrow">Livello ${b}!</div><p>${got.length ? `Hai sbloccato ${esc(got.join(' e '))}.` : 'Sali ancora per nuovi premi.'}</p></div>`;
+  }
+  function addLocalXp(n) { const before = load('xp_locale', 0); store('xp_locale', before + n); return levelUp(before, before + n); }
+
+  // carte dorate (5 vittorie con la carta in squadra) e olografiche (15)
+  const variantOf = id => { const w = load('vittorie_carte', {})[id] || 0; return w >= 15 ? 'olo' : w >= 5 ? 'oro' : ''; };
+  const VARIANT_NAME = { oro: 'dorata', olo: 'olografica' };
+
+  // medaglie
+  const MEDALS = [
+    { id: 'prima', e: '🥇', name: 'Prima vittoria', desc: 'Vinci una sfida.' },
+    { id: 'dieci', e: '🎖️', name: 'Dieci vittorie', desc: 'Vinci 10 sfide.' },
+    { id: 'cinquanta', e: '🏵️', name: 'Cinquanta vittorie', desc: 'Vinci 50 sfide.' },
+    { id: 'campione', e: '🏆', name: 'Campione del Tempio', desc: 'Vinci il torneo del Tempio.' },
+    { id: 'leggenda', e: '🐉', name: 'Leggendario', desc: 'Vinci con una Leggenda in squadra.' },
+    { id: 'intatto', e: '🛡️', name: 'Imbattuto', desc: 'Vinci senza perdere nessuna carta.' },
+    { id: 'rimonta', e: '🔥', name: 'Rimonta', desc: 'Vinci con una sola carta rimasta.' },
+    { id: 'doppiok', e: '💥', name: 'Doppio K.O.', desc: 'Manda K.O. due carte con una sola mossa.' },
+    { id: 'difficile', e: '🧠', name: 'Più forte del computer', desc: 'Batti il computer a livello difficile.' },
+    { id: 'online', e: '📡', name: 'Sfida a distanza', desc: 'Vinci una sfida online.' },
+    { id: 'palestre', e: '🗺️', name: 'Giramondo', desc: 'Vinci in tutte e 4 le palestre.' },
+    { id: 'armi', e: '⚔️', name: "Maestro d'armi", desc: 'Vinci con ognuna delle 8 armi.' },
+    { id: 'effetti', e: '🃏', name: 'Asso nella manica', desc: 'Usa 10 carte effetto.' },
+    { id: 'oro', e: '✨', name: "Carta d'oro", desc: 'Rendi dorata una carta (5 vittorie con lei).' },
+    { id: 'collezione', e: '📚', name: 'Collezionista', desc: 'Sblocca tutte le carte.' },
+    { id: 'fedele', e: '📅', name: 'Fedele al Tempio', desc: 'Gioca in 7 giorni diversi.' },
+    { id: 'segreto', e: '🗝️', name: 'Custode del segreto', desc: 'Scopri le carte segrete.', hidden: true },
+  ];
+  const myMedals = () => load('medaglie', {});
+  function award(id) {
+    const m = myMedals();
+    if (m[id]) return null;
+    m[id] = dayKey(); store('medaglie', m);
+    if (signedIn()) Cloud.addMedals([id]).catch(() => { /* alla prossima sincronizzazione */ });
+    return MEDALS.find(x => x.id === id);
+  }
+  async function syncMedals() {
+    try {
+      const remote = await Cloud.medals(), m = myMedals();
+      remote.forEach(id => { if (!m[id] && MEDALS.some(x => x.id === id)) m[id] = dayKey(); });
+      store('medaglie', m);
+      await Cloud.addMedals(Object.keys(m).filter(id => !remote.includes(id)));
+    } catch (e) { /* offline o aggiornamento del database non ancora fatto */ }
+  }
+
+  // missioni: 3 al giorno e 2 a settimana, scelte dalla data (uguali per tutti)
+  const DAILY = [
+    { id: 'g-vinci2', text: 'Vinci 2 sfide', need: 2, add: s => (s.win ? 1 : 0) },
+    { id: 'g-gioca3', text: 'Gioca 3 sfide', need: 3, add: () => 1 },
+    { id: 'g-speciali5', text: 'Usa 5 mosse speciali', need: 5, add: s => s.specials },
+    { id: 'g-ko4', text: 'Manda K.O. 4 carte avversarie', need: 4, add: s => s.kos },
+    { id: 'g-allievi', text: 'Vinci con almeno 2 Allievi in squadra', need: 1, add: s => (s.win && s.allievi >= 2 ? 1 : 0) },
+    { id: 'g-arma', text: "Vinci con un'arma in squadra", need: 1, add: s => (s.win && s.weapon ? 1 : 0) },
+    { id: 'g-effetto2', text: 'Usa 2 carte effetto', need: 2, add: s => s.effects },
+    { id: 'g-normale', text: 'Batti il computer a livello normale o difficile', need: 1, add: s => (s.win && s.mode === 'cpu' && s.level !== 'facile' ? 1 : 0) },
+  ];
+  const WEEKLY = [
+    { id: 's-vinci10', text: 'Vinci 10 sfide', need: 10, add: s => (s.win ? 1 : 0) },
+    { id: 's-torneo', text: 'Vinci 3 incontri del torneo', need: 3, add: s => (s.win && s.mode === 'torneo' ? 1 : 0) },
+    { id: 's-online', text: 'Gioca 2 sfide online', need: 2, add: s => (s.mode === 'online' ? 1 : 0) },
+    { id: 's-difficile', text: 'Batti 3 volte il computer difficile', need: 3, add: s => (s.win && s.mode === 'cpu' && s.level === 'difficile' ? 1 : 0) },
+    { id: 's-ko20', text: 'Manda K.O. 20 carte avversarie', need: 20, add: s => s.kos },
+    { id: 's-palestre', text: 'Vinci in 3 palestre diverse', need: 3, distinct: s => (s.win ? s.terrain : null) },
+  ];
+  const dayKey = (d = new Date()) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+  function weekKey(d = new Date()) { // settimana ISO, come il database (AAAA-Wnn)
+    const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+    t.setUTCDate(t.getUTCDate() + 4 - (t.getUTCDay() || 7));
+    const w = Math.ceil(((t - Date.UTC(t.getUTCFullYear(), 0, 1)) / 864e5 + 1) / 7);
+    return `${t.getUTCFullYear()}-W${String(w).padStart(2, '0')}`;
+  }
+  function pickFor(key, pool, n) {
+    let h = 7; for (const c of key) h = (h * 31 + c.charCodeAt(0)) | 0;
+    const rnd = () => { h = (h + 0x6D2B79F5) | 0; let t = Math.imul(h ^ (h >>> 15), h | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+    const p = pool.slice(), out = [];
+    while (out.length < n) out.push(p.splice(Math.floor(rnd() * p.length), 1)[0]);
+    return out;
+  }
+  function currentMissions() {
+    const d = dayKey(), w = weekKey(), st = load('missioni', {});
+    const mk = (m, period, xp) => Object.assign({}, m, { period, xp, key: `${period}|${m.id}` }, { st: st[`${period}|${m.id}`] || { p: 0, set: [], claimed: false } });
+    return pickFor(d, DAILY, 3).map(m => mk(m, d, 30)).concat(pickFor(w, WEEKLY, 2).map(m => mk(m, w, 120)));
+  }
+  const readyMissions = () => currentMissions().filter(m => m.st.p >= m.need && !m.st.claimed).length;
+  function missionProgress(s) {
+    const st = load('missioni', {}), now = currentMissions(), done = [];
+    const keep = {};
+    now.forEach(m => {
+      const x = st[m.key] || { p: 0, set: [], claimed: false };
+      if (!x.claimed && x.p < m.need) {
+        if (m.distinct) { const v = m.distinct(s); if (v && !x.set.includes(v)) x.set.push(v); x.p = x.set.length; }
+        else x.p = Math.min(m.need, x.p + m.add(s));
+        if (x.p >= m.need) done.push(m);
+      }
+      keep[m.key] = x;
+    });
+    store('missioni', keep); // le missioni dei giorni passati spariscono
+    return done;
+  }
+  async function claimMission(key) {
+    const m = currentMissions().find(x => x.key === key);
+    if (!m || m.st.claimed || m.st.p < m.need) return;
+    const mark = () => { const st = load('missioni', {}); (st[key] = st[key] || m.st).claimed = true; store('missioni', st); };
+    if (signedIn()) {
+      try {
+        const xp = await Cloud.claimMission(m.id, m.period);
+        const p = load('profilo', null), before = p ? p.xp : 0;
+        if (p) { p.xp += xp; store('profilo', p); }
+        mark(); toastQuick(`+${xp} punti esperienza!`);
+        const up = levelUp(before, before + xp); if (up) toastQuick(`Livello ${lv(before + xp)}!`);
+      } catch (e) {
+        if (/già riscattata/.test(e.message)) mark();
+        toastQuick(e.message);
+      }
+    } else {
+      mark();
+      const up = addLocalXp(m.xp);
+      toastQuick(`+${m.xp} punti esperienza!${up ? ` Livello ${myLevel()}!` : ''}`);
+    }
+    render();
+  }
+
+  // riepilogo della partita appena finita, dal punto di vista di chi tiene il telefono
+  function matchSummary(g) {
+    const side = mySide(), pl = g.players[side], st = A.stats || {};
+    return {
+      win: g.winner === side, mode: A.mode, level: g.players[1 - side].cpu || null,
+      allievi: pl.cards.filter(id => S.CARD[id] && S.CARD[id].rank === 'A').length,
+      legend: pl.cards.some(id => S.CARD[id] && S.CARD[id].rank === 'L'),
+      weapon: (A.setup.players[side].weapon || {}).id || null, terrain: g.terrain,
+      specials: st.specials || 0, kos: st.kos || 0, effects: st.effects || 0, doubleKo: !!st.doubleKo,
+      lost: pl.ko.length, alive: pl.field.length + pl.reserve.length, cards: pl.cards,
+    };
+  }
+  // tutto quello che succede a fine partita: punti (senza account), carte speciali, medaglie, missioni
+  function afterMatch(g, cloudGame) {
+    if (mySide() < 0 || A.liveMatch) return '';
+    const s = matchSummary(g);
+    let html = '';
+    if (!cloudGame) { const xp = xpFor(s.mode, s.level, s.win); html += `<p class="xp-line">+${xp} punti esperienza · Livello ${lv(load('xp_locale', 0) + xp)}</p>` + addLocalXp(xp); }
+    const prog = load('prog', { wins: 0, effects: 0, days: [], terrains: [], weapons: [] });
+    prog.effects += s.effects;
+    if (!prog.days.includes(dayKey())) prog.days = prog.days.concat(dayKey()).slice(-30);
+    const newMedals = [];
+    const give = id => { const m = award(id); if (m) newMedals.push(m); };
+    if (s.win) {
+      prog.wins++;
+      if (s.terrain && !prog.terrains.includes(s.terrain)) prog.terrains.push(s.terrain);
+      if (s.weapon && !prog.weapons.includes(s.weapon)) prog.weapons.push(s.weapon);
+      // carte dorate e olografiche
+      const vc = load('vittorie_carte', {}), upgraded = [];
+      s.cards.forEach(id => { const before = variantOf(id); vc[id] = (vc[id] || 0) + 1; store('vittorie_carte', vc); const now = variantOf(id); if (now !== before) upgraded.push([id, now]); });
+      if (upgraded.length) { give('oro'); html += `<div class="unlock"><div class="eyebrow">Carte speciali!</div><p>${upgraded.map(([id, v]) => `${esc(S.CARD[id].name)} ora è ${VARIANT_NAME[v]}`).join(' · ')}</p></div>`; }
+      if (prog.wins >= 1) give('prima');
+      if (prog.wins >= 10) give('dieci');
+      if (prog.wins >= 50) give('cinquanta');
+      if (s.legend) give('leggenda');
+      if (s.lost === 0) give('intatto');
+      if (s.alive === 1) give('rimonta');
+      if (s.mode === 'cpu' && s.level === 'difficile') give('difficile');
+      if (s.mode === 'online') give('online');
+      if (prog.terrains.length >= S.TERRAINS.length) give('palestre');
+      if (prog.weapons.length >= S.WEAPONS.length) give('armi');
+    }
+    if (s.doubleKo) give('doppiok');
+    if (prog.effects >= 10) give('effetti');
+    if (prog.days.length >= 7) give('fedele');
+    store('prog', prog);
+    const done = missionProgress(s);
+    if (done.length) html += `<div class="unlock"><div class="eyebrow">🎯 Missione completata!</div><p>${done.map(m => esc(m.text)).join(' · ')}</p><p>Riscuoti il premio in Missioni.</p></div>`;
+    if (newMedals.length) html += `<div class="unlock"><div class="eyebrow">🏅 Nuova medaglia!</div><p>${newMedals.map(m => `${m.e} ${esc(m.name)}`).join(' · ')}</p></div>`;
+    return html;
+  }
+
+  // ------------------------------------------------------------ MISSIONI E MEDAGLIE (schermate)
+  function levelCard() {
+    const xp = myXp(), l = lv(xp), from = lvXp(l), to = lvXp(l + 1);
+    const next = REWARDS.find(r => r.lv > l);
+    return `<div class="acc-card">
+      <div class="eyebrow">${signedIn() ? 'Il tuo account' : 'Su questo telefono (entra per salvare i punti online)'}</div>
+      <div class="acc-lvl"><span class="num">Livello ${l}</span> · ${esc(cloudOn() ? Cloud.titleOf(l) : '')}</div>
+      <div class="xpbar"><i style="width:${(100 * (xp - from) / (to - from)).toFixed(1)}%"></i></div>
+      <small class="num">${xp} punti · ${to - xp} al livello ${l + 1}${next && !settings.allUnlocked ? ` · al livello ${next.lv} sblocchi ${esc(rewardName(next))}` : ''}</small>
+    </div>`;
+  }
+  function missionRow(m) {
+    const ok = m.st.p >= m.need;
+    return `<div class="mission ${m.st.claimed ? 'claimed' : ok ? 'ready' : ''}">
+      <div class="mi-head"><b>${esc(m.text)}</b><span class="num">+${m.xp}</span></div>
+      <div class="xpbar"><i style="width:${(100 * Math.min(m.st.p, m.need) / m.need).toFixed(0)}%"></i></div>
+      <div class="mi-foot"><small class="num">${Math.min(m.st.p, m.need)} / ${m.need}</small>
+        ${m.st.claimed ? '<small>✓ Riscossa</small>' : ok ? `<button class="btn small primary" data-act="mis-claim" data-v="${esc(m.key)}">Riscuoti</button>` : ''}</div></div>`;
+  }
+  function renderMissioni() {
+    const ms = currentMissions();
+    return `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">Missioni</div></div>
+    <div class="setup"><h2>Missioni</h2>
+      ${levelCard()}
+      <h3 class="sec">Oggi</h3>${ms.filter(m => m.xp === 30).map(missionRow).join('')}
+      <h3 class="sec">Questa settimana</h3>${ms.filter(m => m.xp === 120).map(missionRow).join('')}
+      <p class="hint" style="text-align:left">Valgono le sfide contro il computer, il torneo, il tutorial e le sfide online (non quelle in 2 sullo stesso telefono). Ogni giorno e ogni lunedì arrivano missioni nuove.</p>
+      <h3 class="sec">Premi di livello</h3>
+      <div class="rewards">${REWARDS.map(r => `<div class="${myLevel() >= r.lv || settings.allUnlocked ? 'got' : ''}"><b class="num">Liv. ${r.lv}</b><span>${esc(rewardName(r))}</span></div>`).join('')}</div>
+      <p class="hint" style="text-align:left">Spada, sciabola, i due bastoni e le palestre di Lancenigo e Ponte della Priula ci sono da subito. Le carte diventano dorate dopo 5 vittorie con loro in squadra e olografiche dopo 15.</p>
+    </div>`;
+  }
+  function renderMedaglie() {
+    const m = myMedals(), got = MEDALS.filter(x => m[x.id]).length;
+    return `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">${got}/${MEDALS.length}</div></div>
+    <div class="setup"><h2>Medaglie</h2>
+      <div class="medals">${MEDALS.map(x => {
+        const has = !!m[x.id], secret = x.hidden && !has;
+        return `<div class="medal ${has ? 'got' : ''}"><span class="me-e">${secret ? '❔' : x.e}</span><b>${secret ? '???' : esc(x.name)}</b><small>${secret ? 'Una medaglia segreta.' : esc(x.desc)}</small>${has ? `<small class="num">${esc(m[x.id].split('-').reverse().join('/'))}</small>` : ''}</div>`;
+      }).join('')}</div></div>`;
+  }
+
   // ------------------------------------------------------------ REGOLE
   function renderRules() {
     return `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">Regolamento</div></div>
@@ -596,14 +852,26 @@
     if (cloudOn() && Cloud.signedIn()) {
       try {
         c.prof = await Cloud.profile(); c.loaded = true;
-        if (c.prof) { store('profilo', c.prof); syncCollection(); }
+        if (c.prof) { store('profilo', c.prof); syncCollection(); syncMedals(); }
         if (c.prof && c.afterLogin) { c.afterLogin = false; toastQuick(`Bentornato, ${c.prof.nome}!`); go('home'); return; }
       } catch (e) { c.msg = e.message; c.loaded = true; }
     }
     try { c.board = await Cloud.leaderboard(); c.boardErr = ''; } catch (e) { c.boardErr = 'Classifica non disponibile: serve internet.'; }
+    try { c.week = await Cloud.weeklyBoard(); } catch (e) { c.week = null; }
     if (A.screen === 'account') render();
   }
   function boardHtml(c) {
+    const tab = c.week && c.tab !== 'all' ? 'week' : 'all';
+    const tabs = c.week ? `<div class="seg board-tabs" role="group"><button data-act="board-tab" data-v="week" aria-pressed="${tab === 'week'}">Settimana</button><button data-act="board-tab" data-v="all" aria-pressed="${tab === 'all'}">Sempre</button></div>` : '';
+    if (tab === 'week') {
+      const mine = c.prof && c.prof.nome;
+      return tabs + (c.week.length ? `<table class="board num"><thead><tr><th>#</th><th>Nome</th><th>Punti</th><th>V</th></tr></thead><tbody>
+        ${c.week.map((p, i) => `<tr class="${p.nome === mine ? 'me' : ''}"><td>${i + 1}</td><td>${esc(p.nome)}</td><td>${p.xp}</td><td>${p.vittorie}</td></tr>`).join('')}
+      </tbody></table><p class="hint" style="text-align:left">Punti fatti da lunedì: si riparte da zero ogni settimana.</p>` : '<p class="hint" style="text-align:left">Nessuno ha ancora giocato questa settimana: il primo posto è libero!</p>');
+    }
+    return tabs + boardHtmlAll(c);
+  }
+  function boardHtmlAll(c) {
     if (c.boardErr) return `<p class="hint" style="text-align:left">${esc(c.boardErr)}</p>`;
     if (!c.board) return '<p class="hint">Carico la classifica…</p>';
     if (!c.board.length) return '<p class="hint" style="text-align:left">Ancora nessun giocatore: il primo posto è libero!</p>';
@@ -726,6 +994,7 @@
     if (opts.target) classes.push('target');
     if (opts.dim) classes.push('dim');
     if (opts.hinted) classes.push('hinted');
+    if (f.owner === mySide() && variantOf(f.card)) classes.push(variantOf(f.card));
     let pv = '';
     if (opts.preview) {
       const [lo, hi] = opts.preview;
@@ -943,7 +1212,7 @@
     const opt = S.actorOptions(g, u).find(o => o.i === a.move);
     const m = opt ? opt.move : S.BASIC;
     const exec = (m.target === 'copy' || m.target === 'bottle') ? S.refMove(a.pick || g.lastSpecial) : m;
-    const info = uid => { const f = S.byUid(g, uid); return { uid, card: f.card, name: f.name, rank: f.rank, owner: f.owner, weapon: f.weapon || null }; };
+    const info = uid => { const f = S.byUid(g, uid); return { uid, card: f.card, name: f.name, rank: f.rank, owner: f.owner, weapon: f.weapon || null, variant: f.owner === mySide() ? variantOf(f.card) : '' }; };
     let tg = [];
     if (a.target) tg = [a.target];
     else if (exec.target === 'enemies') tg = S.enemies(g, u.owner).map(f => f.uid);
@@ -990,9 +1259,21 @@
     const g = A.game;
     const d = !a.pass && !a.effect && use3D() ? describe(g, a) : null;
     const turnBefore = g.turn;
+    const mover = a.pass ? -1 : a.effect ? g.turn : ((S.byUid(g, a.actor) || {}).owner);
     applyAct(a);
     if (local && A.mode === 'online') Net.send({ t: 'act', n: A.log.length - 1, a });
     const evs = g.events.splice(0);
+    // statistiche per missioni e medaglie (dal punto di vista di chi tiene il telefono)
+    const side = mySide();
+    if (side >= 0 && A.stats && !a.pass) {
+      const kos = evs.filter(e => e.type === 'ko' && (S.byUid(g, e.uid) || {}).owner !== side).length;
+      A.stats.kos += kos;
+      if (mover === side) {
+        if (a.effect) A.stats.effects++;
+        else if (a.move >= 0) A.stats.specials++;
+        if (kos >= 2) A.stats.doubleKo = true;
+      }
+    }
     saveGame();
     if (!d) { await playEvents(evs); }
     else {
@@ -1114,13 +1395,14 @@
           if (p) { p.xp += xp; if (g.winner === meP) p.vittorie++; else p.sconfitte++; store('profilo', p); }
           const el = document.getElementById('xp-line');
           if (el) el.textContent = `+${xp} punti esperienza${p ? ` · Livello ${Cloud.levelOf(p.xp)}` : ''}`;
+          if (p && lv(p.xp) > lv(p.xp - xp)) toastQuick(`Livello ${lv(p.xp)}!`);
         })
         .catch(e => { const el = document.getElementById('xp-line'); if (el) el.textContent = e.message; });
     }
     const w = g.players[g.winner];
     const localWin = A.mode === 'pvp' || (A.mode === 'online' ? g.winner === A.me : g.winner === 0);
     sfx(localWin ? 'win' : 'lose');
-    let extra = '';
+    let extra = afterMatch(g, cloudGame);
     // carte sbloccate
     let got = [];
     if (A.mode === 'tutorial') { store('tutorial', true); got = unlockRandom(2); }
@@ -1134,6 +1416,7 @@
         t.stage++;
         if (t.stage >= TORNEO.length) {
           const first = !(t.titles > 0);
+          const md = award('campione'); if (md) extra += `<div class="unlock"><div class="eyebrow">🏅 Nuova medaglia!</div><p>${md.e} ${esc(md.name)}</p></div>`;
           t.stage = 0; t.titles = (t.titles || 0) + 1; got = got.concat(unlockRandom(3));
           if (first && !settings.allUnlocked) got = got.concat(LEGENDS);
           torneoMsg = first ? '🏆 Campione del Tempio! Hai sbloccato le Leggende: Chen Wangting e Chen Zhenglei.' : '🏆 Campione del Tempio! Hai vinto il torneo.';
@@ -1288,6 +1571,7 @@
     A.log = [];
     A.game = S.createGame(setup);
     A.game.events = [];
+    A.stats = { specials: 0, kos: 0, effects: 0, doubleKo: false };
     if (use3D()) Arena3D.preload(setup.players.flatMap(p => p.cards));
     A.ended = null;
     A.sel = null; A.logOpen = false; A.busy = false; A.banner = '';
@@ -1302,7 +1586,7 @@
       first: first === undefined ? (Math.random() < 0.5 ? 0 : 1) : first,
       gymEvents: settings.events,
       effects: settings.effectCards,
-      terrain: pickTerrain(terrain === undefined ? A.terrain : terrain),
+      terrain: terrain === undefined ? pickTerrain(A.terrain) : (S.TERRAIN[terrain] ? terrain : pickTerrain('random')),
       players,
     };
   }
@@ -1624,6 +1908,8 @@
         else if (A.builder === 1) { A.builder = 0; render(); } else go('setup');
         break;
       case 'filter': A.filter = v; render(); break;
+      case 'mis-claim': claimMission(v); break;
+      case 'board-tab': A.acc.tab = v; render(); break;
       case 'live-size': A.liveSize = +v; render(); break;
       case 'live-start': {
         const size = A.liveSize || 8;
@@ -1690,7 +1976,9 @@
           .catch(() => { out.textContent = 'Il tempio resta in silenzio.'; });
         break;
       }
-      case 'terrain': A.terrain = v; store('terrain', v); saveNames(); render(); break;
+      case 'terrain':
+        if (lockedAt('terrain', v)) { toastQuick(`Si sblocca al livello ${lockedAt('terrain', v)}.`); break; }
+        A.terrain = v; store('terrain', v); saveNames(); render(); break;
       case 'terrain-info': {
         const t = S.TERRAIN[g.terrain];
         openLayer(`<div class="sheet-wrap" data-act="close"><div class="sheet" role="dialog" aria-label="${esc(t.name)}" data-stop>${terrainCard(g.terrain)}<button class="btn ghost" data-act="close">Chiudi</button></div></div>`);

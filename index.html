@@ -191,6 +191,35 @@
   .share-link { width: min(100%, 420px); height: 110px; border-radius: 6px; border: 1.5px solid var(--line); background: var(--ink-2); color: var(--paper); font: 12px var(--body); padding: 8px; word-break: break-all; }
   .overlay .menu-2 { width: min(100%, 340px); }
   .overlay .menu-2 .btn { min-width: 0; }
+  /* missioni, medaglie, carte speciali */
+  .mission { border: 1.5px solid var(--line); border-radius: 8px; padding: 8px 10px; background: var(--ink-2); display: grid; gap: 5px; }
+  .mission.ready { border-color: var(--jade); box-shadow: 0 0 0 2px #55b98a44; }
+  .mission.claimed { opacity: .55; }
+  .mi-head { display: flex; justify-content: space-between; gap: 8px; align-items: baseline; }
+  .mi-head b { font-family: var(--label); font-size: 16px; }
+  .mi-head span { font-family: var(--label); font-weight: 700; color: var(--gold); }
+  .mi-foot { display: flex; justify-content: space-between; align-items: center; min-height: 30px; }
+  .mi-foot small { color: var(--paper-dim); }
+  .rewards { display: grid; gap: 4px; }
+  .rewards div { display: grid; grid-template-columns: 64px 1fr; gap: 8px; padding: 6px 8px; border-radius: 6px; background: var(--ink-2); color: var(--muted); font-size: 14px; }
+  .rewards div.got { color: var(--paper); }
+  .rewards div.got b { color: var(--jade); }
+  .rewards b { font-family: var(--label); }
+  .medals { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+  .medal { border: 1.5px solid var(--line); border-radius: 8px; padding: 8px; background: var(--ink-2); display: grid; gap: 2px; text-align: center; opacity: .5; filter: grayscale(.8); }
+  .medal.got { opacity: 1; filter: none; border-color: var(--gold); }
+  .me-e { font-size: 32px; }
+  .medal b { font-family: var(--label); font-size: 15px; }
+  .medal small { font-size: 12px; color: var(--paper-dim); }
+  .board-tabs { grid-template-columns: 1fr 1fr; }
+  .lock-lv { font-family: var(--label); font-weight: 700; font-size: 13px; color: var(--paper); background: #000c; padding: 2px 6px; border-radius: 4px; }
+  .pick.oro:not(.chosen), .tile.oro:not(.selected):not(.target):not(.hinted) { border-color: #ffcf40; box-shadow: 0 0 0 1px #ffcf40, 0 0 14px #ffcf4055; }
+  .pick.olo:not(.chosen), .tile.olo:not(.selected):not(.target):not(.hinted) { border-color: transparent; background: linear-gradient(var(--ink-2), var(--ink-2)) padding-box, linear-gradient(120deg, #ff4fd8, #4fe3ff, #ffe14f, #7dff6b, #ff4fd8) border-box; background-size: 100% 100%, 300% 300%; animation: holo-border 4s linear infinite; }
+  .pick.olo .face::after, .tile.olo .face::after { content: ''; position: absolute; inset: 0; pointer-events: none; mix-blend-mode: screen; background: linear-gradient(115deg, transparent 25%, rgba(255, 80, 220, .28), rgba(80, 230, 255, .28), rgba(255, 230, 80, .28), transparent 75%); background-size: 250% 250%; animation: holo-sheen 3s linear infinite; }
+  .pick.oro .face::before, .tile.oro .face::before { content: '★'; position: absolute; right: 5px; bottom: 5px; z-index: 1; color: #ffcf40; text-shadow: 0 1px 2px #000; font-size: 16px; }
+  @keyframes holo-border { to { background-position: 0 0, 300% 0; } }
+  @keyframes holo-sheen { from { background-position: 100% 0; } to { background-position: -150% 0; } }
+  .pick .face { position: relative; }
   /* torneo dal vivo */
   .live-names { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
   .live-names input { min-height: 44px; border-radius: 6px; border: 1.5px solid var(--line); background: var(--ink-2); color: var(--paper); padding: 6px 10px; font: 16px var(--body); min-width: 0; }

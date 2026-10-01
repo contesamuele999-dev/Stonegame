@@ -39,6 +39,17 @@ Nelle impostazioni di Supabase:
 - *Authentication → Sign In / Providers → Email*: con "Confirm email" attivo chi si registra deve prima aprire il link nell'email; spento, entra subito.
 - Il servizio email incluso in Supabase manda pochi messaggi l'ora: con tanti giocatori conviene collegare un servizio email proprio (*Authentication → SMTP*).
 
+Missioni, medaglie e classifica della settimana si attivano incollando anche `supabase/aggiornamento-2.sql` (una volta, dopo `schema.sql`). Finché non c'è, il gioco funziona lo stesso, ma chi ha l'account non può riscuotere le missioni, le medaglie restano solo sul telefono e la classifica mostra solo quella di sempre.
+
+### Progressi
+
+- **Livelli**: si guadagnano punti a ogni sfida (contro il computer, torneo, tutorial, online; non in 2 sullo stesso telefono). Con l'account i punti stanno online, senza account restano sul telefono.
+- **Premi di livello**: spada, sciabola, i due bastoni e le palestre di Lancenigo e Ponte della Priula ci sono da subito. Si sbloccano poi doppia spada (livello 2), lancia (3), palestra di Liming Yue (4), doppia sciabola (5), alabarda (6) e piazza di Chenjiagou (8). "Sblocca tutte le carte" nelle impostazioni sblocca anche questi.
+- **Carte speciali**: una carta diventa **dorata** dopo 5 vittorie con lei in squadra e **olografica** dopo 15 (bordo e riflessi nella collezione, in partita e sul tatami 3D).
+- **Missioni**: 3 al giorno (30 punti) e 2 a settimana (120 punti), uguali per tutti; il premio si riscuote dalla schermata Missioni. Con l'account lo assegna il database, una volta sola per missione.
+- **Medaglie**: 17 traguardi (prima vittoria, imbattuto, rimonta, doppio K.O., tutte le palestre, tutte le armi...), una nascosta.
+- **Classifica della settimana**: nella schermata dell'account, i punti fatti da lunedì; accanto resta quella di sempre.
+
 ## Regolamento
 
 **La squadra.** Ogni giocatore sceglie **4 carte** spendendo al massimo **10 Punti Dojo** (il costo è il numero dorato sulla carta). Le prime 3 vanno in campo; la quarta resta in riserva ed entra da sola quando una tua carta va K.O.

@@ -965,10 +965,14 @@
     card.position.y = 0.022; glow.position.y = 0.018;
     // finché l'immagine non è arrivata la carta resta invisibile (altrimenti sarebbe un rettangolo bianco)
     card.visible = false;
-    const size = () => { const a = cardAspect(tex); card.scale.set(width, width * a, 1); glow.scale.set(width + 0.12, width * a + 0.12, 1); card.visible = !!(tex.image && tex.image.width); };
+    const m = ch.d.variant ? 0.22 : 0.12; // le carte speciali hanno il bordo più largo
+    const size = () => { const a = cardAspect(tex); card.scale.set(width, width * a, 1); glow.scale.set(width + m, width * a + m, 1); card.visible = !!(tex.image && tex.image.width); };
     size(); tex.onReady(size);
     grp.add(glow, card); root.add(grp);
     ch.pad = { grp, card, glow, base: glow.material.color.clone() };
+    // carta dorata: bordo d'oro; olografica: bordo che cambia colore
+    if (ch.d.variant === 'oro') { glow.material.color.set('#ffcf40'); ch.pad.base.set('#ffcf40'); }
+    if (ch.d.variant === 'olo') { let t = 0; updaters.push(dt => { t += dt; ch.pad.base.setHSL((t * 0.35) % 1, 0.9, 0.6); glow.material.color.copy(ch.pad.base); }); }
   }
 
   // tinta olografica: 1 = tutto azzurro e trasparente, 0 = normale

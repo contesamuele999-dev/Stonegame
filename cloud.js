@@ -38,6 +38,9 @@
     if (/duplicate key|profili_nome_key/i.test(m)) return 'Questo nome è già usato da un altro giocatore.';
     if (/troppo presto/i.test(m)) return 'Punti non assegnati: è passata meno di un minuto dalla partita precedente.';
     if (/check constraint/i.test(m)) return 'Il nome deve avere da 2 a 20 caratteri.';
+    if (/già riscattata/i.test(m)) return 'Missione già riscattata.';
+    if (/missione scaduta/i.test(m)) return 'Missione scaduta: ne sono arrivate di nuove.';
+    if (/could not find the function|PGRST202/i.test(m)) return 'Funzione online non ancora attiva.';
     if (/email/i.test(m) && /invalid/i.test(m)) return 'Indirizzo email non valido.';
     return m || `Errore ${status}`;
   }
@@ -119,6 +122,15 @@
   // restituisce i punti esperienza guadagnati
   const record = (vinta, modalita, livello, carte) => api('/rest/v1/rpc/registra_partita', { method: 'POST', body: { vinta, modalita, livello: livello || null, carte } });
   const leaderboard = () => raw('/rest/v1/profili?select=nome,xp,vittorie,sconfitte&order=xp.desc,vittorie.desc&limit=50', {});
+  // classifica dei punti fatti da lunedì (partite più missioni)
+  const weeklyBoard = () => raw('/rest/v1/rpc/classifica_settimana', { method: 'POST', body: {} });
+  // missioni: il server assegna il premio una volta sola per missione e periodo
+  const claimMission = (codice, periodo) => api('/rest/v1/rpc/riscatta_missione', { method: 'POST', body: { codice, periodo } });
+  async function medals() { return (await api(`/rest/v1/medaglie?giocatore=eq.${me()}&select=codice`)).map(x => x.codice); }
+  async function addMedals(codes) {
+    if (!codes.length) return;
+    await api('/rest/v1/medaglie', { method: 'POST', body: codes.map(codice => ({ giocatore: me(), codice })), headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' } });
+  }
   async function collection() { return (await api(`/rest/v1/collezione?giocatore=eq.${me()}&select=carta`)).map(x => x.carta); }
   async function addToCollection(ids) {
     if (!ids.length) return;
@@ -134,6 +146,7 @@
 
   window.Cloud = {
     init, signedIn: () => !!(ses && ses.user), email: () => (ses && ses.user ? ses.user.email : ''),
+    weeklyBoard, claimMission, medals, addMedals,
     signIn, signUp, recover, setPassword, logout, profile, createProfile, rename, record, leaderboard, collection, addToCollection,
     levelOf, xpFor, titleOf,
   };
