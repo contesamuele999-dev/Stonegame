@@ -1,4 +1,4 @@
-# Stone Temple Card Game
+# Stone Temple Cards Game
 
 Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal telefono con i 23 personaggi della palestra e 2 Leggende del Taijiquan stile Chen.
 

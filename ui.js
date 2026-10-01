@@ -11,7 +11,7 @@
   function drop(k) { try { localStorage.removeItem('stt_' + k); } catch (e) { /* niente */ } }
 
   const reduced = (() => { try { return window.matchMedia('(prefers-reduced-motion: reduce)').matches; } catch (e) { return false; } })();
-  const DEFAULTS = { sfx: true, music: true, vibration: true, anim: reduced ? 'off' : 'full', speed: 'normale', events: true, allUnlocked: false };
+  const DEFAULTS = { sfx: true, music: true, vibration: true, anim: reduced ? 'off' : 'full', speed: 'normale', events: true, allUnlocked: false, bigText: false };
   const settings = Object.assign({}, DEFAULTS, load('settings', {}));
   if (load('anim', null)) { settings.anim = load('anim', settings.anim); drop('anim'); }
   // il vecchio "3D veloce" ora è 3D + velocità veloce
@@ -22,7 +22,10 @@
   const SPEED_OPTS = [['lenta', '🐢', 'Lenta'], ['normale', '▶︎', 'Normale'], ['veloce', '🐇', 'Veloce']];
   const speedK = () => SPEED[settings.speed] || 1;
   const pace = ms => ms / speedK();
-  function applyPace() { document.documentElement.style.setProperty('--pace', String(1 / speedK())); }
+  function applyPace() {
+    document.documentElement.style.setProperty('--pace', String(1 / speedK()));
+    document.documentElement.classList.toggle('big', !!settings.bigText); // testo grande
+  }
   applyPace();
   function speedHtml() {
     return `<div class="speed" role="group" aria-label="Velocità di gioco">${SPEED_OPTS.map(([v, ic, l]) =>
@@ -240,7 +243,7 @@
         <img src="img/retro.jpg" alt="Retro delle carte Stone Temple Tao" data-act="egg">
         <div>
           <div class="eyebrow">Scuola di Tradizionali Arti Orientali</div>
-          <h1>Stone Temple Card Game</h1>
+          <h1>Stone Temple Cards Game</h1>
           <p>Il torneo di carte della palestra: ${shown().length} combattenti, 3 contro 3, una riserva a testa.</p>
         </div>
       </div>
@@ -426,6 +429,8 @@
       <h2>Impostazioni</h2>
       <div class="eyebrow">Velocità di gioco</div>${seg('speed', SPEED_OPTS.map(([v, ic, l]) => [v, `${ic} ${l}`]))}
       <p class="hint" style="text-align:left">Si cambia anche durante la partita, con i tasti in alto a destra.</p>
+      <div class="eyebrow">Testo grande</div>${yn('bigText')}
+      <p class="hint" style="text-align:left">Ingrandisce scritte e pulsanti, per chi legge meglio così.</p>
       <div class="eyebrow">Animazioni 3D</div>${seg('anim', [['full', 'Sì'], ['off', 'No']])}
       <div class="eyebrow">Effetti sonori</div>${yn('sfx')}
       <div class="eyebrow">Musica</div>${yn('music')}
@@ -653,6 +658,7 @@
     if (opts.selected) classes.push('selected');
     if (opts.target) classes.push('target');
     if (opts.dim) classes.push('dim');
+    if (opts.hinted) classes.push('hinted');
     let pv = '';
     if (opts.preview) {
       const [lo, hi] = opts.preview;
@@ -682,6 +688,7 @@
         target: isT,
         dim: sel && !isT && sel.actor !== f.uid,
         preview: isT && actor && f.owner !== actor.owner ? S.previewDamage(g, actor, sel.inner, f) : null,
+        hinted: A.hint && (A.hint.a.actor === f.uid || A.hint.a.target === f.uid),
       });
     }).join('');
     return `<div class="row-fighters ${pl.field.length > 3 ? 'four' : ''}" style="grid-template-columns:repeat(${Math.max(pl.field.length, 3)},1fr)">${tiles}</div>`;
@@ -692,6 +699,15 @@
     const res = pl.reserve.length ? `Riserva: ${pl.reserve.map(f => esc(f.name.split(' ')[0])).join(', ')}` : 'Nessuna riserva';
     const syn = pl.syn && pl.syn.length ? pl.syn.map(id => S.SYNERGIES.find(x => x.id === id).name).map(esc).join(', ') : '';
     return `<div class="bar"><div class="side-name ${g.turn === p && g.winner === null ? 'active' : ''}"><i class="turn-dot"></i><span>${esc(pl.name)}</span></div><div class="res-info">${res} · K.O. ${pl.ko.length}<span class="syn-tag">${syn}</span></div></div>`;
+  }
+
+  // il consiglio c'è nel proprio turno, ma non online (sarebbe un aiuto contro un'altra persona)
+  const canHint = () => isLocalTurn() && !A.busy && !A.sel && A.mode !== 'online';
+  function hintText(g, a) {
+    const u = S.byUid(g, a.actor), opt = S.actorOptions(g, u).find(o => o.i === a.move);
+    const m = opt ? opt.move : S.BASIC, t = a.target ? S.byUid(g, a.target) : null;
+    const label = a.pick ? `${m.name} → ${S.refMove(a.pick).name}` : m.name;
+    return `${u.name}: ${label}${t ? ` su ${t.name}` : ''}`;
   }
 
   // è il turno di chi tiene in mano questo telefono?
@@ -721,13 +737,14 @@
       ${rowHtml(g, opp)}
       <div class="mid">
         ${g.terrain ? `<button class="terrain-chip" data-act="terrain-info">🏯 ${esc(S.TERRAIN[g.terrain].name)} · ${esc(S.TERRAIN[g.terrain].place)}</button>` : ''}
-        ${tutorialHtml() || `<div class="banner" aria-live="polite">${esc(banner)}</div>`}
+        ${tutorialHtml() || (A.hint ? `<div class="hint-box" role="status"><span>💡 ${esc(A.hint.text)}</span><button class="btn small primary" data-act="hint-do">Fai così</button></div>` : `<div class="banner" aria-live="polite">${esc(banner)}</div>`)}
         <div class="log ${A.logOpen ? 'open' : ''}" data-act="log" role="button" tabindex="0" aria-label="Registro della partita">${lines || '<p>La sfida ha inizio.</p>'}</div>
       </div>
       ${rowHtml(g, me)}
       ${sideBar(g, me)}
-      <div class="actions-row">
+      <div class="actions-row ${canHint() ? 'three' : ''}">
         ${A.sel ? '<button class="btn" data-act="cancel-sel">Annulla</button>' : `<button class="btn ghost" data-act="log">${A.logOpen ? 'Chiudi registro' : 'Registro'}</button>`}
+        ${canHint() ? '<button class="btn" data-act="hint">💡 Consiglio</button>' : ''}
         <button class="btn primary" data-act="end-turn" ${canEnd && !A.sel ? '' : 'disabled'}>Fine turno</button>
       </div>
     </div>`;
@@ -817,6 +834,7 @@
 
   async function act(a, inner) {
     const g = A.game;
+    A.hint = null;
     if (inner && inner.formula) a.formula = await formulaPrompt(inner);
     A.sel = null; A.banner = '';
     A.busy = true;
@@ -883,7 +901,8 @@
     const self = out[d.actor.uid];
     if (self && flags.confused) self.confuse = false;
     if (d.formula) flags.formula = d.formula;
-    return { attacker: d.actor, move: d.move, label: d.label, targets, self, flags, speed: speedK(), controls: speedHtml(), terrain: A.game.terrain };
+    return { attacker: d.actor, move: d.move, label: d.label, targets, self, flags, speed: speedK(), controls: speedHtml(), terrain: A.game.terrain,
+      finisher: A.game.winner !== null && A.game.winner === d.actor.owner };
   }
 
   async function perform(a, local) {
@@ -908,6 +927,7 @@
   function afterAction() {
     const g = A.game;
     if (!g) return;
+    A.hint = null;
     render();
     if (g.winner !== null) { setTimeout(showWinner, 700); return; }
     if (g.players[g.turn].cpu) { runCPU(); return; }
@@ -1166,13 +1186,17 @@
   function beginOverlay() {
     const g = A.game;
     const opp = A.mode === 'online' ? 1 - A.me : 1;
-    openLayer(`<div class="overlay" role="dialog">
-      <div class="eyebrow">Lancio della moneta</div>
-      <h2>Inizia ${esc(g.players[g.turn].name)}</h2>
-      <p>Al primo turno chi inizia agisce con 2 carte e solo con attacchi base.</p>
+    // schermata VS: le due squadre entrano dai lati, la scritta VS cala nel mezzo
+    const team = (p, side) => {
+      const pl = g.players[p];
+      return `<div class="vs-team ${side}"><b>${esc(pl.name)}</b>${pl.field.concat(pl.reserve).map(f => `<div class="vs-who"><i style="${face(f.card)}"></i><span>${esc(f.name.split(' ')[0])}${f.weapon ? ' ⚔️' : ''}</span></div>`).join('')}</div>`;
+    };
+    sfx('event');
+    openLayer(`<div class="overlay vs-screen" role="dialog" aria-label="Inizia la sfida">
+      <div class="vs-grid">${team(1 - opp, 'left')}<div class="vs-mid">VS</div>${team(opp, 'right')}</div>
       ${g.terrain ? terrainCard(g.terrain) : ''}
-      <div class="faces">${g.players[opp].field.concat(g.players[opp].reserve).map(f => `<i style="${face(f.card)}" title="${esc(f.name)}"></i>`).join('')}</div>
-      <p>La squadra di ${esc(g.players[opp].name)}</p>
+      <div class="eyebrow">Lancio della moneta · inizia ${esc(g.players[g.turn].name)}</div>
+      <p>Al primo turno chi inizia agisce con 2 carte e solo con attacchi base.</p>
       <button class="btn primary" data-act="begin">Combatti!</button>
     </div>`);
   }
@@ -1522,6 +1546,7 @@
       case 'log': A.logOpen = !A.logOpen; render(); if (A.logOpen) { const l = $app.querySelector('.log'); if (l) l.scrollTop = l.scrollHeight; } break;
       case 'tile': {
         if (!g) break;
+        A.hint = null;
         const f = S.byUid(g, v);
         if (!f) break;
         if (A.sel) {
@@ -1535,7 +1560,22 @@
       case 'move': if (!A.busy) chooseMove(el.dataset.uid, +el.dataset.i); break;
       case 'copy-pick': chooseMove(el.dataset.uid, +el.dataset.i, { card: el.dataset.card, i: +el.dataset.mi }); break;
       case 'cancel-sel': A.sel = null; A.banner = ''; render(); break;
+      case 'hint': {
+        // il computer pensa come al livello normale e propone la mossa che sceglierebbe
+        const a = S.chooseAction(g, 'normale');
+        A.hint = a ? { a, text: hintText(g, a) } : { a: {}, text: 'Nessuna mossa utile: chiudi il turno.' };
+        render(); break;
+      }
+      case 'hint-do': {
+        const h = A.hint && A.hint.a;
+        if (!h || !h.actor || A.busy) break;
+        const u = S.byUid(g, h.actor), opt = S.actorOptions(g, u).find(o => o.i === h.move);
+        if (!opt || !opt.ok) { A.hint = null; render(); break; }
+        act({ actor: h.actor, move: h.move, pick: h.pick, target: h.target }, h.pick ? S.refMove(h.pick) : opt.move);
+        break;
+      }
       case 'end-turn':
+        A.hint = null;
         if (isLocalTurn() && !A.busy) {
           A.busy = true;
           perform({ pass: true }, true).then(() => { A.busy = false; afterAction(); });

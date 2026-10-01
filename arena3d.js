@@ -1258,7 +1258,7 @@
     while (root.children.length) root.remove(root.children[0]);
     tweens.length = 0; parts.length = 0; updaters.length = 0;
     skipping = false;
-    speed = spec.speed || 1;
+    speed = (spec.speed || 1) * (spec.finisher ? 0.6 : 1); // colpo finale: tutto al rallentatore
 
     const A = fighter(spec.attacker);
     equip(A, spec.attacker.weapon);
@@ -1407,8 +1407,26 @@
       if (spec.flags && spec.flags.counter) { for (let k = 0; k < 3; k++) lob(chestPos(tgs[0] ? tgs[0].ch : A), chestPos(A), '🎲', 0.45, 0.8); await wait(0.45); }
       await react(A, spec.self, '#eadbc0');
     }
+    if (spec.finisher) await finale(A);
     await wait(0.35);
     return finish();
+  }
+
+  // colpo finale: il vincitore esulta e la telecamera gli gira intorno
+  async function finale(ch) {
+    titleEl.textContent = 'K.O. FINALE!';
+    overlay.classList.remove('show'); void overlay.offsetWidth; overlay.classList.add('show');
+    sfx('bighit'); buzz([60, 40, 120]);
+    screenFlash('#ffd24a', 0.5);
+    ch.idle = false; toPose(ch, 'win', 0.35, ease.back);
+    const c = ch.g.position.clone(), r = 3.4, a0 = Math.atan2(camBase.x - c.x, camBase.z - c.z);
+    const look = new T.Vector3(c.x, 1.2, c.z);
+    for (let i = 0; i < 3; i++) setTimeout(() => burst(new T.Vector3(c.x + (Math.random() - 0.5), 1.6 + Math.random(), c.z), ['#ffd24a', '#e8631c', '#ffffff'][i], 26, 3.5, 0.07), i * 250 / speed);
+    await tween(2.2, t => {
+      const a = a0 + t * Math.PI * 1.25;
+      camBase = new T.Vector3(c.x + Math.sin(a) * r, 1.9 + Math.sin(t * Math.PI) * 0.6, c.z + Math.cos(a) * r);
+      camera.position.copy(camBase); camera.lookAt(look);
+    }, ease.io);
   }
 
   async function finish() {

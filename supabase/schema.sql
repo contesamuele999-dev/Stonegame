@@ -1,4 +1,4 @@
--- Stone Temple Card Game: account, livelli, classifica generale e collezione.
+-- Stone Temple Cards Game: account, livelli, classifica generale e collezione.
 -- Da incollare una volta in Supabase → SQL Editor → New query → Run.
 
 -- ------------------------------------------------------------ profili dei giocatori

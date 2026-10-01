@@ -1,4 +1,4 @@
-/* STONE TEMPLE CARD GAME — account, livelli, classifica generale e collezione online (Supabase).
+/* STONE TEMPLE CARDS GAME — account, livelli, classifica generale e collezione online (Supabase).
  * Solo fetch, nessuna libreria. La chiave "anon" è pubblica per natura: i dati sono protetti
  * dalle regole del database (supabase/schema.sql), non dalla segretezza della chiave.
  * API: Cloud.init() · signedIn() · signIn(email, pw) · signUp(email, pw) · recover(email) · setPassword(pw) · logout()
