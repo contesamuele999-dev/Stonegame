@@ -492,6 +492,8 @@
       overlay.addEventListener('click', e => { if (!e.target.closest('[data-act]')) skip(); });
 
       renderer = new T.WebGLRenderer({ antialias: true, alpha: false, powerPreference: 'high-performance' });
+      renderer.shadowMap.enabled = true;
+      renderer.shadowMap.type = T.PCFSoftShadowMap;
       renderer.setPixelRatio(Math.min(2, window.devicePixelRatio || 1));
       overlay.insertBefore(renderer.domElement, overlay.firstChild);
 
@@ -505,16 +507,20 @@
       toonGrad.minFilter = toonGrad.magFilter = T.NearestFilter;
       toonGrad.needsUpdate = true;
 
-      scene.add(new T.HemisphereLight('#ffe8d0', '#3a2418', 0.65));
-      const sun = new T.DirectionalLight('#fff0dc', 0.75); sun.position.set(-3, 8, 7); scene.add(sun);
-      const rim = new T.DirectionalLight('#e8631c', 0.8); rim.position.set(3, 4, -8); scene.add(rim);
+      scene.add(new T.HemisphereLight('#ffe8d0', '#3a2418', 0.8));
+      const sun = new T.DirectionalLight('#fff0dc', 1.05); sun.position.set(-3, 8, 7);
+      sun.castShadow = true; sun.shadow.mapSize.set(1024, 1024); sun.shadow.bias = -0.0008;
+      Object.assign(sun.shadow.camera, { left: -4, right: 4, top: 4, bottom: -4, near: 1, far: 25 });
+      scene.add(sun);
+      const rim = new T.DirectionalLight('#e8631c', 0.9); rim.position.set(3, 4, -8); scene.add(rim);
+      const fill = new T.DirectionalLight('#9fc4ff', 0.25); fill.position.set(4, 2, 6); scene.add(fill);
 
       // fondale e pavimento: cambiano con la palestra (carta terreno)
       const sc = sceneTex(null);
       back = new T.Mesh(new T.PlaneGeometry(40, 20), new T.MeshBasicMaterial({ map: sc.bg, fog: false }));
       back.position.set(0, 5, -14); scene.add(back);
       ground = new T.Mesh(new T.PlaneGeometry(12, 12), new T.MeshLambertMaterial({ map: sc.floor }));
-      ground.rotation.x = -Math.PI / 2; scene.add(ground);
+      ground.rotation.x = -Math.PI / 2; ground.receiveShadow = true; scene.add(ground);
 
       root = new T.Group(); scene.add(root);
       window.addEventListener('resize', resize);
@@ -603,58 +609,87 @@
   };
   function pose(name) { return Object.assign({}, POSE0, P[name]); }
 
+  // stoffa, pelle e scarpe con materiali "fisici": luci e ombre più naturali del cartone animato
+  function cloth(color, rough) { return new T.MeshStandardMaterial({ color, roughness: rough === undefined ? 0.82 : rough, metalness: 0 }); }
+  const lathe = (pts, seg) => new T.LatheGeometry(pts.map(([r, y]) => new T.Vector2(r, y)), seg || 22);
+
   function fighter(d) {
     const look = LOOK[d.card] || ['#444', '#e8631c'];
     const g = new T.Group();
-    const gi = toon(look[0]);
-    const pants = toon(new T.Color(look[0]).multiplyScalar(0.72));
-    const trim = toon(look[1]);
+    const gi = cloth(look[0]);
+    const pants = cloth(new T.Color(look[0]).multiplyScalar(0.72));
+    const trim = cloth(look[1], 0.6);
     const face = faceTex(d.card, look[1]);
-    const skin = toon(face.skin);
+    const skin = cloth(face.skin, 0.55);
     (face.onSkin = face.onSkin || []).push(c => skin.color.set(c));
-    const belt = toon(BELT[d.rank] || BELT.A);
-    const cyl = (r1, r2, h, m) => { const x = new T.Mesh(new T.CylinderGeometry(r1, r2, h, 12), m); return x; };
-    const ball = (r, m) => new T.Mesh(new T.SphereGeometry(r, 14, 10), m);
+    const belt = cloth(BELT[d.rank] || BELT.A, 0.7);
+    const shoe = cloth('#16110e', 0.55), sole = cloth('#efe9dc', 0.9);
+    const mesh = (gm, m) => new T.Mesh(gm, m);
+    const cyl = (r1, r2, h, m) => mesh(new T.CylinderGeometry(r1, r2, h, 18), m);
+    const ball = (r, m) => mesh(new T.SphereGeometry(r, 20, 14), m);
     const J = {};
 
     const hips = new T.Group(); hips.position.y = 0.8; g.add(hips); J.hips = hips;
-    const pelvis = cyl(0.19, 0.17, 0.2, pants); pelvis.scale.z = 0.8; hips.add(pelvis);
-    const torso = new T.Group(); torso.position.y = 0.06; hips.add(torso); J.torso = torso;
-    const chest = cyl(0.23, 0.18, 0.52, gi); chest.position.y = 0.28; chest.scale.z = 0.78; torso.add(chest);
-    const collar = new T.Mesh(new T.TorusGeometry(0.14, 0.035, 6, 16), trim); collar.rotation.x = Math.PI / 2; collar.position.y = 0.54; torso.add(collar);
-    const bl = cyl(0.195, 0.195, 0.075, belt); bl.position.y = 0.04; bl.scale.z = 0.82; torso.add(bl);
-    const knot = new T.Mesh(new T.BoxGeometry(0.06, 0.16, 0.05), belt); knot.position.set(0.17, -0.03, 0.06); knot.rotation.z = 0.3; torso.add(knot);
-    const neck = new T.Group(); neck.position.y = 0.56; torso.add(neck); J.neck = neck;
-    const nk = cyl(0.07, 0.08, 0.14, skin); nk.position.y = 0.04; neck.add(nk);
+    const pelvis = ball(0.19, pants); pelvis.scale.set(0.8, 0.62, 1); hips.add(pelvis);
+    const torso = new T.Group(); torso.position.y = 0.04; hips.add(torso); J.torso = torso;
+    // busto a V (vita stretta, spalle larghe); il davanti è verso +x, le spalle sull'asse z
+    const chest = mesh(lathe([[0.165, 0], [0.175, 0.08], [0.195, 0.2], [0.23, 0.36], [0.245, 0.45], [0.215, 0.52], [0.13, 0.565], [0.05, 0.58]]), gi);
+    chest.scale.x = 0.7; torso.add(chest);
+    // giacca da kung fu: colletto alla coreana, chiusura centrale e alamari
+    const collar = cyl(0.085, 0.098, 0.075, trim); collar.position.y = 0.6; torso.add(collar);
+    const placket = mesh(new T.BoxGeometry(0.02, 0.44, 0.024), trim); placket.position.set(0.158, 0.3, 0); placket.rotation.z = -0.1; torso.add(placket);
+    for (let i = 0; i < 4; i++) {
+      const fr = cyl(0.011, 0.011, 0.075, trim); fr.rotation.x = Math.PI / 2;
+      fr.position.set(0.166 + i * 0.006, 0.2 + i * 0.085, 0); torso.add(fr);
+    }
+    // fascia in vita con le code che ondeggiano
+    const sash = cyl(0.19, 0.185, 0.075, belt); sash.scale.x = 0.74; sash.position.y = 0.035; torso.add(sash);
+    const knot = ball(0.035, belt); knot.position.set(0.12, 0.03, 0.1); torso.add(knot);
+    const tails = new T.Group(); tails.position.set(0.12, 0.02, 0.11); torso.add(tails); J.sash = tails;
+    [-0.18, 0.12].forEach((a, i) => { const tl = mesh(new T.BoxGeometry(0.045, 0.22 - i * 0.04, 0.012), belt); tl.position.y = -0.1 + i * 0.02; tl.rotation.z = a; tails.add(tl); });
+    const neck = new T.Group(); neck.position.y = 0.58; torso.add(neck); J.neck = neck;
+    const nk = cyl(0.058, 0.07, 0.12, skin); nk.position.y = 0.04; neck.add(nk);
     const fs = new T.Sprite(new T.SpriteMaterial({ map: face.tex, transparent: true }));
-    fs.scale.set(0.82, 0.82, 1); fs.position.y = 0.36; neck.add(fs); J.face = fs;
+    fs.scale.set(0.72, 0.72, 1); fs.position.y = 0.33; fs.renderOrder = 2; neck.add(fs); J.face = fs;
 
     const arm = (side) => {
-      const sh = new T.Group(); sh.position.set(0, 0.46, side * 0.27); torso.add(sh);
-      const up = cyl(0.075, 0.065, 0.3, gi); up.position.y = -0.14; sh.add(up);
-      const cuff = cyl(0.08, 0.08, 0.05, trim); cuff.position.y = -0.29; sh.add(cuff);
+      const sh = new T.Group(); sh.position.set(0, 0.47, side * 0.25); torso.add(sh);
+      sh.add(ball(0.088, gi));
+      const up = cyl(0.082, 0.07, 0.3, gi); up.position.y = -0.14; sh.add(up);
       const el = new T.Group(); el.position.y = -0.3; sh.add(el);
-      const fa = cyl(0.06, 0.055, 0.27, gi); fa.position.y = -0.13; el.add(fa);
-      const fist = ball(0.085, skin); fist.position.y = -0.3; el.add(fist);
+      el.add(ball(0.07, gi));
+      // manica larga che si apre verso il polso, con il bordo colorato
+      const fa = cyl(0.066, 0.09, 0.24, gi); fa.position.y = -0.12; el.add(fa);
+      const cuff = cyl(0.092, 0.092, 0.035, trim); cuff.position.y = -0.245; el.add(cuff);
+      const wr = cyl(0.04, 0.042, 0.06, skin); wr.position.y = -0.27; el.add(wr);
+      const fist = ball(0.068, skin); fist.scale.set(1, 1.15, 0.85); fist.position.y = -0.315; el.add(fist);
       return [sh, el, fist];
     };
     [J.ls, J.le, J.lf] = arm(1);
     [J.rs, J.re, J.rf] = arm(-1);
     const leg = (side) => {
-      const hp = new T.Group(); hp.position.set(0, -0.06, side * 0.11); hips.add(hp);
-      const th = cyl(0.095, 0.08, 0.38, pants); th.position.y = -0.19; hp.add(th);
+      const hp = new T.Group(); hp.position.set(0, -0.06, side * 0.105); hips.add(hp);
+      hp.add(ball(0.1, pants));
+      const th = cyl(0.1, 0.084, 0.38, pants); th.position.y = -0.19; hp.add(th);
       const kn = new T.Group(); kn.position.y = -0.38; hp.add(kn);
-      const sn = cyl(0.075, 0.065, 0.34, pants); sn.position.y = -0.17; kn.add(sn);
-      const ft = new T.Mesh(new T.BoxGeometry(0.22, 0.07, 0.11), toon('#1a1512')); ft.position.set(0.05, -0.37, 0); kn.add(ft);
+      kn.add(ball(0.083, pants));
+      // pantalone largo stretto alla caviglia, scarpa da kung fu con la suola bianca
+      const sn = cyl(0.08, 0.094, 0.27, pants); sn.position.y = -0.14; kn.add(sn);
+      const an = cyl(0.062, 0.066, 0.05, pants); an.position.y = -0.3; kn.add(an);
+      const ft = new T.Group(); ft.position.set(0.04, -0.345, 0); kn.add(ft);
+      const up = ball(0.07, shoe); up.scale.set(1.75, 0.62, 0.92); ft.add(up);
+      const so = mesh(new T.BoxGeometry(0.235, 0.022, 0.12), sole); so.position.y = -0.03; ft.add(so);
       return [hp, kn, ft];
     };
     [J.lh, J.lk, J.lft] = leg(1);
     [J.rh, J.rk, J.rft] = leg(-1);
 
-    const shadow = new T.Mesh(new T.CircleGeometry(0.42, 20), new T.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.38, depthWrite: false }));
+    // tutto il corpo proietta ombre vere; resta anche l'ombra morbida di contatto ai piedi
+    g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    const shadow = new T.Mesh(new T.CircleGeometry(0.42, 24), new T.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.3, depthWrite: false }));
     shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.03; g.add(shadow);
 
-    const ch = { d, g, J, pose: pose('guard'), mats: [gi, pants, trim, skin, belt], body: [chest, pelvis], idle: true, t: Math.random() * 6, face: fs, facing: 0 };
+    const ch = { d, g, J, pose: pose('guard'), mats: [gi, pants, trim, skin, belt, shoe], body: [chest, pelvis], idle: true, t: Math.random() * 6, face: fs, facing: 0 };
     ch.apply = () => applyPose(ch);
     applyPose(ch);
     return ch;
@@ -671,6 +706,7 @@
     J.rs.rotation.set(p.rsx, 0, p.rs - b * 2); J.re.rotation.z = p.re;
     J.lh.rotation.z = p.lh; J.lk.rotation.z = p.lk;
     J.rh.rotation.z = p.rh; J.rk.rotation.z = p.rk;
+    if (J.sash) J.sash.rotation.z = Math.sin(ch.t * 2.3) * 0.12 - p.tz * 0.6;
   }
 
   function toPose(ch, name, dur, e) {
@@ -930,6 +966,103 @@
     return tween(0.16, (t, raw) => { const k = raw < 1 ? 0.07 : 0; h.position.x = (Math.random() - .5) * k; h.position.z = (Math.random() - .5) * k; holo(ch, raw < 1 && Math.random() < 0.5 ? 0.6 : 0); }, ease.lin);
   }
 
+  // ------------------------------------------------------------ aure di energia per grado (stile Super Saiyan)
+  // Allievo: alone bianco · Istruttore: fiamma blu · Maestro: fiamma d'oro con fulmini · Leggenda: viola e oro, enorme
+  const KI = {
+    A: { c: '#eafcff', s: 0.82, o: 0.22, sparks: 0, bolts: 0, hair: false },
+    I: { c: '#45b4ff', s: 0.95, o: 0.38, sparks: 1, bolts: 0, hair: true },
+    M: { c: '#ffd23f', s: 1.05, o: 0.46, sparks: 1.5, bolts: 0.9, hair: true },
+    L: { c: '#b57bff', c2: '#ffd23f', s: 1.22, o: 0.55, sparks: 2.5, bolts: 2.4, hair: true },
+  };
+  // lingue di fuoco bianche (il colore lo dà il materiale), ripetute tre volte intorno al corpo
+  function flameTex(seed) {
+    const k = 'flame' + seed;
+    if (!texCache[k]) {
+      const t = canvasTex(128, 256, (x, w, h) => {
+        for (let i = 0; i < 24; i++) {
+          const fx = (i * 37 + seed * 23) % w, fw = 8 + (i * 13) % 14, fh = h * (0.45 + ((i * 29 + seed * 7) % 50) / 100);
+          const gr = x.createLinearGradient(0, h, 0, h - fh);
+          gr.addColorStop(0, 'rgba(255,255,255,.95)'); gr.addColorStop(0.55, 'rgba(255,255,255,.4)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+          x.fillStyle = gr;
+          for (const dx of [-w, 0, w]) { // ripetuto ai bordi: la texture si richiude senza giunture
+            x.beginPath(); x.moveTo(fx + dx - fw, h);
+            x.quadraticCurveTo(fx + dx - fw * 0.4, h - fh * 0.55, fx + dx + ((i % 3) - 1) * 6, h - fh);
+            x.quadraticCurveTo(fx + dx + fw * 0.4, h - fh * 0.55, fx + dx + fw, h); x.fill();
+          }
+        }
+      });
+      t.wrapS = T.RepeatWrapping; t.repeat.set(3, 1);
+      texCache[k] = t;
+    }
+    return texCache[k];
+  }
+  // capelli a punte luminosi dietro il volto
+  function spikeTex() {
+    if (!texCache.spike) texCache.spike = canvasTex(256, 256, (x, w, h) => {
+      const cx = w / 2, cy = h / 2 + 18;
+      const gr = x.createRadialGradient(cx, cy, 30, cx, cy, 128); gr.addColorStop(0, 'rgba(255,255,255,1)'); gr.addColorStop(0.5, 'rgba(255,255,255,.75)'); gr.addColorStop(1, 'rgba(255,255,255,0)');
+      x.fillStyle = gr; x.beginPath();
+      const n = 11;
+      for (let i = 0; i <= n * 2; i++) {
+        // punte più lunghe in alto, come i capelli che si drizzano
+        const a = Math.PI + (i / (n * 2)) * Math.PI * 1.3 - Math.PI * 0.15;
+        const up = Math.max(0, -Math.sin(a));
+        const r = i % 2 ? 62 : 82 + up * 40;
+        x.lineTo(cx + Math.cos(a) * r, cy + Math.sin(a) * r);
+      }
+      x.closePath(); x.fill();
+    });
+    return texCache.spike;
+  }
+  const rv = k => new T.Vector3((Math.random() - 0.5) * k, (Math.random() - 0.3) * k, (Math.random() - 0.5) * k);
+  // k = 1 piena potenza (chi agisce), meno = aura leggera. Restituisce { stop() }.
+  function ki(ch, rank, k) {
+    const K = KI[rank] || KI.A;
+    const full = k >= 1;
+    const grp = new T.Group(); ch.g.add(grp);
+    const shape = geo('ki', () => new T.LatheGeometry([[0.26, 0], [0.44, 0.25], [0.54, 0.7], [0.52, 1.2], [0.4, 1.65], [0.22, 2.0], [0.03, 2.3]].map(([r, y]) => new T.Vector2(r, y)), 24));
+    const shells = [[K.c, 1, 1, 0.35], [K.c2 || '#ffffff', 0.8, 0.65, -0.5]].map(([c, sc, op, spin], i) => {
+      const map = flameTex(i + 1).clone(); map.needsUpdate = true; map.temp = true; // da liberare a fine scena
+      const m = new T.Mesh(shape, addMat(c, { map, opacity: 0 }));
+      m.scale.setScalar(sc * K.s); grp.add(m);
+      return { m, op: op * K.o * k, sc: sc * K.s, spin };
+    });
+    let light = null, hair = null;
+    if (full) { light = new T.PointLight(K.c, 0, 3.4); light.position.y = 1.1; grp.add(light); }
+    if (full && K.hair) {
+      hair = new T.Sprite(new T.SpriteMaterial({ map: spikeTex(), color: K.c2 || K.c, transparent: true, blending: T.AdditiveBlending, depthWrite: false, opacity: 0 }));
+      hair.scale.set(1.15, 1.15, 1); hair.position.y = 0.36; hair.renderOrder = 1; ch.J.neck.add(hair);
+    }
+    let t = 0, on = 0, want = 1;
+    const u = dt => {
+      t += dt; on += (want - on) * Math.min(1, dt * (want ? 5 : 7));
+      shells.forEach((sh, i) => {
+        sh.m.material.opacity = sh.op * on * (0.8 + Math.random() * 0.3);
+        sh.m.scale.set(sh.sc * (1 + Math.sin(t * 13 + i) * 0.04), sh.sc * (0.85 + on * 0.15 + Math.sin(t * 9 + i * 2) * 0.05), sh.sc * (1 + Math.cos(t * 11 + i) * 0.04));
+        sh.m.material.map.offset.x += dt * sh.spin;
+      });
+      if (light) light.intensity = 2.6 * on * (0.85 + Math.random() * 0.3);
+      if (hair) { hair.material.opacity = 0.9 * on; hair.material.rotation = Math.sin(t * 22) * 0.04; }
+      const p = ch.g.position;
+      if (on > 0.5 && K.sparks && Math.random() < K.sparks * k * dt * 5) rise(new T.Vector3(p.x, 0.15, p.z), K.c2 || K.c, 1, 0.45 * K.s);
+      if (full && on > 0.6 && K.bolts && Math.random() < K.bolts * dt) { const c = chestPos(ch); lightning(c.clone().add(rv(0.6)), c.clone().add(rv(0.9)), K.c2 ? '#fff3b0' : '#ffffff', 0.12); }
+      if (!want && on < 0.02) {
+        updaters.splice(updaters.indexOf(u), 1);
+        ch.g.remove(grp); if (hair) ch.J.neck.remove(hair);
+        shells.forEach(sh => { sh.m.material.map.dispose(); sh.m.material.dispose(); });
+      }
+    };
+    updaters.push(u);
+    // accensione: onda d'urto a terra; Maestri e Leggende fanno tremare la scena
+    if (full) {
+      ring(new T.Vector3(ch.g.position.x, 0.05, ch.g.position.z), K.c, 2.3 * K.s, 0.55, true);
+      sfx('buff');
+      if (rank === 'M' || rank === 'L') shake(rank === 'L' ? 0.12 : 0.07, 0.3);
+      if (rank === 'L') screenFlash(K.c, 0.3);
+    }
+    return { stop() { want = 0; } };
+  }
+
   // suoni e vibrazione (audio.js), se presenti
   const sfx = (n, k) => { if (window.Sound) window.Sound.play(n, k); };
   const buzz = p => { if (window.Sound) window.Sound.buzz(p); };
@@ -979,6 +1112,7 @@
       pop(headPos(ch).add(new T.Vector3(0, 0.5, 0)), textTex('K.O.', '#ff6a50'), 0.6, 1.2, 0.3);
       await toPose(ch, 'ko', 0.45, ease.in);
       padOff(ch);
+      if (ch.ki) ch.ki.stop();
       shake(0.1, 0.15);
       burst(new T.Vector3(ch.g.position.x, 0.1, ch.g.position.z), '#b8a88d', 12, 2);
       await Promise.all(pr);
@@ -1018,7 +1152,12 @@
     return { home };
   }
 
+  // se una scena va storta si chiude comunque, e l'errore resta visibile in console
   async function play(spec) {
+    try { return await playScene(spec); } catch (e) { console.error(e); return finish(); }
+  }
+
+  async function playScene(spec) {
     if (!init()) return;
     const M = MOVES[spec.move] || MOVES['Attacco'];
     let kind = M.anim;
@@ -1070,6 +1209,10 @@
     // ingresso: i lottatori si materializzano dalle carte
     overlay.classList.remove('show'); void overlay.offsetWidth; overlay.classList.add('show');
     await Promise.all(all.map((c, i) => summon(c, i * 0.04)));
+    // aure di energia: chi agisce si carica, Maestri e Leggende coinvolti restano accesi
+    A.ki = ki(A, spec.attacker.rank, 1);
+    tgs.forEach(t => { if (t.ch.d.rank === 'M' || t.ch.d.rank === 'L') t.ch.ki = ki(t.ch, t.ch.d.rank, 0.35); });
+    await wait(spec.move === 'Attacco' ? 0.15 : 0.3);
     // le mosse speciali attivano la carta di chi le usa
     if (spec.move !== 'Attacco' && !(spec.flags && spec.flags.confused)) await activate(A, M.c);
 
@@ -1200,6 +1343,7 @@
       root.remove(o);
       o.traverse && o.traverse(n => {
         if (n.geometry && !shared.has(n.geometry)) n.geometry.dispose();
+        if (n.material && n.material.map && n.material.map.temp) n.material.map.dispose();
         if (n.material && n.material.dispose) n.material.dispose();
       });
     }

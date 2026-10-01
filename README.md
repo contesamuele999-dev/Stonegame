@@ -13,6 +13,8 @@ Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal tele
 - **Suoni e musica** sintetizzati nel browser, **vibrazione** sui colpi forti, **partita salvata** in automatico e **installabile come app**, anche offline.
 - **Collezione** con tutte le carte originali e i valori usati in gioco.
 - **Animazioni 3D**: a ogni azione parte una scena in un'arena 3D. I lottatori hanno il volto preso dalla propria carta, la divisa nei colori della carta e la cintura del grado (oro Maestro, nera Istruttore, bianca Allievo). Ogni mossa ha il suo gesto e il suo effetto, e il bersaglio reagisce al risultato vero: danni, schivata, immunità, stordimento, confusione, K.O.
+- **Lottatori 3D** con divisa da kung fu (colletto alla coreana, alamari, maniche e pantaloni larghi, fascia con le code, scarpe con la suola bianca), luci realistiche e ombre vere sul pavimento.
+- **Aure di energia** in stile Super Saiyan in base al grado: Allievo alone bianco, Istruttore fiamma blu, Maestro fiamma d'oro con fulmini e capelli luminosi a punta, Leggenda aura viola e oro con fulmini e onda d'urto. Chi agisce si carica all'inizio della scena; Maestri e Leggende coinvolti restano accesi.
 - **Ologrammi** in stile Yu-Gi-Oh: ogni lottatore sta sulla propria carta appoggiata sul tatami e si materializza da lì con un fascio di luce. Con le mosse speciali la carta si alza e si attiva; quando un lottatore va K.O. la sua carta si spegne.
 - **Velocità di gioco** regolabile in ogni momento (lenta, normale, veloce): pensata anche per chi ha bisogno di più tempo per leggere.
 
