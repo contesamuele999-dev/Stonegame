@@ -1,6 +1,6 @@
-# Stone Temple Tao: il torneo di carte
+# Stone Temple Card Game
 
-Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal telefono con i 28 personaggi della palestra e 2 Leggende del Taijiquan stile Chen.
+Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal telefono con i 25 personaggi della palestra e 2 Leggende del Taijiquan stile Chen.
 
 - **Contro il computer**, con tre livelli di difficoltà: facile, normale e difficile.
 - **Torneo**: 5 incontri contro squadre sempre più forti, fino al Tempio dei Maestri.
@@ -51,9 +51,27 @@ Dalle impostazioni si accendono o spengono le **animazioni 3D**. La **velocità 
 
 **Gradi.** Il grado è quello stampato sulla carta: Maestri (Andrea, Chen Delang, Chicca Fossa, Elia Moretton, Katya), Istruttori (Samuele Contessa, Niccolò Cividini, Strahinja Crnic, Federica Siciliano, Lorenzo Signorello), Allievi (tutte le carte senza grado stampato). Le **Leggende** Chen Wangting (Fondatore Supremo) e Chen Zhenglei (Gran Maestro) costano 6 Punti Dojo, contano come Maestri e si sbloccano vincendo il torneo.
 
+**Palestre (carte terreno).** Ogni sfida si combatte in una palestra, scelta prima della partita o a sorte; il suo effetto vale per entrambe le squadre e nell'arena 3D cambiano fondale e pavimento.
+- *Stone Temple Tao* (Lancenigo, sede principale): tutte le carte +15 PV e gli eventi in palestra capitano ogni 2 round invece di 3.
+- *Palestrina delle medie* (Ponte della Priula): gli Allievi hanno +10 ATK e +10 DEF.
+- *Palestra del Maestro Liming Yue* (Inghilterra): le mosse speciali si ricaricano un turno prima.
+- *Piazza del Taiji* (Chenjiagou, Cina): Maestri e Leggende hanno +10 ATK e +10 DEF.
+
+**Armi.** Mentre sceglie la squadra, ogni giocatore può dare un'arma dello stile Chen a una sua carta (non costa Punti Dojo). Nell'arena 3D il lottatore la tiene in mano.
+- *Spada* (Jian): +15 ATK.
+- *Doppia spada* (Shuang Jian): l'attacco base colpisce due volte, ognuna al 65%.
+- *Sciabola* (Dao): l'attacco base fa +8 danni.
+- *Doppia sciabola* (Shuang Dao): l'attacco base colpisce anche un secondo avversario a caso, al 50%.
+- *Lancia* (Qiang): tutti i suoi colpi ignorano 15 punti di DEF.
+- *Alabarda* (Chunqiu Dadao): +25 ATK ma −10 DEF.
+- *Bastone al sopracciglio* (Qimei Gun): +15 DEF e l'attacco base stordisce per 1 turno nel 20% dei casi.
+- *Asta lunga* (Da Gan): +25 DEF.
+
+Armi e palestre sono state bilanciate come le carte: con migliaia di partite simulate, ogni arma vince fra il 49 e il 52% delle volte (chi non ne porta nessuna si ferma al 42%, quindi conviene sempre sceglierne una).
+
 **Vittoria.** Vince chi manda K.O. tutte le carte avversarie, riserva compresa.
 
-**Segreti.** Prima del *Delirio Onnipotente*, Flavio ha 10 secondi per scrivere la formula "fate tiri fate titi luis zoratto": se è giusta, l'effetto raddoppia. Quando Chen usa la *Spallata del Prodigio*, a volte parte la musica dei Prodigy e i danni raddoppiano.
+**Segreti.** Quando Chen usa la *Spallata del Prodigio*, a volte parte la musica dei Prodigy e i danni raddoppiano.
 
 ## Cosa è cambiato rispetto alle carte stampate
 
@@ -86,10 +104,7 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 | Carla Smania | Allievo | 2 | 120 | 50 | 70 → **55** |
 | Celeste Brugnera | Allievo | 2 | 160 | 30 → **55** | 30 → **45** |
 | Christian Cecchin | Allievo | 2 | 115 | 40 → **45** | 50 |
-| Federico Franc. | Allievo | 2 | 125 | 80 → **65** | 30 → **35** |
-| Flavio Neso | Allievo | 2 | 105 | 40 → **50** | 30 → **35** |
 | Grazia Lecci | Allievo | 2 | 120 | 40 → **55** | 45 |
-| Oksana Chorna | Allievo | 2 | 150 | 65 → **70** | 0 → **30** |
 | Remigio Spinazzè | Allievo | 2 | 140 | 70 → **65** | 70 → **60** |
 | Sara Semenzin | Allievo | 2 | 165 | 75 → **90** | -20 → **10** |
 | Viola Donadi | Allievo | 2 | 125 | 40 → **50** | 50 |
@@ -160,13 +175,6 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 - *Dominio dell'Infante* (ricarica 3): Evoca bambini non-morti che attaccano tutti gli avversari da ogni direzione: impossibile schivare, ma l'attacco è dimezzato.
 - *Siculazione Distorta* (ricarica 4): Stordisce il nemico con frasi incomprensibili (1 turno) e attacca con +20 danni.
 
-**Federico Franc.**
-- *Domanda Ossessiva Compulsiva* (ricarica 3): Punti di domanda che durano fino a 3 giorni: colpisce e applica stato confusionale per 3 turni. Effetto duplicato sulle carte Istruttore (probabilità doppia di colpirsi da sole).
-
-**Flavio Neso**
-- *Delirio Onnipotente* (ricarica 5): Infligge danni irreparabili (ignorano la DEF) e stordisce il bersaglio per 1 turno. Effetto ×2 (danni e stordimento) se evocata con la formula "fate tiri fate titi luis zoratto".
-- *Fuckgammon* (ricarica 4): Fino al suo prossimo turno: chi lo attacca si vede rubare il 50% dei PV attuali (massimo 40), che Flavio recupera.
-
 **Grazia Lecci**
 - *Peluche Ipercoccoloso* (ricarica 4): L'avversario si innamora del peluche: lo colpisce con la sua DEF dimezzata e lo stordisce per 1 turno.
 - *Pubblicità Fotogenica* (ricarica 1): Si mostra innocua per poi sferrare l'attacco con 10 punti extra.
@@ -190,10 +198,6 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 **Nicole Fava**
 - *Cameraman Improvvisato* (ricarica 3): Cattura l'istante perfetto: prende fino a 30 punti DEF dell'avversario e li aggiunge ai suoi per 2 turni; il suo prossimo attacco fa il 50% in più.
 - *Gentilezza Ultrapremurosa* (ricarica 4): Il tocco magico della cura: +10 ATK e +10 DEF a ogni membro della squadra in campo per 2 turni, e 10 PV di cura.
-
-**Oksana Chorna**
-- *Sputo dell'Ultralama* (ricarica 4): Rallenta tutti gli avversari in campo per 3 turni: ATK −30% (−60% sulle carte Istruttore).
-- *Rettifica Genealogica* (ricarica 4): Trasforma una carta alleata (non Istruttore/Maestro) in Istruttore: +20 ATK e +20 DEF per il resto della partita. Attenzione: alcune mosse fanno effetto doppio sugli Istruttori!
 
 **Remigio Spinazzè**
 - *Potenziamento Tysoniano* (ricarica 2, al massimo 3 volte): Aumenta l'attacco di 10 punti per il resto della partita (fino a 3 volte).

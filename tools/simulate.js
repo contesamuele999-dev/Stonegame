@@ -5,13 +5,20 @@ const { Worker, isMainThread, parentPort, workerData } = require('worker_threads
 const os = require('os');
 const path = require('path');
 const S = require(path.join(__dirname, '..', 'engine.js'));
+// --segrete: include le carte del pacchetto segreto (solo in locale, cartella segrete/)
+if (process.argv.includes('--segrete')) S.addCards(require(path.join(__dirname, '..', 'segrete', 'carte.js'))(S.H).cards);
 
 function mulberry(seed) { return () => { let t = (seed = (seed + 0x6D2B79F5) | 0); t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
 
 function play(seed, level) {
   const rng = mulberry(seed);
   const t0 = S.randomTeam(rng), t1 = S.randomTeam(rng);
-  const g = S.createGame({ seed, silent: true, first: seed % 2, players: [{ name: 'A', cards: t0 }, { name: 'B', cards: t1 }] });
+  // palestra a caso e un'arma a caso (o nessuna) per squadra, su una carta a caso
+  const pick = a => a[Math.floor(rng() * a.length)];
+  const terrain = pick([null].concat(S.TERRAINS.map(t => t.id)));
+  const arm = t => { const w = pick([null].concat(S.WEAPONS.map(x => x.id))); return w ? { id: w, card: pick(t) } : null; };
+  const w0 = arm(t0), w1 = arm(t1);
+  const g = S.createGame({ seed, silent: true, first: seed % 2, terrain, players: [{ name: 'A', cards: t0, weapon: w0 }, { name: 'B', cards: t1, weapon: w1 }] });
   let n = 0;
   const used = {};
   while (g.winner === null && n < 400) {
@@ -24,7 +31,7 @@ function play(seed, level) {
     n++;
   }
   // mosse usate
-  return { t0, t1, winner: g.winner, turns: g.turnNo, first: seed % 2, used };
+  return { t0, t1, w: [w0 && w0.id, w1 && w1.id], terrain, winner: g.winner, turns: g.turnNo, first: seed % 2, used };
 }
 
 if (isMainThread) {
@@ -66,4 +73,13 @@ function report(rs, ms) {
     const tot = u.reduce((a, b) => a + b, 0) || 1;
     console.log(`${r.id.padEnd(11)} costo ${r.cost}  ${(100 * r.win).toFixed(1).padStart(5)}%  (${r.games})  uso att/m1/m2 ${u.map(x => Math.round(100 * x / tot) + '%').join(' / ')}`);
   }
+  // armi: percentuale di vittoria di chi la porta (nessuna = squadra senza arma)
+  const ws = {};
+  for (const r of rs) if (r.winner !== null) r.w.forEach((id, p) => { const k = id || 'nessuna'; const x = ws[k] || (ws[k] = { g: 0, w: 0 }); x.g++; if (r.winner === p) x.w++; });
+  console.log('--- armi');
+  Object.entries(ws).sort((a, b) => b[1].w / b[1].g - a[1].w / a[1].g).forEach(([k, x]) => console.log(`${k.padEnd(11)} ${(100 * x.w / x.g).toFixed(1).padStart(5)}%  (${x.g})`));
+  const tt = {};
+  for (const r of rs) { const k = r.terrain || 'nessuno'; const x = tt[k] || (tt[k] = { n: 0, turns: 0 }); x.n++; x.turns += r.turns; }
+  console.log('--- palestre (turni medi)');
+  Object.entries(tt).forEach(([k, x]) => console.log(`${k.padEnd(11)} ${(x.turns / x.n).toFixed(1)}  (${x.n})`));
 }

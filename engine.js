@@ -261,23 +261,6 @@
       ],
     },
     {
-      id: 'flavio', name: 'Flavio Neso', rank: 'A', cost: 2, hp: 105, atk: 50, def: 35,
-      orig: { atk: 40, def: 30 },
-      moves: [
-        { name: 'Delirio Onnipotente', target: 'enemy', cd: 5, formula: true, hit: { ignoreDef: true },
-          desc: 'Infligge danni irreparabili (ignorano la DEF) e stordisce il bersaglio per 1 turno. Effetto ×2 (danni e stordimento) se evocata con la formula "fate tiri fate titi luis zoratto".',
-          use(g, u, t, a) {
-            const x2 = !!(a && a.formula);
-            if (x2) log(g, '🗣️ "Fate tiri fate titi luis zoratto!" Effetto raddoppiato!');
-            attack(g, u, t, { ignoreDef: true, mul: x2 ? 2 : 1 });
-            stun(g, t, u, x2 ? 2 : 1);
-          } },
-        { name: 'Fuckgammon', target: 'self', cd: 4,
-          desc: 'Fino al suo prossimo turno: chi lo attacca si vede rubare il 50% dei PV attuali (massimo 40), che Flavio recupera.',
-          use(g, u) { addStatus(g, u, u, 'counter', 1, 0.5, true); log(g, `${nm(u)} lancia i dadi e aspetta... 🎲`); } },
-      ],
-    },
-    {
       id: 'sara', name: 'Sara Semenzin', rank: 'A', cost: 2, hp: 165, atk: 90, def: 10,
       orig: { atk: 75, def: -20 },
       moves: [
@@ -293,32 +276,6 @@
         { name: 'Intenzione Fasulla', target: 'self', cd: 3,
           desc: 'Finge un attacco: schiva il prossimo colpo e il suo attacco successivo ignora la DEF avversaria.',
           use(g, u) { addStatus(g, u, u, 'evade', 1, 0, true); addStatus(g, u, u, 'feint', 1, 0, true); log(g, `${nm(u)} finge un attacco...`); } },
-      ],
-    },
-    {
-      id: 'oksana', name: 'Oksana Chorna', rank: 'A', cost: 2, hp: 150, atk: 70, def: 30,
-      orig: { atk: 65, def: 0 },
-      moves: [
-        { name: 'Sputo dell\'Ultralama', target: 'enemies', cd: 4,
-          desc: 'Rallenta tutti gli avversari in campo per 3 turni: ATK −30% (−60% sulle carte Istruttore).',
-          use(g, u) { for (const f of enemies(g, u.owner)) addStatus(g, f, u, 'atkMul', 3, f.rank === 'I' ? 0.4 : 0.7); log(g, `${nm(u)} sputa come un ultralama! 🦙`); } },
-        { name: 'Rettifica Genealogica', target: 'ally', cd: 4, notRank: ['I', 'M', 'L'],
-          desc: 'Trasforma una carta alleata (non Istruttore/Maestro) in Istruttore: +20 ATK e +20 DEF per il resto della partita. Attenzione: alcune mosse fanno effetto doppio sugli Istruttori!',
-          use(g, u, t) {
-            t.rank = 'I';
-            addStatus(g, t, u, 'atkAdd', 99, 20, true, true);
-            addStatus(g, t, u, 'defAdd', 99, 20, true, true);
-            log(g, `Promozione a Istruttore per ${nm(t)}!`);
-          } },
-      ],
-    },
-    {
-      id: 'federico', name: 'Federico Franc.', rank: 'A', cost: 2, hp: 125, atk: 65, def: 35,
-      orig: { atk: 80, def: 30 },
-      moves: [
-        { name: 'Domanda Ossessiva Compulsiva', target: 'enemy', cd: 3, hit: {},
-          desc: 'Punti di domanda che durano fino a 3 giorni: colpisce e applica stato confusionale per 3 turni. Effetto duplicato sulle carte Istruttore (probabilità doppia di colpirsi da sole).',
-          use(g, u, t) { attack(g, u, t); confuse(g, t, u, 3, t.rank === 'I' ? CONFUSE_CHANCE * 2 : CONFUSE_CHANCE); } },
       ],
     },
     {
@@ -542,6 +499,41 @@
     e.run(g, src);
   }
 
+  // ---------------------------------------------------------------- CARTE TERRENO (le palestre)
+  // Una per partita, vale per entrambe le squadre.
+  const TERRAINS = [
+    { id: 'lancenigo', name: 'Stone Temple Tao', place: 'Lancenigo · sede principale',
+      desc: 'Si gioca in casa: tutte le carte +15 PV e gli eventi in palestra capitano ogni 2 round invece di 3.',
+      apply: f => { f.hp += 15; f.maxHp += 15; }, eventEvery: 2 },
+    { id: 'priula', name: 'Palestrina delle medie', place: 'Ponte della Priula',
+      desc: 'Il regno degli allievi: gli Allievi hanno +10 ATK e +10 DEF.',
+      apply: f => { if (f.rank === 'A') { f.baseAtk += 10; f.baseDef += 10; } } },
+    { id: 'liming', name: 'Palestra del Maestro Liming Yue', place: 'Inghilterra',
+      desc: 'Disciplina inglese: le mosse speciali si ricaricano un turno prima.', cdBonus: 1 },
+    { id: 'chenjiagou', name: 'Piazza del Taiji', place: 'Chenjiagou · Cina',
+      desc: 'Dove è nato lo stile Chen: Maestri e Leggende hanno +10 ATK e +10 DEF.',
+      apply: f => { if (isMaster(f)) { f.baseAtk += 10; f.baseDef += 10; } } },
+  ];
+  const TERRAIN = {};
+  TERRAINS.forEach(t => { TERRAIN[t.id] = t; });
+
+  // ---------------------------------------------------------------- ARMI (stile Chen)
+  // Una per squadra, la porta una carta a scelta. atk/def = bonus fissi; gli altri campi valgono per l'attacco base
+  // (flat, twice, cleave, stun) o per tutti i colpi (pierceDef).
+  const WEAPONS = [
+    { id: 'jian', name: 'Spada', cn: 'Jian', desc: '+15 ATK.', atk: 15 },
+    { id: 'shuangjian', name: 'Doppia spada', cn: 'Shuang Jian', desc: 'L\'attacco base colpisce due volte, ognuna al 65%.', twice: 0.65 },
+    { id: 'dao', name: 'Sciabola', cn: 'Dao', desc: 'L\'attacco base fa +8 danni.', flat: 8 },
+    { id: 'shuangdao', name: 'Doppia sciabola', cn: 'Shuang Dao', desc: 'L\'attacco base colpisce anche un secondo avversario a caso, al 50%.', cleave: 0.5 },
+    { id: 'qiang', name: 'Lancia', cn: 'Qiang', desc: 'Tutti i suoi colpi ignorano 15 punti di DEF.', pierceDef: 15 },
+    { id: 'dadao', name: 'Alabarda', cn: 'Chunqiu Dadao', desc: '+25 ATK ma −10 DEF: pesante da portare.', atk: 25, def: -10 },
+    { id: 'qimeigun', name: 'Bastone al sopracciglio', cn: 'Qimei Gun', desc: '+15 DEF e l\'attacco base stordisce per 1 turno nel 20% dei casi.', def: 15, stun: 0.2 },
+    { id: 'dagan', name: 'Asta lunga', cn: 'Da Gan', desc: '+25 DEF.', def: 25 },
+  ];
+  const WEAPON = {};
+  WEAPONS.forEach(w => { WEAPON[w.id] = w; });
+  const weaponOf = f => WEAPON[f.weapon] || null;
+
   const CARD = {};
   CARDS.forEach(c => { CARD[c.id] = c; c.moves.forEach((m, i) => { m.ref = { card: c.id, i }; }); });
 
@@ -715,9 +707,10 @@
     let ignoreDef = opts.ignoreDef;
     const fe = get(u, 'feint');
     if (fe) { ignoreDef = true; u.st = u.st.filter(s => s !== fe); log(g, `La finta riesce: ${nm(u)} elude la difesa!`); }
-    let def = ignoreDef ? 0 : effDef(g, t) * (opts.defMul || 1);
+    const w = weaponOf(u) || {};
+    let def = ignoreDef ? 0 : effDef(g, t) * (opts.defMul || 1) - (w.pierceDef || 0);
     def = Math.max(-25, def);
-    let dmg = atk * K / (K + def) * (0.9 + rand(g) * 0.2) + (opts.flat || 0);
+    let dmg = atk * K / (K + def) * (0.9 + rand(g) * 0.2) + (opts.flat || 0) + (opts.basic && w.flat || 0);
     for (const s of u.st) if (s.type === 'dmgOut') dmg *= s.value;
     for (const s of t.st) if (s.type === 'dmgIn') dmg *= s.value;
     const rf = get(t, 'reflect');
@@ -730,12 +723,13 @@
     }
     const dealt = damage(g, t, dmg, u);
     log(g, `${nm(u)} colpisce ${nm(t)}: −${dealt} PV`);
+    if (opts.basic && w.stun && t.hp > 0 && rand(g) < w.stun) stun(g, t, u, 1);
     const c = get(t, 'counter');
     if (c && !opts.pierce && u.hp > 0) {
       t.st = t.st.filter(s => s !== c);
       const steal = Math.min(40, Math.round(u.hp * c.value));
       if (steal > 0) {
-        log(g, `🎲 Fuckgammon! ${nm(t)} ruba ${steal} PV a ${nm(u)}!`);
+        log(g, `🎲 Contrattacco! ${nm(t)} ruba ${steal} PV a ${nm(u)}!`);
         damage(g, u, steal, t);
         if (t.hp > 0) heal(g, t, steal);
       }
@@ -769,10 +763,16 @@
         const fs = p.cards.map(id => makeFighter(id, i));
         const syn = opts.synergies === false ? [] : synergiesFor(p.cards);
         fs.forEach(f => syn.forEach(x => x.apply(f)));
+        const ter = TERRAIN[opts.terrain];
+        if (ter && ter.apply) fs.forEach(ter.apply);
+        const wp = p.weapon && WEAPON[p.weapon.id];
+        const armed = wp && fs.find(f => f.card === p.weapon.card);
+        if (armed) { armed.weapon = wp.id; armed.baseAtk += wp.atk || 0; armed.baseDef += wp.def || 0; }
         if (p.boost) fs.forEach(f => { f.hp = f.maxHp = Math.round(f.maxHp * p.boost); f.baseAtk = Math.round(f.baseAtk * (1 + (p.boost - 1) / 2)); });
         return { name: p.name, cpu: p.cpu || null, field: fs.slice(0, FIELD_SIZE), reserve: fs.slice(FIELD_SIZE), ko: [], cards: p.cards.slice(), syn: syn.map(x => x.id) };
       }),
       gymEvents: opts.gymEvents !== false,
+      terrain: TERRAIN[opts.terrain] ? opts.terrain : null,
       turn: opts.first === undefined ? 0 : opts.first,
       turnNo: 1, actions: 0, winner: null, log: [], events: [], lastSpecial: null, silent: !!opts.silent, passes: 0,
     };
@@ -788,8 +788,9 @@
     ev(g, { type: 'turn', player: g.turn });
     // gli eventi si alternano: uno scatta nel turno di chi gioca per secondo, il successivo in quello di chi inizia
     if (g.gymEvents) {
+      const every = (TERRAIN[g.terrain] && TERRAIN[g.terrain].eventEvery) || EVENT_EVERY;
       const round = Math.ceil(g.turnNo / 2), secondHalf = g.turnNo % 2 === 0;
-      if (round % EVENT_EVERY === 0 && ((round / EVENT_EVERY) % 2 === 1) === secondHalf) gymEvent(g);
+      if (round % every === 0 && ((round / every) % 2 === 1) === secondHalf) gymEvent(g);
     }
     // danni nel tempo (bruciore, dolori)
     for (const f of team(g, g.turn).slice()) {
@@ -961,7 +962,13 @@
       selfHit(g, u, 0.5);
       ev(g, { type: 'status', uid: u.uid, text: 'CONFUSO' });
     } else if (m.basic) {
-      attack(g, u, t);
+      const w = weaponOf(u) || {};
+      attack(g, u, t, { basic: true, mul: w.twice || 1 });
+      if (w.twice && t.hp > 0 && u.hp > 0) attack(g, u, t, { basic: true, mul: w.twice });
+      if (w.cleave && u.hp > 0) {
+        const o = enemies(g, u.owner).filter(f => f !== t && !has(f, 'hidden'));
+        if (o.length) attack(g, u, o[Math.floor(rand(g) * o.length)], { basic: true, mul: w.cleave });
+      }
     } else {
       exec.use(g, u, t, a);
       // la bottiglia di Carla cattura l'ultima mossa speciale usata
@@ -969,7 +976,7 @@
     }
     if (!m.basic) {
       if (m.once || m.maxUses) u.used[a.move] = (u.used[a.move] || 0) + 1;
-      if (m.cd) u.cds[a.move] = m.cd + 1;
+      if (m.cd) u.cds[a.move] = m.cd + 1 - ((TERRAIN[g.terrain] || {}).cdBonus || 0);
     }
     if (!m.free) { u.acted = true; g.actions++; }
     checkWin(g);
@@ -988,10 +995,11 @@
   function expectedHit(g, u, t) {
     if (has(t, 'invuln') || has(t, 'evade') || has(t, 'hidden') || has(t, 'reflect')) return 0;
     if (t.card === 'celeste' && !t.form && t.cds[1] === 0) return 0;
-    let atk = effAtk(g, u);
+    const w = weaponOf(u) || {};
+    let atk = effAtk(g, u) * (w.twice ? 2 * w.twice : 1);
     const nx = get(u, 'nextAtkMul'); if (nx) atk *= nx.value;
-    const def = has(u, 'feint') ? 0 : Math.max(-25, effDef(g, t));
-    let d = atk * K / (K + def);
+    const def = has(u, 'feint') ? 0 : Math.max(-25, effDef(g, t) - (w.pierceDef || 0));
+    let d = atk * K / (K + def) + (w.flat || 0);
     for (const s of u.st) if (s.type === 'dmgOut') d *= s.value;
     for (const s of t.st) if (s.type === 'dmgIn') d *= s.value;
     return d;
@@ -1003,15 +1011,18 @@
     const h = m.hit;
     const blocked = !m.pierce && (has(t, 'invuln') || has(t, 'evade') || has(t, 'reflect') || (t.card === 'celeste' && !t.form && t.cds[1] === 0));
     if (blocked) return [0, 0];
-    let atk = effAtk(g, u) * (h.mul || 1);
+    const w = weaponOf(u) || {};
+    const hits = m.basic && w.twice ? 2 : 1;
+    let atk = effAtk(g, u) * (h.mul || 1) * (hits === 2 ? w.twice : 1);
     const nx = get(u, 'nextAtkMul'); if (nx) atk *= nx.value;
     const ignore = h.ignoreDef || has(u, 'feint');
-    const def = ignore ? 0 : Math.max(-25, effDef(g, t) * (h.defMul || 1));
+    const def = ignore ? 0 : Math.max(-25, effDef(g, t) * (h.defMul || 1) - (w.pierceDef || 0));
+    const flat = (h.flat || 0) + (m.basic && w.flat || 0);
     let base = atk * K / (K + def), k = 1;
     for (const s of u.st) if (s.type === 'dmgOut') k *= s.value;
     for (const s of t.st) if (s.type === 'dmgIn') k *= s.value;
-    const lo = Math.max(1, Math.round((base * 0.9 + (h.flat || 0)) * k));
-    const hi = Math.max(1, Math.round((base * 1.1 + (h.flat || 0)) * k));
+    const lo = Math.max(1, Math.round((base * 0.9 + flat) * k)) * hits;
+    const hi = Math.max(1, Math.round((base * 1.1 + flat) * k)) * hits;
     return [lo, hi];
   }
 
@@ -1103,12 +1114,31 @@
     return minCost > 0 ? randomTeam(rng, minCost - 1, only) : null;
   }
 
+  // ---------------------------------------------------------------- CARTE AGGIUNTE DA FUORI (pacchetto segreto)
+  // Le funzioni del motore che le mosse delle carte aggiunte possono usare.
+  const H = {
+    rand, log, ev, nm, team, enemies, field, attack, damage, heal, stun, confuse, cleanse, clearAll,
+    addStatus, selfHit, has, get, effAtk, effDef, isMaster, CONFUSE_CHANCE,
+  };
+  function addCards(list) {
+    for (const c of list) {
+      if (CARD[c.id]) continue;
+      c.secret = true;
+      CARDS.push(c); CARD[c.id] = c;
+      c.moves.forEach((m, i) => { m.ref = { card: c.id, i }; });
+    }
+  }
+  // immagini: di norma in img/, quelle del pacchetto segreto arrivano già pronte in memoria
+  const IMG = {};
+  const img = p => IMG[p] || 'img/' + p;
+
   const api = {
     K, TEAM_SIZE, FIELD_SIZE, BUDGET, RANKS, CARDS, CARD, BASIC,
     createGame, legalActions, doAction, chooseAction, actorOptions, targetsFor, copyOptions, bottleMove, refMove,
     needsTarget, effAtk, effDef, team, enemies, field, byUid, cardOf, movesOf, isStunned, isNegative,
     teamCost, randomTeam, clone, canAct, passTurn, expectedHit,
     SYNERGIES, synergiesFor, GYM_EVENTS, EVENT_EVERY, previewDamage, isMaster,
+    TERRAINS, TERRAIN, WEAPONS, WEAPON, H, addCards, IMG, img,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.STT = api;

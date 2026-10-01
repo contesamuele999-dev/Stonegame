@@ -43,14 +43,32 @@
     teams: [[], []], builder: 0, filter: 'all',
     game: null, setup: null, log: [], view: 0, me: 0, sel: null, busy: false, logOpen: false, banner: '', first: 0,
     tut: -1, on: null, toast: null,
+    terrain: load('terrain', 'random'), weapons: [null, null],
   };
 
   // ------------------------------------------------------------ utilità
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
-  const face = id => `background-image:url(img/volti/${id}.jpg)`;
+  const face = id => `background-image:url(${S.img('volti/' + id + '.jpg')})`;
   const RANK_SHORT = { A: 'Allievo', I: 'Istruttore', M: 'Maestro', L: 'Leggenda' };
   const LEVEL_LABEL = { facile: 'Facile', normale: 'Normale', difficile: 'Difficile' };
+
+  // ------------------------------------------------------------ palestre (carte terreno) e armi
+  const terrainBg = id => (S.TERRAIN[id] && window.Arena3D && Arena3D.terrainArt ? Arena3D.terrainArt(id) : '');
+  const pickTerrain = v => (S.TERRAIN[v] ? v : S.TERRAINS[Math.floor(Math.random() * S.TERRAINS.length)].id);
+  const randomWeapon = cards => ({ id: S.WEAPONS[Math.floor(Math.random() * S.WEAPONS.length)].id, card: cards[Math.floor(Math.random() * cards.length)] });
+  function sanitizeWeapon(w, cards) {
+    return w && typeof w === 'object' && S.WEAPON[w.id] && Array.isArray(cards) && cards.includes(w.card) ? { id: w.id, card: w.card } : null;
+  }
+  // l'arma resta a una carta della squadra: se quella carta esce, passa alla prima
+  function fixWeapon(b) {
+    const w = A.weapons[b], t = A.teams[b];
+    if (w && !t.includes(w.card)) w.card = t[0] || null;
+  }
+  function terrainCard(id) {
+    const t = S.TERRAIN[id];
+    return `<div class="terrain-card"><span class="art" style="background-image:url(${terrainBg(id)})"></span><div><div class="eyebrow">Carta terreno · ${esc(t.place)}</div><b>${esc(t.name)}</b><p>${esc(t.desc)}</p></div></div>`;
+  }
 
   function moveMeta(m) {
     if (m.passive) return m.cd ? `Passiva · si ricarica in ${m.cd} turni` : 'Passiva';
@@ -59,21 +77,66 @@
     return m.cd ? `Ricarica ${m.cd} turn${m.cd > 1 ? 'i' : 'o'}` : '';
   }
 
+  // ------------------------------------------------------------ carte segrete (easter egg)
+  // Stanno cifrate in segreto.dat: senza la frase giusta nessuno può leggerle, nemmeno aprendo il codice.
+  let secretOwned = false; // sbloccate su questo telefono (non solo prestate per una partita online)
+  let secretKey = null;    // chiave (base64), da passare all'avversario online se le usi
+  const shown = () => S.CARDS.filter(c => !c.secret || secretOwned);
+  const normPhrase = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
+  const toB64 = u8 => btoa(String.fromCharCode.apply(null, u8));
+  const fromB64 = s => Uint8Array.from(atob(s), c => c.charCodeAt(0));
+  // opt: { phrase } oppure { key }; persist = sbloccate per sempre su questo telefono
+  async function openSecret(opt) {
+    if (!secretKey) {
+      const buf = new Uint8Array(await (await fetch('segreto.dat')).arrayBuffer());
+      if (String.fromCharCode.apply(null, buf.slice(0, 4)) !== 'STT1') throw new Error('segreto.dat non valido');
+      const salt = buf.slice(4, 20), iv = buf.slice(20, 32);
+      let raw = opt.key ? fromB64(opt.key) : null;
+      if (!raw) {
+        const base = await crypto.subtle.importKey('raw', new TextEncoder().encode(normPhrase(opt.phrase || '')), 'PBKDF2', false, ['deriveBits']);
+        raw = new Uint8Array(await crypto.subtle.deriveBits({ name: 'PBKDF2', salt, iterations: 250000, hash: 'SHA-256' }, base, 256));
+      }
+      const key = await crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['decrypt']);
+      const pack = JSON.parse(new TextDecoder().decode(await crypto.subtle.decrypt({ name: 'AES-GCM', iv }, key, buf.slice(32))));
+      const mod = { exports: null };
+      new Function('module', pack.src)(mod);
+      const p = mod.exports(S.H);
+      S.addCards(p.cards);
+      if (window.Arena3D) { Object.assign(Arena3D.MOVES, p.moves3d); Object.assign(Arena3D.LOOK, p.look); }
+      for (const k in pack.img) S.IMG[k] = URL.createObjectURL(new Blob([fromB64(pack.img[k])], { type: 'image/jpeg' }));
+      secretKey = toB64(raw);
+    }
+    if (opt.persist) { secretOwned = true; store('chiave', secretKey); }
+  }
+  const secretFor = ids => (secretKey && ids.some(id => S.CARD[id] && S.CARD[id].secret) ? secretKey : undefined);
+  function secretPrompt() {
+    openLayer(`<div class="overlay formula" role="dialog" aria-label="Pergamena segreta">
+      <div class="eyebrow">Pergamena segreta</div>
+      <h2>Pronuncia la parola</h2>
+      <input id="segreto" autocomplete="off" autocapitalize="off" spellcheck="false">
+      <p id="segreto-esito" aria-live="polite"></p>
+      <button class="btn primary" data-act="egg-try">Svela</button>
+      <button class="btn ghost" data-act="close">Chiudi</button>
+    </div>`);
+    setTimeout(() => { const i = document.getElementById('segreto'); if (i) i.focus(); }, 50);
+  }
+
   // ------------------------------------------------------------ carte sbloccate
   const STARTERS = ['samuele', 'katya', 'niccolo', 'federica', 'grazia', 'vittorio', 'annastella', 'alessandro', 'viola', 'caterina'];
   // Le Leggende (i due Chen) si sbloccano solo vincendo il torneo
   const LEGENDS = S.CARDS.filter(c => c.rank === 'L').map(c => c.id);
   function unlocked() {
-    if (settings.allUnlocked) return S.CARDS.map(c => c.id);
+    if (settings.allUnlocked) return shown().map(c => c.id);
     let u = load('unlocked', STARTERS).filter(id => S.CARD[id]);
     if (u.length < S.TEAM_SIZE) u = STARTERS.slice();
     if ((torneo().titles || 0) > 0) u = u.concat(LEGENDS.filter(id => !u.includes(id)));
+    if (secretOwned) u = u.concat(S.CARDS.filter(c => c.secret && !u.includes(c.id)).map(c => c.id));
     return u;
   }
   function unlockRandom(n) {
     if (settings.allUnlocked) return [];
     const have = unlocked();
-    const locked = S.CARDS.map(c => c.id).filter(id => !have.includes(id) && !LEGENDS.includes(id));
+    const locked = shown().map(c => c.id).filter(id => !have.includes(id) && !LEGENDS.includes(id));
     const got = [];
     while (got.length < n && locked.length) got.push(locked.splice(Math.floor(Math.random() * locked.length), 1)[0]);
     if (got.length) store('unlocked', have.concat(got));
@@ -98,11 +161,11 @@
 
   // ------------------------------------------------------------ torneo
   const TORNEO = [
-    { name: 'Gli allievi del lunedì', level: 'facile', cards: ['grazia', 'viola', 'annastella', 'caterina'], text: 'Si parte con calma: la classe dei principianti.' },
-    { name: 'Il corso serale', level: 'normale', cards: ['vittorio', 'alessandro', 'christian', 'carla'], text: 'Dopo il lavoro, ma pieni di energia.' },
-    { name: 'La squadra agonistica', level: 'difficile', cards: ['lorenzo', 'sara', 'federico', 'chicca'], text: 'Allenati per le gare: non regalano niente.' },
-    { name: 'Gli istruttori', level: 'facile', cards: ['samuele', 'niccolo', 'strahinja', 'federica'], text: 'Tutti gli Istruttori insieme: chi insegna sa anche combattere.' },
-    { name: 'Il Tempio dei Maestri', level: 'difficile', cards: ['andrea', 'chen', 'katya'], boost: 1.1, text: 'La sfida finale: tre Maestri, più forti del solito. Chi vince sblocca le Leggende.' },
+    { name: 'Gli allievi del lunedì', level: 'facile', terrain: 'priula', weapon: { id: 'dagan', card: 'viola' }, cards: ['grazia', 'viola', 'annastella', 'caterina'], text: 'Si parte con calma: la classe dei principianti.' },
+    { name: 'Il corso serale', level: 'normale', terrain: 'lancenigo', weapon: { id: 'dao', card: 'alessandro' }, cards: ['vittorio', 'alessandro', 'christian', 'carla'], text: 'Dopo il lavoro, ma pieni di energia.' },
+    { name: 'La squadra agonistica', level: 'difficile', terrain: 'priula', weapon: { id: 'qiang', card: 'lorenzo' }, cards: ['lorenzo', 'sara', 'remigio', 'chicca'], text: 'Allenati per le gare: non regalano niente.' },
+    { name: 'Gli istruttori', level: 'facile', terrain: 'liming', weapon: { id: 'shuangjian', card: 'samuele' }, cards: ['samuele', 'niccolo', 'strahinja', 'federica'], text: 'Tutti gli Istruttori insieme: chi insegna sa anche combattere.' },
+    { name: 'Il Tempio dei Maestri', level: 'difficile', terrain: 'chenjiagou', weapon: { id: 'jian', card: 'andrea' }, cards: ['andrea', 'chen', 'katya'], boost: 1.1, text: 'La sfida finale: tre Maestri, più forti del solito. Chi vince sblocca le Leggende.' },
   ];
   const torneo = () => load('torneo', { stage: 0, titles: 0 });
 
@@ -124,7 +187,7 @@
         case 'defMul': out.push([v > 1 ? 'good' : 'bad', `DEF ×${+v.toFixed(2)}${d(s)}`]); break;
         case 'invuln': out.push(['good', compact ? `Invuln.${d(s)}` : `Invulnerabilità${d(s)}`]); break;
         case 'evade': out.push(['good', `Schiva${d(s)}`]); break;
-        case 'counter': out.push(['good', compact ? `Dadi${d(s)}` : `Fuckgammon pronto${d(s)}`]); break;
+        case 'counter': out.push(['good', compact ? `Dadi${d(s)}` : `Contrattacco pronto${d(s)}`]); break;
         case 'hidden': out.push(['good', `Sparizione${d(s)}`]); break;
         case 'immune': out.push(['good', `Immunità${d(s)}`]); break;
         case 'nextAtkMul': out.push(['good', `Colpo ×${v}`]); break;
@@ -153,6 +216,9 @@
       rules: renderRules, ranking: renderRanking, settings: renderSettings, torneo: renderTorneo, online: renderOnline,
     }[A.screen];
     $app.innerHTML = fn();
+    // in partita, sullo sfondo, la palestra in cui si combatte
+    const ter = A.screen === 'battle' && A.game && A.game.terrain;
+    document.body.style.setProperty('--terrain', ter ? `url(${terrainBg(ter)})` : 'none');
     if (A.screen === 'online') focusOnline();
   }
 
@@ -170,14 +236,14 @@
     const nUnl = unlocked().length;
     return `<div class="home">
       <div class="hero">
-        <img src="img/retro.jpg" alt="Retro delle carte Stone Temple Tao">
+        <img src="img/retro.jpg" alt="Retro delle carte Stone Temple Tao" data-act="egg">
         <div>
           <div class="eyebrow">Scuola di Tradizionali Arti Orientali</div>
-          <h1>Stone Temple Game</h1>
-          <p>Il torneo di carte della palestra: ${S.CARDS.length} combattenti, 3 contro 3, una riserva a testa.</p>
+          <h1>Stone Temple Card Game</h1>
+          <p>Il torneo di carte della palestra: ${shown().length} combattenti, 3 contro 3, una riserva a testa.</p>
         </div>
       </div>
-      <div class="fan" aria-hidden="true">${ids.map((id, i) => `<img src="img/${id}.jpg" alt="" style="transform:rotate(${(i - 2) * 7}deg) translateY(${Math.abs(i - 2) * 8}px)">`).join('')}</div>
+      <div class="fan" aria-hidden="true">${ids.map((id, i) => `<img src="${S.img(id + '.jpg')}" alt="" style="transform:rotate(${(i - 2) * 7}deg) translateY(${Math.abs(i - 2) * 8}px)">`).join('')}</div>
       <div class="menu">
         ${save ? `<button class="btn primary" data-act="resume">Riprendi partita · turno ${Math.ceil(save.turnNo / 2)}</button>` : ''}
         ${!tutDone ? `<button class="btn ${save ? '' : 'primary'}" data-act="tutorial">Prima volta? Fai il tutorial</button>` : ''}
@@ -188,7 +254,7 @@
           <button class="btn" data-act="go" data-v="online">Online<small>due telefoni</small></button>
         </div>
         <div class="menu-2">
-          <button class="btn ghost" data-act="go" data-v="collection">Carte<small>${nUnl}/${S.CARDS.length} sbloccate</small></button>
+          <button class="btn ghost" data-act="go" data-v="collection">Carte<small>${nUnl}/${shown().length} sbloccate</small></button>
           <button class="btn ghost" data-act="go" data-v="ranking">Classifica</button>
         </div>
         <div class="menu-2">
@@ -218,9 +284,20 @@
         <label class="field-label" for="n0"><span class="eyebrow">Giocatore 1</span><input id="n0" maxlength="16" value="${esc(A.names[0])}"></label>
         <label class="field-label" for="n1"><span class="eyebrow">Giocatore 2</span><input id="n1" maxlength="16" value="${esc(A.names[1])}"></label>
       `}
+      ${terrainPicker()}
       <p class="hint" style="text-align:left">Ognuno sceglie 4 carte spendendo al massimo ${S.BUDGET} Punti Dojo: le prime 3 vanno in campo, la quarta resta in riserva ed entra quando una tua carta va K.O.</p>
       <button class="btn primary" data-act="to-build">Scegli la squadra →</button>
     </div>`;
+  }
+
+  function terrainPicker() {
+    const opts = [{ id: 'random', name: 'A sorte', place: 'Una palestra a caso', desc: "Si scopre all'inizio della sfida." }].concat(S.TERRAINS);
+    const sel = opts.find(o => o.id === A.terrain) || opts[0];
+    return `<div class="eyebrow">Dove si combatte?</div>
+      <div class="terrains">${opts.map(o => `<button class="terrain" data-act="terrain" data-v="${o.id}" aria-pressed="${sel.id === o.id}">
+        <span class="art" ${o.id === 'random' ? '' : `style="background-image:url(${terrainBg(o.id)})"`}>${o.id === 'random' ? '🎲' : ''}</span>
+        <span class="tn">${esc(o.name)}</span><span class="tp">${esc(o.place)}</span></button>`).join('')}</div>
+      <p class="hint" style="text-align:left"><b>${esc(sel.name)}</b> · ${esc(sel.desc)}</p>`;
   }
 
   // ------------------------------------------------------------ COSTRUZIONE SQUADRA
@@ -233,7 +310,17 @@
     const active = S.synergiesFor(team).map(x => x.id);
     return `<div class="syn">${S.SYNERGIES.map(x => `<div class="syn-row ${active.includes(x.id) ? 'on' : ''}"><b>${active.includes(x.id) ? '✓ ' : ''}${esc(x.name)}</b><span>${esc(x.desc)}</span></div>`).join('')}</div>`;
   }
+  function weaponBox() {
+    const team = A.teams[A.builder], w = A.weapons[A.builder];
+    const opts = ['<option value="">Nessuna arma</option>'].concat(S.WEAPONS.map(x => `<option value="${x.id}" ${w && w.id === x.id ? 'selected' : ''}>${esc(x.name)} · ${esc(x.cn)}</option>`)).join('');
+    const who = team.map(id => `<option value="${id}" ${w && w.card === id ? 'selected' : ''}>${esc(S.CARD[id].name)}</option>`).join('');
+    return `<div class="weapon-box"><div class="eyebrow">⚔️ Arma della squadra</div>
+      <div class="wrow"><select data-change="weapon" aria-label="Arma">${opts}</select>
+      <select data-change="weapon-card" aria-label="Chi porta l'arma" ${w && team.length ? '' : 'disabled'}>${who || '<option>Prima scegli le carte</option>'}</select></div>
+      <p class="hint" style="text-align:left">${w ? esc(S.WEAPON[w.id].desc) : "Una carta della squadra può portare un'arma dello stile Chen. Non costa Punti Dojo."}</p></div>`;
+  }
   function renderBuild() {
+    fixWeapon(A.builder);
     const team = A.teams[A.builder];
     const cost = S.teamCost(team);
     const pool = unlocked();
@@ -245,7 +332,7 @@
       return `<button class="slot ${i === 3 ? 'res' : ''}" data-act="unpick" data-v="${i}" aria-label="Togli ${esc(S.CARD[id].name)}"><span class="who">${who}</span><span class="face" style="${face(id)}"></span><span class="nm">${esc(S.CARD[id].name)}</span></button>`;
     }).join('');
     const filters = [['all', 'Tutti'], ['M', 'Maestri'], ['I', 'Istruttori'], ['A', 'Allievi']];
-    const cards = S.CARDS.filter(c => A.filter === 'all' || c.rank === A.filter).map(c => {
+    const cards = shown().filter(c => A.filter === 'all' || c.rank === A.filter).map(c => {
       const locked = !pool.includes(c.id);
       const chosen = team.includes(c.id);
       const nope = !chosen && (locked || team.length >= S.TEAM_SIZE || cost + c.cost > S.BUDGET);
@@ -261,12 +348,13 @@
     const opp = A.mode === 'torneo' ? TORNEO[torneo().stage] : null;
     return `<div class="topbar"><button class="back" data-act="build-back">← Indietro</button><div class="eyebrow">${builderTitle()}</div></div>
     <div class="builder">
-      ${opp ? `<div class="vs-card"><div class="eyebrow">Avversario · ${LEVEL_LABEL[opp.level]}</div><b>${esc(opp.name)}</b><div class="faces-row">${opp.cards.map(id => `<i style="${face(id)}" title="${esc(S.CARD[id].name)}"></i>`).join('')}</div></div>` : ''}
+      ${opp ? `<div class="vs-card"><div class="eyebrow">Avversario · ${LEVEL_LABEL[opp.level]} · ${esc(S.TERRAIN[opp.terrain].name)}</div><b>${esc(opp.name)}</b><div class="faces-row">${opp.cards.map(id => `<i style="${face(id)}" title="${esc(S.CARD[id].name)}"></i>`).join('')}</div></div>` : ''}
       <div class="slots">${slots}</div>
       <div class="budget num"><span>Punti Dojo</span><div class="pips">${pips}</div><span>${cost}/${S.BUDGET}</span></div>
+      ${weaponBox()}
       <details class="syn-box"><summary>Sinergie di squadra (${S.synergiesFor(team).length} attive)</summary>${synergyList(team)}</details>
       <div class="filters" role="group" aria-label="Filtra per grado">${filters.map(([v, l]) => `<button data-act="filter" data-v="${v}" aria-pressed="${A.filter === v}">${l}</button>`).join('')}</div>
-      ${pool.length < S.CARDS.length ? `<p class="hint" style="text-align:left">🔒 ${S.CARDS.length - pool.length} carte da sbloccare: ogni vittoria ne sblocca una.</p>` : ''}
+      ${pool.length < shown().length ? `<p class="hint" style="text-align:left">🔒 ${shown().length - pool.length} carte da sbloccare: ogni vittoria ne sblocca una.</p>` : ''}
       <div class="pool">${cards}</div>
     </div>
     <div class="dock"><div class="row">
@@ -286,7 +374,7 @@
       ${locked ? `<p class="hint" style="text-align:left">${c.rank === 'L' ? 'Leggenda: si sblocca vincendo il torneo.' : 'Carta da sbloccare: vinci una partita per ottenerne una nuova.'}</p>` : ''}
       <div class="statline num"><span>PV <b>${c.hp}</b></span><span>ATK ${diff('atk')}<b>${c.atk}</b></span><span>DEF ${diff('def')}<b>${c.def}</b></span></div>
       ${c.moves.map(m => `<div class="move special"><div class="mh"><span class="mn">${esc(m.name)}</span><span class="why">${esc(moveMeta(m))}</span></div><div class="md">${esc(m.desc)}</div></div>`).join('')}
-      <div class="card-full"><img src="img/${id}.jpg" alt="Carta originale di ${esc(c.name)}"></div>
+      <div class="card-full"><img src="${S.img(id + '.jpg')}" alt="Carta originale di ${esc(c.name)}"></div>
       <p class="hint">Carta originale. In gioco valgono i valori scritti sopra (i numeri barrati sono quelli stampati).</p>
       <button class="btn" data-act="close">Chiudi</button>
     </div></div>`);
@@ -295,11 +383,15 @@
   // ------------------------------------------------------------ COLLEZIONE
   function renderCollection() {
     const pool = unlocked();
-    return `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">${pool.length}/${S.CARDS.length} sbloccate</div></div>
+    return `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">${pool.length}/${shown().length} sbloccate</div></div>
     <h2 style="margin-bottom:12px">Collezione</h2>
-    <div class="collection">${S.CARDS.map(c => { const lk = !pool.includes(c.id); return `<div class="pick ${lk ? 'locked' : ''}" role="button" tabindex="0" data-act="card" data-v="${c.id}">
+    <div class="collection">${shown().map(c => { const lk = !pool.includes(c.id); return `<div class="pick ${lk ? 'locked' : ''}" role="button" tabindex="0" data-act="card" data-v="${c.id}">
       <span class="face" style="${face(c.id)}"></span><span class="rank ${c.rank}">${RANK_SHORT[c.rank]}</span><span class="cost num">${c.cost}</span>${lk ? '<span class="lock">🔒</span>' : ''}
-      <span class="meta"><span class="nm">${esc(c.name)}</span><span class="st num">PV ${c.hp} · ATK ${c.atk} · DEF ${c.def}</span></span></div>`; }).join('')}</div>`;
+      <span class="meta"><span class="nm">${esc(c.name)}</span><span class="st num">PV ${c.hp} · ATK ${c.atk} · DEF ${c.def}</span></span></div>`; }).join('')}</div>
+    <h3 class="sec">Palestre</h3>
+    <div class="coll-list">${S.TERRAINS.map(t => terrainCard(t.id)).join('')}</div>
+    <h3 class="sec">Armi</h3>
+    <div class="coll-list">${S.WEAPONS.map(w => `<div class="weapon-row"><b>⚔️ ${esc(w.name)}</b><small>${esc(w.cn)}</small><p>${esc(w.desc)}</p></div>`).join('')}</div>`;
   }
 
   // ------------------------------------------------------------ CLASSIFICA
@@ -387,16 +479,21 @@
         <li><b>Confusione</b>: a ogni azione offensiva c'è il 35% di probabilità di colpirsi per sbaglio.</li>
         <li><b>Tecniche bloccate</b>: può fare solo l'attacco base.</li>
         <li>Gli effetti durano i turni indicati sul chip. Uno stesso effetto non si somma: si rinnova.</li>
-        <li><b>Istruttori e Maestri</b> contano per alcune mosse (per esempio lo Sputo dell'Ultralama è doppio sugli Istruttori).</li>
+        <li><b>Istruttori e Maestri</b> contano per alcune mosse (per esempio la Risposta Scazzata li stordisce per 2 turni invece di 1).</li>
         <li><b>Leggende</b>: Chen Wangting (Fondatore Supremo) e Chen Zhenglei (Gran Maestro) costano 6 Punti Dojo, contano come Maestri e si sbloccano vincendo il torneo.</li>
       </ul>
       <h3>Eventi in palestra</h3>
       <p>Ogni 3 round capita qualcosa (lezione extra, aria condizionata rotta, musica a palla…) che vale per tutte le carte in campo, di entrambe le squadre. Si possono spegnere dalle impostazioni.</p>
+      <h3>Palestre (carte terreno)</h3>
+      <p>Ogni sfida si combatte in una palestra, scelta prima della partita o a sorte. Il suo effetto vale per entrambe le squadre.</p>
+      <ul>${S.TERRAINS.map(t => `<li><b>${esc(t.name)}</b> (${esc(t.place)}): ${esc(t.desc)}</li>`).join('')}</ul>
+      <h3>Armi</h3>
+      <p>Mentre scegli la squadra puoi dare un'arma dello stile Chen a una tua carta. Non costa Punti Dojo.</p>
+      <ul>${S.WEAPONS.map(w => `<li><b>${esc(w.name)}</b> (${esc(w.cn)}): ${esc(w.desc)}</li>`).join('')}</ul>
       <h3>Vittoria</h3>
       <p>Vince chi manda K.O. tutte le carte avversarie, riserva compresa. Ogni vittoria sblocca una nuova carta.</p>
       <h3>Segreti</h3>
       <ul>
-        <li>Con Flavio, prima del Delirio Onnipotente hai 10 secondi per scrivere la formula segreta. Se la sbagli la mossa parte lo stesso, ma senza raddoppio.</li>
         <li>Quando Chen usa la Spallata del Prodigio, a volte parte la musica dei Prodigy…</li>
       </ul>
     </div>`;
@@ -449,7 +546,7 @@
       pv = `<span class="pv num ${lo >= f.hp ? 'ko' : ''}">${lo === 0 && hi === 0 ? 'Bloccato' : lo >= f.hp ? 'K.O.!' : `−${lo}–${hi}`}</span>`;
     }
     return `<button class="${classes.join(' ')}" data-act="tile" data-v="${f.uid}" aria-label="${esc(f.name)}, ${f.hp} PV su ${f.maxHp}">
-      <span class="face" style="${face(f.card)}"><span class="rank ${f.rank}">${RANK_SHORT[f.rank]}</span>${pv}</span>
+      <span class="face" style="${face(f.card)}"><span class="rank ${f.rank}">${RANK_SHORT[f.rank]}</span>${f.weapon ? `<span class="wpn" title="${esc(S.WEAPON[f.weapon].name)}">⚔️</span>` : ''}${pv}</span>
       <span class="body">
         <span class="nm">${esc(f.name)}</span>
         <span class="hp"><i class="${cls}" style="width:${(pct * 100).toFixed(1)}%"></i></span>
@@ -510,6 +607,7 @@
       ${sideBar(g, opp)}
       ${rowHtml(g, opp)}
       <div class="mid">
+        ${g.terrain ? `<button class="terrain-chip" data-act="terrain-info">🏯 ${esc(S.TERRAIN[g.terrain].name)} · ${esc(S.TERRAIN[g.terrain].place)}</button>` : ''}
         ${tutorialHtml() || `<div class="banner" aria-live="polite">${esc(banner)}</div>`}
         <div class="log ${A.logOpen ? 'open' : ''}" data-act="log" role="button" tabindex="0" aria-label="Registro della partita">${lines || '<p>La sfida ha inizio.</p>'}</div>
       </div>
@@ -566,6 +664,7 @@
     openLayer(`<div class="sheet-wrap" data-act="close"><div class="sheet" role="dialog" aria-label="${esc(f.name)}" data-stop>
       <div class="sheet-head"><span class="face" style="${face(f.card)}"></span><div><h3>${esc(f.name)}</h3>
         <p class="num">${RANK_SHORT[f.rank]} · PV ${f.hp}/${f.maxHp} · ATK ${Math.round(S.effAtk(g, f))} · DEF ${Math.round(S.effDef(g, f))}${f.form ? ` · come ${esc(c.name)}` : ''}</p></div></div>
+      ${f.weapon ? `<p class="wline">⚔️ <b>${esc(S.WEAPON[f.weapon].name)}</b> · ${esc(S.WEAPON[f.weapon].desc)}</p>` : ''}
       ${chips.length ? `<div class="chips">${chipsHtml(chips)}</div>` : ''}
       ${list}
       <button class="btn ghost" data-act="close">Chiudi</button>
@@ -605,7 +704,7 @@
 
   async function act(a, inner) {
     const g = A.game;
-    if (inner && inner.formula) a.formula = await formulaPrompt();
+    if (inner && inner.formula) a.formula = await formulaPrompt(inner);
     A.sel = null; A.banner = '';
     A.busy = true;
     const special = a.move >= 0;
@@ -632,13 +731,13 @@
     const opt = S.actorOptions(g, u).find(o => o.i === a.move);
     const m = opt ? opt.move : S.BASIC;
     const exec = (m.target === 'copy' || m.target === 'bottle') ? S.refMove(a.pick || g.lastSpecial) : m;
-    const info = uid => { const f = S.byUid(g, uid); return { uid, card: f.card, name: f.name, rank: f.rank, owner: f.owner }; };
+    const info = uid => { const f = S.byUid(g, uid); return { uid, card: f.card, name: f.name, rank: f.rank, owner: f.owner, weapon: f.weapon || null }; };
     let tg = [];
     if (a.target) tg = [a.target];
     else if (exec.target === 'enemies') tg = S.enemies(g, u.owner).map(f => f.uid);
     else if (exec.target === 'allies') tg = S.team(g, u.owner).map(f => f.uid).filter(x => x !== u.uid);
     else if (exec.target === 'none' && exec.offensive) tg = S.field(g).map(f => f.uid).filter(x => x !== u.uid);
-    return { actor: info(u.uid), move: exec.name, label: exec !== m ? `${m.name} → ${exec.name}` : m.name, targets: tg.map(info), info };
+    return { actor: info(u.uid), move: exec.name, label: exec !== m ? `${m.name} → ${exec.name}` : m.name, targets: tg.map(info), info, formula: a.formula && typeof exec.formula === 'string' ? exec.formula : null };
   }
 
   function buildSpec(d, evs) {
@@ -661,8 +760,7 @@
       } else if (e.type === 'log') {
         if (e.text.includes('Prodigy')) flags.prodigy = true;
         if (e.text.includes('perde il controllo')) flags.confused = true;
-        if (e.text.includes('Fuckgammon!')) flags.counter = true;
-        if (e.text.toLowerCase().includes('fate tiri')) flags.formula = true;
+        if (e.text.startsWith('🎲 Contrattacco')) flags.counter = true;
       }
     }
     const ids = d.targets.map(t => t.uid);
@@ -671,7 +769,8 @@
       .map(t => Object.assign({}, t, { ally: t.owner === d.actor.owner, out: out[t.uid] }));
     const self = out[d.actor.uid];
     if (self && flags.confused) self.confuse = false;
-    return { attacker: d.actor, move: d.move, label: d.label, targets, self, flags, speed: speedK(), controls: speedHtml() };
+    if (d.formula) flags.formula = d.formula;
+    return { attacker: d.actor, move: d.move, label: d.label, targets, self, flags, speed: speedK(), controls: speedHtml(), terrain: A.game.terrain };
   }
 
   async function perform(a, local) {
@@ -841,21 +940,21 @@
   }
 
   // formula segreta di Flavio
-  function formulaPrompt() {
+  function formulaPrompt(m) {
     return new Promise(resolve => {
       let left = 10, done = false;
       openLayer(`<div class="overlay formula" role="dialog" aria-label="Formula segreta">
-        <div class="eyebrow">Delirio Onnipotente</div>
+        <div class="eyebrow">${esc(m.name)}</div>
         <h2>Pronuncia la formula!</h2>
         <p>Scrivila entro il tempo per raddoppiare l'effetto.</p>
         <div class="timer num" id="ftimer">10</div>
-        <input id="fformula" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="fate tiri…">
+        <input id="fformula" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="${esc(m.formula.split(' ').slice(0, 2).join(' '))}…">
         <button class="btn primary" id="fgo">Lancia la mossa</button>
       </div>`);
       const inp = document.getElementById('fformula');
       const finish = () => {
         if (done) return; done = true; clearInterval(iv);
-        const ok = checkFormula(inp.value);
+        const ok = checkFormula(inp.value, m.formula);
         closeLayer(); resolve(ok);
       };
       document.getElementById('fgo').onclick = finish;
@@ -864,9 +963,9 @@
       const iv = setInterval(() => { left--; const t = document.getElementById('ftimer'); if (t) t.textContent = left; if (left <= 0) finish(); }, 1000);
     });
   }
-  function checkFormula(s) {
+  function checkFormula(s, target) {
     const a = s.toLowerCase().replace(/[^a-z]/g, '');
-    const b = 'fatetirifatetitiluiszoratto';
+    const b = target.toLowerCase().replace(/[^a-z]/g, '');
     // distanza di Levenshtein: tolleriamo un paio di errori di battitura
     const dp = Array.from({ length: a.length + 1 }, (_, i) => [i]);
     for (let j = 1; j <= b.length; j++) dp[0][j] = j;
@@ -891,22 +990,23 @@
     saveGame();
   }
 
-  function newSetup(players, first) {
+  function newSetup(players, first, terrain) {
     return {
       seed: Math.floor(Math.random() * 2 ** 31),
       first: first === undefined ? (Math.random() < 0.5 ? 0 : 1) : first,
       gymEvents: settings.events,
+      terrain: pickTerrain(terrain === undefined ? A.terrain : terrain),
       players,
     };
   }
 
   function startGame(first, sameTeams) {
     const cpu = A.mode === 'cpu';
-    if (cpu && !sameTeams) A.teams[1] = S.randomTeam(null, S.BUDGET - 1);
+    if (cpu && !sameTeams) { A.teams[1] = S.randomTeam(null, S.BUDGET - 1, shown().map(c => c.id)); A.weapons[1] = randomWeapon(A.teams[1]); }
     const setup = newSetup([
-      { name: A.names[0] || 'Giocatore 1', cards: A.teams[0] },
-      { name: cpu ? 'Computer' : (A.names[1] || 'Giocatore 2'), cards: A.teams[1], cpu: cpu ? A.level : null },
-    ], first);
+      { name: A.names[0] || 'Giocatore 1', cards: A.teams[0], weapon: A.weapons[0] },
+      { name: cpu ? 'Computer' : (A.names[1] || 'Giocatore 2'), cards: A.teams[1], weapon: A.weapons[1], cpu: cpu ? A.level : null },
+    ], first, sameTeams && A.setup ? A.setup.terrain : undefined);
     A.first = setup.first;
     launch(setup, { view: cpu ? 0 : setup.first });
     beginOverlay();
@@ -915,9 +1015,9 @@
   function startTorneo() {
     const t = torneo(), o = TORNEO[t.stage];
     const setup = newSetup([
-      { name: A.names[0] || 'Giocatore 1', cards: A.teams[0] },
-      { name: o.name, cards: o.cards, cpu: o.level, boost: o.boost },
-    ]);
+      { name: A.names[0] || 'Giocatore 1', cards: A.teams[0], weapon: A.weapons[0] },
+      { name: o.name, cards: o.cards, weapon: o.weapon, cpu: o.level, boost: o.boost },
+    ], undefined, o.terrain);
     A.first = setup.first;
     launch(setup, { view: 0 });
     beginOverlay();
@@ -927,9 +1027,9 @@
     A.mode = 'tutorial';
     A.tut = 0;
     const setup = newSetup([
-      { name: A.names[0] || 'Giocatore 1', cards: ['lorenzo', 'grazia', 'federico', 'caterina'] },
-      { name: 'Computer', cards: ['vittorio', 'celeste', 'oksana', 'adriano'], cpu: 'facile' },
-    ], 0);
+      { name: A.names[0] || 'Giocatore 1', cards: ['lorenzo', 'grazia', 'remigio', 'caterina'] },
+      { name: 'Computer', cards: ['vittorio', 'celeste', 'annastella', 'adriano'], cpu: 'facile' },
+    ], 0, 'lancenigo');
     setup.gymEvents = false;
     A.first = 0;
     launch(setup, { view: 0 });
@@ -942,6 +1042,7 @@
       <div class="eyebrow">Lancio della moneta</div>
       <h2>Inizia ${esc(g.players[g.turn].name)}</h2>
       <p>Al primo turno chi inizia agisce con 2 carte e solo con attacchi base.</p>
+      ${g.terrain ? terrainCard(g.terrain) : ''}
       <div class="faces">${g.players[opp].field.concat(g.players[opp].reserve).map(f => `<i style="${face(f.card)}" title="${esc(f.name)}"></i>`).join('')}</div>
       <p>La squadra di ${esc(g.players[opp].name)}</p>
       <button class="btn primary" data-act="begin">Combatti!</button>
@@ -953,14 +1054,14 @@
     const g = A.game;
     if (!g || A.mode === 'online' || A.mode === 'tutorial') return;
     if (g.winner !== null) { drop('save'); return; }
-    store('save', { mode: A.mode, level: A.level, names: A.names, teams: A.teams, setup: A.setup, log: A.log, view: A.view, turnNo: g.turnNo, first: A.first });
+    store('save', { mode: A.mode, level: A.level, names: A.names, teams: A.teams, weapons: A.weapons, setup: A.setup, log: A.log, view: A.view, turnNo: g.turnNo, first: A.first });
   }
 
   function resumeGame() {
     const s = load('save', null);
     if (!s) return;
     try {
-      A.mode = s.mode; A.level = s.level; A.names = s.names; A.teams = s.teams; A.first = s.first;
+      A.mode = s.mode; A.level = s.level; A.names = s.names; A.teams = s.teams; A.weapons = s.weapons || [null, null]; A.first = s.first;
       const setup = Object.assign({}, s.setup, { silent: true });
       A.setup = s.setup;
       A.game = S.createGame(setup);
@@ -990,7 +1091,16 @@
       else if (o.phase === 'lobby') { o.phase = 'menu'; o.error = 'L\'altro giocatore si è scollegato.'; Net.close(); go('online'); }
     } else if (e.type === 'error') {
       if (A.screen === 'online') { o.error = e.message; o.phase = 'menu'; render(); }
-    } else if (e.type === 'data') onMessage(e.data);
+    } else if (e.type === 'data') queueMessage(e.data);
+  }
+
+  // i messaggi si elaborano in ordine; se portano la chiave delle carte segrete, prima si aprono quelle
+  let msgChain = Promise.resolve();
+  function queueMessage(m) {
+    msgChain = msgChain.then(async () => {
+      if (m && typeof m.key === 'string') { try { await openSecret({ key: m.key }); } catch (err) { /* chiave non valida */ } }
+      onMessage(m);
+    });
   }
 
   function onMessage(m) {
@@ -1000,7 +1110,7 @@
       o.oppName = String(m.name || 'Avversario').slice(0, 16);
       if (A.mode === 'online' && A.game) {
         // si è ricollegato durante la partita: gli mando lo stato
-        if (Net.role === 'host') Net.send({ t: 'sync', setup: A.setup, log: A.log });
+        if (Net.role === 'host') Net.send({ t: 'sync', setup: A.setup, log: A.log, key: secretFor(A.setup.players.flatMap(p => p.cards)) });
         return;
       }
       if (o.phase !== 'lobby') {
@@ -1008,11 +1118,13 @@
         A.mode = 'online'; A.builder = 0; A.filter = 'all';
         A.teams = [load('team0', []).filter(id => unlocked().includes(id)), []];
         if (S.teamCost(A.teams[0]) > S.BUDGET || A.teams[0].length !== S.TEAM_SIZE) A.teams[0] = [];
+        A.weapons = [load('weapon0', null), null].map(w => (w && S.WEAPON[w.id] ? w : null));
         go('build');
         toastQuick(`Collegato con ${o.oppName}! Scegli la tua squadra.`);
       }
     } else if (m.t === 'team') {
       o.oppTeam = sanitizeTeam(m.cards);
+      o.oppWeapon = sanitizeWeapon(m.weapon, o.oppTeam);
       maybeStartOnline();
     } else if (m.t === 'start') {
       if (Net.role !== 'guest' || !m.setup) return;
@@ -1021,7 +1133,7 @@
       (o.queue = o.queue || []).push(m);
       processRemote();
     } else if (m.t === 'sync-req') {
-      Net.send({ t: 'sync', setup: A.setup, log: A.log });
+      Net.send({ t: 'sync', setup: A.setup, log: A.log, key: secretFor(A.setup.players.flatMap(p => p.cards)) });
     } else if (m.t === 'sync') {
       applySync(m);
     } else if (m.t === 'rematch') {
@@ -1045,10 +1157,10 @@
     const o = A.on;
     if (Net.role !== 'host' || !o.myTeam || !o.oppTeam) return;
     const setup = newSetup([
-      { name: A.names[0] || 'Giocatore 1', cards: o.myTeam },
-      { name: o.oppName || 'Giocatore 2', cards: o.oppTeam },
+      { name: A.names[0] || 'Giocatore 1', cards: o.myTeam, weapon: o.myWeapon },
+      { name: o.oppName || 'Giocatore 2', cards: o.oppTeam, weapon: o.oppWeapon },
     ]);
-    Net.send({ t: 'start', setup });
+    Net.send({ t: 'start', setup, key: secretFor(setup.players.flatMap(p => p.cards)) });
     startOnline(setup);
   }
 
@@ -1128,8 +1240,8 @@
     const o = A.on;
     if (!o.oppRematch || !o.myRematch) return;
     if (Net.role === 'host') {
-      const setup = newSetup(A.setup.players.map(p => ({ name: p.name, cards: p.cards })));
-      Net.send({ t: 'start', setup });
+      const setup = newSetup(A.setup.players.map(p => ({ name: p.name, cards: p.cards, weapon: p.weapon || null })));
+      Net.send({ t: 'start', setup, key: secretFor(setup.players.flatMap(p => p.cards)) });
       startOnline(setup);
     }
   }
@@ -1191,6 +1303,7 @@
         A.builder = 0; A.filter = 'all';
         A.teams = [load('team0', []), A.mode === 'pvp' ? load('team1', []) : []];
         A.teams = A.teams.map(t => (t.every(id => unlocked().includes(id)) && S.teamCost(t) <= S.BUDGET) ? t : []);
+        A.weapons = [load('weapon0', null), A.mode === 'pvp' ? load('weapon1', null) : null].map(w => (w && S.WEAPON[w.id] ? w : null));
         go('build'); break;
       case 'build-back':
         if (A.mode === 'online') { leaveOnline(); go('home'); }
@@ -1198,6 +1311,27 @@
         else if (A.builder === 1) { A.builder = 0; render(); } else go('setup');
         break;
       case 'filter': A.filter = v; render(); break;
+      case 'egg': {
+        const now = Date.now();
+        A.egg = (A.egg || []).filter(t => now - t < 4000).concat(now);
+        if (A.egg.length >= 7) { A.egg = []; secretPrompt(); }
+        break;
+      }
+      case 'egg-try': {
+        const inp = document.getElementById('segreto'), out = document.getElementById('segreto-esito');
+        if (!inp) break;
+        out.textContent = 'Il tempio ascolta…';
+        openSecret({ phrase: inp.value, persist: true })
+          .then(() => { closeLayer(); render(); toastQuick('Hai svelato le carte segrete!'); })
+          .catch(() => { out.textContent = 'Il tempio resta in silenzio.'; });
+        break;
+      }
+      case 'terrain': A.terrain = v; store('terrain', v); saveNames(); render(); break;
+      case 'terrain-info': {
+        const t = S.TERRAIN[g.terrain];
+        openLayer(`<div class="sheet-wrap" data-act="close"><div class="sheet" role="dialog" aria-label="${esc(t.name)}" data-stop>${terrainCard(g.terrain)}<button class="btn ghost" data-act="close">Chiudi</button></div></div>`);
+        break;
+      }
       case 'pick': {
         if (!unlocked().includes(v)) { cardSheet(v); break; }
         const t = A.teams[A.builder];
@@ -1210,13 +1344,15 @@
       case 'random-team': A.teams[A.builder] = S.randomTeam(null, S.BUDGET - 1, unlocked()); render(); break;
       case 'confirm-team':
         store('team' + A.builder, A.teams[A.builder]);
+        store('weapon' + A.builder, A.weapons[A.builder]);
         if (A.mode === 'pvp' && A.builder === 0) {
           A.builder = 1; A.filter = 'all'; render(); window.scrollTo(0, 0);
           openLayer(`<div class="overlay" role="dialog"><div class="eyebrow">Squadra pronta</div><h2>Passa il telefono a ${esc(A.names[1])}</h2><p>Ora tocca a ${esc(A.names[1])} scegliere la sua squadra.</p><button class="btn primary" data-act="close">Sono pronto</button></div>`);
         } else if (A.mode === 'torneo') startTorneo();
         else if (A.mode === 'online') {
           A.on.myTeam = A.teams[0].slice();
-          Net.send({ t: 'team', cards: A.on.myTeam });
+          A.on.myWeapon = sanitizeWeapon(A.weapons[0], A.on.myTeam);
+          Net.send({ t: 'team', cards: A.on.myTeam, weapon: A.on.myWeapon, key: secretFor(A.on.myTeam) });
           openLayer(`<div class="overlay" role="dialog"><div class="eyebrow">Squadra pronta</div><h2>In attesa di ${esc(A.on.oppName || 'avversario')}</h2><p>La partita parte quando anche l'altra squadra è pronta.</p><button class="btn ghost" data-act="close">Cambia squadra</button></div>`);
           maybeStartOnline();
         } else startGame();
@@ -1269,6 +1405,7 @@
         A.mode = 'torneo'; A.builder = 0; A.filter = 'all';
         A.teams = [load('team0', []).filter(id => unlocked().includes(id)), []];
         if (A.teams[0].length !== S.TEAM_SIZE || S.teamCost(A.teams[0]) > S.BUDGET) A.teams[0] = [];
+        A.weapons = [load('weapon0', null), null].map(w => (w && S.WEAPON[w.id] ? w : null));
         go('build'); break;
       case 'torneo-next': A.game = null; closeLayer(); if (torneo().stage === 0) go('torneo'); else { A.mode = 'torneo'; go('build'); } break;
       case 'torneo-reset': confirmBox('Ricominciare il torneo?', 'Riparti dal primo incontro. I titoli vinti restano.', 'torneo-reset-yes', 'Ricomincia'); break;
@@ -1300,8 +1437,18 @@
     }
   }
   document.addEventListener('click', handle);
+  // tendine dell'arma nella scelta della squadra
+  document.addEventListener('change', e => {
+    const k = e.target.dataset && e.target.dataset.change;
+    if (!k) return;
+    const t = A.teams[A.builder], w = A.weapons[A.builder];
+    if (k === 'weapon') A.weapons[A.builder] = e.target.value ? { id: e.target.value, card: (w && w.card) || t[0] || null } : null;
+    if (k === 'weapon-card' && w) w.card = e.target.value;
+    render();
+  });
   document.addEventListener('keydown', e => {
     if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-act]')) { e.preventDefault(); handle(e); }
+    if (e.key === 'Enter' && e.target.id === 'segreto') handle({ target: document.querySelector('[data-act="egg-try"]') });
     if (e.key === 'Escape' && $layer.innerHTML && !$layer.querySelector('input') && $layer.querySelector('.sheet')) closeLayer();
   });
   window.addEventListener('beforeunload', () => { if (A.mode === 'online' && window.Net && Net.role) Net.send({ t: 'bye' }); });
@@ -1315,4 +1462,10 @@
   if (location.hash === '#test') window.__sttTest = { A, S };
 
   render();
+  const savedKey = load('chiave', null);
+  if (savedKey) {
+    openSecret({ key: savedKey, persist: true })
+      .then(() => { if (A.screen !== 'battle') render(); })
+      .catch(e => { if (e && e.name === 'OperationError') drop('chiave'); /* frase cambiata: chiave vecchia */ });
+  }
 })();

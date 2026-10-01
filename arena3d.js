@@ -18,9 +18,9 @@
     annastella: ['#2f7d3a', '#9be15d'], carla: ['#7a3fa0', '#ff9a3d'], caterina: ['#5b2590', '#b04cff'],
     celeste: ['#2b3a6b', '#d4ae62'], chen: ['#8f1f1f', '#f2efe6'], chicca: ['#e8e2d6', '#e8631c'],
     christian: ['#26262b', '#e8631c'], elia: ['#5d6070', '#6fb3e6'], federica: ['#1a1a1f', '#ffd24a'],
-    federico: ['#1f2a44', '#e8631c'], flavio: ['#3a3a3a', '#d8412f'], grazia: ['#8f1f1f', '#ffd24a'],
+    grazia: ['#8f1f1f', '#ffd24a'],
     katya: ['#161616', '#6fb3e6'], lorenzo: ['#141414', '#d8412f'], niccolo: ['#f2f2f2', '#e8631c'],
-    oksana: ['#5b2d82', '#b04cff'], samuele: ['#cfcac0', '#e8631c'], sara: ['#4a1466', '#b04cff'],
+    samuele: ['#cfcac0', '#e8631c'], sara: ['#4a1466', '#b04cff'],
     strahinja: ['#2b4c8c', '#6fb3e6'], viola: ['#8c2b2b', '#ff9a3d'], vittorio: ['#151515', '#e8631c'],
     signorello: ['#a3161b', '#d4ae62'], remigio: ['#2a5aa8', '#d8412f'], nicole: ['#f2ede6', '#e89ab0'],
     annalisa: ['#e9f2ea', '#55b98a'], wangting: ['#6d6a5e', '#d4ae62'], zhenglei: ['#f4efe2', '#b04cff'],
@@ -59,13 +59,8 @@
     'Chioma Rinata': { anim: 'powerup', fx: 'aura', e: '✨', c: '#f5e27a' },
     'Incazzatura Interstellare': { anim: 'powerup', fx: 'lightning', e: '💥', c: '#b04cff' },
     'Intenditrice Seriale': { anim: 'cast', fx: 'aura', e: '🃏', c: '#d4ae62' },
-    'Delirio Onnipotente': { anim: 'cast', fx: 'hypno', e: '🌀', c: '#ff3b30' },
-    'Fuckgammon': { anim: 'powerup', fx: 'dice', e: '🎲', c: '#eadbc0' },
     'Stupro Mentale': { anim: 'cast', fx: 'wave', e: '🧠', c: '#b04cff' },
     'Intenzione Fasulla': { anim: 'feint', fx: 'ghost', e: '👻', c: '#b04cff' },
-    "Sputo dell'Ultralama": { anim: 'shout', fx: 'spit', e: '🦙', c: '#dfe8c8' },
-    'Rettifica Genealogica': { anim: 'cast', fx: 'lob', e: '⭐', c: '#d4ae62' },
-    'Domanda Ossessiva Compulsiva': { anim: 'point', fx: 'orb', e: '❓', c: '#ff9a3d' },
     'Stato Confusionale': { anim: 'dance', fx: 'wave', e: '❓', c: '#a978e0' },
     'Bottiglia Eterna': { anim: 'cast', fx: 'orb', e: '🍾', c: '#55b98a' },
     'Apprendimento Fulmineo': { anim: 'cast', fx: 'orb', e: '⚡', c: '#ffd24a' },
@@ -90,7 +85,7 @@
   };
 
   // ------------------------------------------------------------ stato
-  let renderer, scene, camera, clock, root, overlay, titleEl, subEl, flashEl, ctrlEl, ready = false, failed = false;
+  let renderer, scene, camera, clock, root, overlay, titleEl, subEl, flashEl, ctrlEl, back, ground, ready = false, failed = false;
   let running = false, speed = 1, skipping = false;
   const tweens = [], parts = [], updaters = [];
   const faceCache = {}, texCache = {};
@@ -191,13 +186,294 @@
         (info.onSkin || []).forEach(f => f(info.skin));
       } catch (e) { /* immagine non leggibile */ }
     };
-    img.src = `img/teste/${card}.jpg`;
+    img.src = window.STT.img(`teste/${card}.jpg`);
     faceCache[card] = info;
     return info;
   }
 
   function toon(color) {
     return new T.MeshToonMaterial({ color, gradientMap: toonGrad });
+  }
+
+  // ------------------------------------------------------------ palestre (carte terreno)
+  // Fondale 1024×512 e pavimento 1024×1024 disegnati a mano. Sul telefono in verticale si vede
+  // solo la fascia centrale del fondale (circa dal 40% al 60%): lì va il soggetto principale.
+  function templeLogo(x, cx, cy, s, col) {
+    x.fillStyle = col;
+    x.fillRect(cx - 46 * s, cy, 92 * s, 8 * s); x.fillRect(cx - 38 * s, cy - 8 * s, 76 * s, 8 * s);
+    for (let i = 0; i < 3; i++) {
+      const ww = (70 - i * 16) * s, yy = cy - (20 + i * 18) * s;
+      x.fillRect(cx - ww / 2 + 8 * s, yy, ww - 16 * s, 12 * s);
+      x.beginPath(); x.moveTo(cx - ww / 2 - 6 * s, yy + 2 * s); x.quadraticCurveTo(cx, yy - 12 * s, cx + ww / 2 + 6 * s, yy + 2 * s); x.lineTo(cx + ww / 2, yy + 6 * s); x.lineTo(cx - ww / 2, yy + 6 * s); x.fill();
+    }
+    x.beginPath(); x.arc(cx, cy - 78 * s, 4 * s, 0, Math.PI * 2); x.fill();
+  }
+  function grad(x, h, stops) { const g = x.createLinearGradient(0, 0, 0, h); stops.forEach(([k, c]) => g.addColorStop(k, c)); return g; }
+  function kanji(x, t, px, py, size, col) { x.fillStyle = col; x.font = `bold ${size}px serif`; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText(t, px, py); }
+  function scroll(x, px, py, ww, hh, t) {
+    x.fillStyle = '#eadbc0'; x.fillRect(px - ww / 2, py, ww, hh);
+    x.fillStyle = '#5a3320'; x.fillRect(px - ww / 2 - 6, py - 6, ww + 12, 8); x.fillRect(px - ww / 2 - 6, py + hh - 2, ww + 12, 8);
+    kanji(x, t, px, py + hh / 2, ww * 0.7, '#140f0c');
+  }
+  function lantern(x, px, py, r) {
+    const g = x.createRadialGradient(px, py, 2, px, py, r * 2.2); g.addColorStop(0, 'rgba(255,190,90,.55)'); g.addColorStop(1, 'rgba(255,190,90,0)');
+    x.fillStyle = g; x.fillRect(px - r * 2.2, py - r * 2.2, r * 4.4, r * 4.4);
+    x.fillStyle = '#d8412f'; x.beginPath(); x.ellipse(px, py, r, r * 1.2, 0, 0, Math.PI * 2); x.fill();
+    x.fillStyle = '#d4ae62'; x.fillRect(px - r * 0.5, py - r * 1.35, r, r * 0.3); x.fillRect(px - r * 0.5, py + r * 1.1, r, r * 0.3);
+    x.strokeStyle = '#1d110a'; x.lineWidth = 2; x.beginPath(); x.moveTo(px, 0); x.lineTo(px, py - r * 1.3); x.stroke();
+  }
+  function trigram(x, bits, cx, cy, ang, s, col) {
+    x.save(); x.translate(cx, cy); x.rotate(ang); x.fillStyle = col;
+    bits.forEach((b, i) => {
+      const yy = -s * 0.9 + i * s * 0.75;
+      if (b) x.fillRect(-s, yy, s * 2, s * 0.42);
+      else { x.fillRect(-s, yy, s * 0.82, s * 0.42); x.fillRect(s * 0.18, yy, s * 0.82, s * 0.42); }
+    });
+    x.restore();
+  }
+  function taiji(x, cx, cy, r, dark, light) {
+    x.fillStyle = light; x.beginPath(); x.arc(cx, cy, r, 0, Math.PI * 2); x.fill();
+    x.fillStyle = dark; x.beginPath(); x.arc(cx, cy, r, -Math.PI / 2, Math.PI / 2); x.arc(cx, cy + r / 2, r / 2, Math.PI / 2, -Math.PI / 2, true); x.arc(cx, cy - r / 2, r / 2, Math.PI / 2, -Math.PI / 2); x.fill();
+    x.fillStyle = light; x.beginPath(); x.arc(cx, cy + r / 2, r / 7, 0, Math.PI * 2); x.fill();
+    x.fillStyle = dark; x.beginPath(); x.arc(cx, cy - r / 2, r / 7, 0, Math.PI * 2); x.fill();
+  }
+
+  const PAINT = {
+    // arena di sempre: tramonto, montagne e pagoda
+    tempio: {
+      bg(x, w, h) {
+        x.fillStyle = grad(x, h, [[0, '#1b0f0b'], [0.45, '#6b2a12'], [0.7, '#e8631c'], [1, '#3a1a0e']]); x.fillRect(0, 0, w, h);
+        x.fillStyle = '#ffcf7a'; x.globalAlpha = 0.85; x.beginPath(); x.arc(w * 0.62, h * 0.62, 70, 0, Math.PI * 2); x.fill(); x.globalAlpha = 1;
+        const ridge = (y0, amp, col, seed) => {
+          x.fillStyle = col; x.beginPath(); x.moveTo(0, h);
+          for (let i = 0; i <= 64; i++) { const px = i / 64 * w; x.lineTo(px, y0 - Math.abs(Math.sin(i * 0.7 + seed) * amp + Math.sin(i * 1.9 + seed * 2) * amp * 0.4)); }
+          x.lineTo(w, h); x.fill();
+        };
+        ridge(h * 0.74, 70, '#3b1a10', 1); ridge(h * 0.84, 50, '#24110b', 3);
+        x.fillStyle = '#140a07';
+        const px = w * 0.24, py = h * 0.84;
+        for (let i = 0; i < 4; i++) {
+          const ww = 120 - i * 24, yy = py - 40 - i * 34;
+          x.fillRect(px - ww / 2 + 14, yy, ww - 28, 34);
+          x.beginPath(); x.moveTo(px - ww / 2 - 18, yy + 6); x.quadraticCurveTo(px, yy - 26, px + ww / 2 + 18, yy + 6); x.lineTo(px + ww / 2 - 6, yy + 12); x.lineTo(px - ww / 2 + 6, yy + 12); x.fill();
+        }
+        x.fillRect(px - 2, py - 200, 4, 40);
+      },
+      floor(x, w, h) {
+        x.fillStyle = '#5a3a22'; x.fillRect(0, 0, w, h);
+        for (let i = 0; i < 16; i++) { x.fillStyle = i % 2 ? '#5f3e25' : '#553620'; x.fillRect(0, i * 64, w, 64); x.fillStyle = '#3a2414'; x.fillRect(0, i * 64, w, 3); }
+        x.strokeStyle = '#e8631c'; x.lineWidth = 18; x.beginPath(); x.arc(w / 2, h / 2, 380, 0, Math.PI * 2); x.stroke();
+        x.strokeStyle = '#d4ae62'; x.lineWidth = 5; x.beginPath(); x.arc(w / 2, h / 2, 352, 0, Math.PI * 2); x.stroke();
+        x.fillStyle = 'rgba(234,219,192,.18)'; x.font = 'bold 300px serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('道', w / 2, h / 2 + 10);
+      },
+    },
+    // sede principale: sala di legno, stendardo della scuola, pergamene, lanterne e rastrelliera delle armi
+    lancenigo: {
+      bg(x, w, h) {
+        x.fillStyle = grad(x, h, [[0, '#24150d'], [0.55, '#5a3320'], [1, '#2a1810']]); x.fillRect(0, 0, w, h);
+        x.fillStyle = '#1d110a';
+        for (let i = 0; i <= 8; i++) x.fillRect(i * w / 8 - 9, 0, 18, h * 0.8);
+        x.fillRect(0, h * 0.1, w, 14);
+        for (let i = 0; i < 64; i++) { x.fillStyle = i % 2 ? '#43281a' : '#382012'; x.fillRect(i * 16, h * 0.8, 15, h * 0.2); }
+        // stendardo della scuola al centro
+        const bx = w / 2, by = h * 0.17, bw = 150, bh = h * 0.56;
+        x.fillStyle = '#e8631c'; x.fillRect(bx - bw / 2, by, bw, bh);
+        x.fillStyle = '#140f0c'; x.fillRect(bx - bw / 2 + 7, by + 7, bw - 14, bh - 14);
+        templeLogo(x, bx, by + 110, 1.15, '#eadbc0');
+        x.fillStyle = '#e8631c'; x.font = 'bold 21px "Arial Narrow",Impact,sans-serif'; x.textAlign = 'center'; x.textBaseline = 'middle';
+        x.fillText('STONE TEMPLE', bx, by + 140); x.fillText('TAO', bx, by + 164);
+        kanji(x, '太極拳', bx, by + 214, 30, '#eadbc0');
+        // pergamene, lanterne, rastrelliera
+        scroll(x, w * 0.36, h * 0.2, 54, 150, '道'); scroll(x, w * 0.64, h * 0.2, 54, 150, '武');
+        lantern(x, w * 0.43, h * 0.32, 16); lantern(x, w * 0.57, h * 0.32, 16);
+        x.fillStyle = '#5a3320'; x.fillRect(w * 0.72, h * 0.25, 120, 10); x.fillRect(w * 0.72, h * 0.62, 120, 10);
+        for (let i = 0; i < 6; i++) { x.fillStyle = i % 2 ? '#c9d3dd' : '#8a5a2b'; x.fillRect(w * 0.72 + 10 + i * 19, h * 0.2 - (i % 2) * 10, 5, h * 0.48); }
+        lantern(x, w * 0.2, h * 0.3, 18); scroll(x, w * 0.12, h * 0.22, 54, 150, '拳');
+      },
+      floor(x, w, h) {
+        // tatami a incastro rossi e neri
+        for (let r = 0; r < 8; r++) for (let c = 0; c < 8; c++) {
+          x.fillStyle = (r + c) % 2 ? '#7a1f1a' : '#1f1a18'; x.fillRect(c * 128, r * 128, 128, 128);
+          x.fillStyle = 'rgba(0,0,0,.25)'; x.fillRect(c * 128, r * 128, 128, 3); x.fillRect(c * 128, r * 128, 3, 128);
+        }
+        x.strokeStyle = '#e8631c'; x.lineWidth = 16; x.beginPath(); x.arc(w / 2, h / 2, 390, 0, Math.PI * 2); x.stroke();
+        x.globalAlpha = 0.22; templeLogo(x, w / 2, h / 2 + 120, 3.2, '#eadbc0'); x.globalAlpha = 1;
+      },
+    },
+    // palestrina delle medie: muri chiari, spalliere, canestro, finestroni
+    priula: {
+      dim: 0.72,
+      bg(x, w, h) {
+        x.fillStyle = grad(x, h, [[0, '#bfb69a'], [0.6, '#ddd6bd'], [1, '#c9c1a6']]); x.fillRect(0, 0, w, h);
+        x.fillStyle = '#4f7d63'; x.fillRect(0, h * 0.6, w, h * 0.22);
+        x.fillStyle = '#3d644f'; x.fillRect(0, h * 0.6, w, 6);
+        // finestroni in alto
+        for (let i = 0; i < 7; i++) {
+          const fx = 40 + i * 140;
+          x.fillStyle = grad(x, h * 0.3, [[0, '#9cc8ec'], [1, '#e6f2fa']]); x.fillRect(fx, h * 0.06, 110, h * 0.2);
+          x.strokeStyle = '#7f8a8f'; x.lineWidth = 5; x.strokeRect(fx, h * 0.06, 110, h * 0.2);
+          x.beginPath(); x.moveTo(fx + 55, h * 0.06); x.lineTo(fx + 55, h * 0.26); x.moveTo(fx, h * 0.16); x.lineTo(fx + 110, h * 0.16); x.stroke();
+        }
+        // spalliere
+        x.fillStyle = '#b07a3e';
+        for (let c = 0; c < 3; c++) {
+          const sx = w * 0.27 + c * 50;
+          x.fillRect(sx, h * 0.3, 6, h * 0.52); x.fillRect(sx + 40, h * 0.3, 6, h * 0.52);
+          for (let r = 0; r < 12; r++) x.fillRect(sx, h * 0.32 + r * 21, 46, 4);
+        }
+        // canestro al centro
+        const cx = w * 0.53;
+        x.fillStyle = '#6d7377'; x.fillRect(cx - 4, h * 0.42, 8, 40);
+        x.fillStyle = '#fafafa'; x.fillRect(cx - 70, h * 0.3, 140, 86); x.strokeStyle = '#d8412f'; x.lineWidth = 5; x.strokeRect(cx - 70, h * 0.3, 140, 86); x.strokeRect(cx - 26, h * 0.38, 52, 36);
+        x.strokeStyle = '#e8631c'; x.lineWidth = 6; x.beginPath(); x.ellipse(cx, h * 0.5, 30, 7, 0, 0, Math.PI * 2); x.stroke();
+        x.strokeStyle = '#f2f2f2'; x.lineWidth = 2;
+        for (let i = -3; i <= 3; i++) { x.beginPath(); x.moveTo(cx + i * 9, h * 0.505); x.lineTo(cx + i * 6, h * 0.58); x.stroke(); }
+        // orologio e corda
+        x.fillStyle = '#fafafa'; x.beginPath(); x.arc(w * 0.44, h * 0.38, 24, 0, Math.PI * 2); x.fill(); x.strokeStyle = '#333'; x.lineWidth = 4; x.stroke();
+        x.beginPath(); x.moveTo(w * 0.44, h * 0.38); x.lineTo(w * 0.44, h * 0.38 - 15); x.moveTo(w * 0.44, h * 0.38); x.lineTo(w * 0.44 + 11, h * 0.38 + 4); x.stroke();
+        x.strokeStyle = '#c9a66b'; x.lineWidth = 7; x.beginPath(); x.moveTo(w * 0.66, 0); x.quadraticCurveTo(w * 0.665, h * 0.5, w * 0.66, h * 0.78); x.stroke();
+        x.fillStyle = '#9a6a3a'; x.fillRect(0, h * 0.82, w, h * 0.18);
+      },
+      floor(x, w, h) {
+        x.fillStyle = '#c08a50'; x.fillRect(0, 0, w, h);
+        for (let r = 0; r < 32; r++) for (let c = 0; c < 5; c++) {
+          const off = (r % 2) * 100;
+          x.fillStyle = `hsl(32, 45%, ${46 + ((r * 7 + c * 13) % 9)}%)`; x.fillRect(c * 220 - off, r * 32, 218, 30);
+        }
+        x.lineWidth = 9;
+        x.strokeStyle = '#d8412f'; x.beginPath(); x.arc(w / 2, h / 2, 230, 0, Math.PI * 2); x.stroke();
+        x.beginPath(); x.moveTo(0, h / 2); x.lineTo(w, h / 2); x.stroke();
+        x.strokeStyle = '#2a5aa8'; x.strokeRect(70, 70, w - 140, h - 140);
+        x.strokeStyle = '#ffd24a'; x.beginPath(); x.arc(w / 2, 70, 300, 0, Math.PI); x.stroke();
+      },
+    },
+    // palestra del Maestro Liming Yue: mattoni rossi, finestra ad arco con la pioggia inglese, stendardi
+    liming: {
+      bg(x, w, h) {
+        x.fillStyle = '#4a2219'; x.fillRect(0, 0, w, h);
+        const bricks = ['#8a3a2a', '#7a3324', '#93402e', '#823728'];
+        for (let r = 0; r < 24; r++) for (let c = -1; c < 17; c++) {
+          x.fillStyle = bricks[(r * 5 + c * 3) & 3]; x.fillRect(c * 64 + (r % 2) * 32 + 2, r * 22 + 2, 60, 18);
+        }
+        // finestrone ad arco al centro
+        const cx = w / 2, top = h * 0.12, ww = 170, hh = h * 0.6;
+        const arch = () => { x.beginPath(); x.moveTo(cx - ww / 2, top + hh); x.lineTo(cx - ww / 2, top + ww / 2); x.arc(cx, top + ww / 2, ww / 2, Math.PI, 0); x.lineTo(cx + ww / 2, top + hh); x.closePath(); };
+        x.fillStyle = grad(x, h, [[0, '#6f7c88'], [0.5, '#a9b5bf'], [1, '#c9d1d8']]); arch(); x.fill();
+        x.save(); arch(); x.clip();
+        x.strokeStyle = 'rgba(230,240,250,.55)'; x.lineWidth = 2;
+        for (let i = 0; i < 70; i++) { const rx = cx - ww / 2 + ((i * 37) % ww), ry = top + ((i * 53) % hh); x.beginPath(); x.moveTo(rx, ry); x.lineTo(rx - 6, ry + 18); x.stroke(); }
+        x.fillStyle = '#4b5a50'; x.beginPath(); x.moveTo(cx - ww / 2, top + hh); for (let i = 0; i <= 10; i++) x.lineTo(cx - ww / 2 + i * ww / 10, top + hh - 30 - Math.sin(i * 1.7) * 14); x.lineTo(cx + ww / 2, top + hh); x.fill();
+        x.restore();
+        x.strokeStyle = '#f2efe6'; x.lineWidth = 8; arch(); x.stroke();
+        x.lineWidth = 4; x.beginPath(); x.moveTo(cx, top); x.lineTo(cx, top + hh); x.moveTo(cx - ww / 2, top + hh * 0.55); x.lineTo(cx + ww / 2, top + hh * 0.55); x.stroke();
+        // stendardi ai lati
+        [[0.37, '陈式'], [0.63, '太极']].forEach(([k, t]) => {
+          const sx = w * k; x.fillStyle = '#8f1f1f'; x.fillRect(sx - 30, h * 0.18, 60, h * 0.5);
+          x.fillStyle = '#d4ae62'; x.fillRect(sx - 30, h * 0.18, 60, 6); x.fillRect(sx - 30, h * 0.68 - 6, 60, 6);
+          kanji(x, t[0], sx, h * 0.33, 40, '#f5e27a'); kanji(x, t[1], sx, h * 0.5, 40, '#f5e27a');
+        });
+        // festoni bianchi, rossi e blu
+        for (let i = 0; i < 24; i++) { x.fillStyle = ['#c8202a', '#f2efe6', '#1f3a8a'][i % 3]; x.beginPath(); x.moveTo(i * 44, 18); x.lineTo(i * 44 + 40, 18); x.lineTo(i * 44 + 20, 50); x.fill(); }
+        x.fillStyle = '#3b2a1e'; x.fillRect(0, h * 0.8, w, h * 0.2);
+        x.fillStyle = '#2b1e15'; for (let i = 0; i < 16; i++) x.fillRect(i * 64, h * 0.8, 3, h * 0.2);
+      },
+      floor(x, w, h) {
+        x.fillStyle = '#5a3d27'; x.fillRect(0, 0, w, h);
+        for (let r = 0; r < 20; r++) for (let c = 0; c < 20; c++) {
+          x.save(); x.translate(c * 56 + (r % 2) * 28, r * 56); x.rotate((r + c) % 2 ? Math.PI / 4 : -Math.PI / 4);
+          x.fillStyle = `hsl(25, 38%, ${24 + ((r * 3 + c * 5) % 7)}%)`; x.fillRect(-36, -9, 72, 18); x.restore();
+        }
+        x.strokeStyle = 'rgba(242,239,230,.7)'; x.lineWidth = 6; x.strokeRect(90, 90, w - 180, h - 180);
+        x.beginPath(); x.moveTo(90, h / 2); x.lineTo(w - 90, h / 2); x.stroke();
+        x.strokeStyle = '#c8202a'; x.beginPath(); x.arc(w / 2, h / 2, 150, 0, Math.PI * 2); x.stroke();
+      },
+    },
+    // Chenjiagou: cielo, colline di loess, museo con il tetto a pagoda, statue, piazza con il taiji e gli otto trigrammi
+    chenjiagou: {
+      dim: 0.62,
+      bg(x, w, h) {
+        x.fillStyle = grad(x, h, [[0, '#6aa7d8'], [0.55, '#dfe9e8'], [1, '#d9d2c0']]); x.fillRect(0, 0, w, h);
+        x.fillStyle = 'rgba(255,255,255,.7)';
+        [[0.2, 0.12], [0.55, 0.08], [0.82, 0.16]].forEach(([a, b]) => { x.beginPath(); x.ellipse(w * a, h * b, 70, 16, 0, 0, Math.PI * 2); x.fill(); });
+        const ridge = (y0, amp, col, seed) => { x.fillStyle = col; x.beginPath(); x.moveTo(0, h); for (let i = 0; i <= 48; i++) x.lineTo(i / 48 * w, y0 - Math.abs(Math.sin(i * 0.5 + seed)) * amp); x.lineTo(w, h); x.fill(); };
+        ridge(h * 0.5, 40, '#c9b48a', 1); ridge(h * 0.58, 26, '#a8916a', 4);
+        // alberi
+        x.fillStyle = '#3f6b3a';
+        for (let i = 0; i < 14; i++) { const tx = i < 7 ? w * 0.04 + i * 50 : w * 0.67 + (i - 7) * 50; x.beginPath(); x.arc(tx, h * 0.6, 30 + (i % 3) * 6, 0, Math.PI * 2); x.fill(); }
+        // museo
+        const cx = w / 2, base = h * 0.72;
+        x.fillStyle = '#c9c4b8'; x.fillRect(cx - 190, base, 380, 22);
+        for (let i = 0; i < 4; i++) { x.fillStyle = i % 2 ? '#bdb7aa' : '#d4cfc3'; x.fillRect(cx - 120 + i * 6, base + 22 + i * 8, 240 - i * 12, 8); }
+        x.fillStyle = '#e9e1cf'; x.fillRect(cx - 150, base - 70, 300, 70);
+        x.fillStyle = '#a3241c'; for (let i = 0; i < 7; i++) x.fillRect(cx - 140 + i * 45, base - 70, 12, 70);
+        const roof = (y, half, lift, col) => { x.fillStyle = col; x.beginPath(); x.moveTo(cx - half - 24, y - lift); x.quadraticCurveTo(cx - half + 10, y, cx - half * 0.6, y - 4); x.lineTo(cx, y - 52); x.lineTo(cx + half * 0.6, y - 4); x.quadraticCurveTo(cx + half - 10, y, cx + half + 24, y - lift); x.lineTo(cx + half - 20, y + 10); x.lineTo(cx - half + 20, y + 10); x.fill(); };
+        roof(base - 70, 190, 22, '#4b5550');
+        x.fillStyle = '#e9e1cf'; x.fillRect(cx - 90, base - 150, 180, 40);
+        roof(base - 150, 120, 18, '#3e4844');
+        x.fillStyle = '#d4ae62'; x.fillRect(cx - 40, base - 104, 80, 26); kanji(x, '太极', cx, base - 91, 20, '#8f1f1f');
+        // statue nelle posizioni del taiji
+        x.fillStyle = '#8d877c';
+        [0.31, 0.38, 0.62, 0.69].forEach((k, i) => {
+          const sx = w * k, sy = h * 0.8; x.fillRect(sx - 16, sy, 32, 12);
+          x.beginPath(); x.arc(sx, sy - 52, 7, 0, Math.PI * 2); x.fill();
+          x.fillRect(sx - 7, sy - 44, 14, 26);
+          x.save(); x.translate(sx, sy - 38); x.rotate(i % 2 ? -0.5 : 0.4); x.fillRect(0, -3, 26, 6); x.restore();
+          x.save(); x.translate(sx, sy - 38); x.rotate(Math.PI + (i % 2 ? 0.3 : -0.6)); x.fillRect(0, -3, 22, 6); x.restore();
+          x.fillRect(sx - 12, sy - 18, 7, 18); x.fillRect(sx + 4, sy - 18, 7, 18);
+        });
+        x.fillStyle = '#b8b3a8'; x.fillRect(0, h * 0.82, w, h * 0.18);
+      },
+      floor(x, w, h) {
+        x.fillStyle = '#aaa59b'; x.fillRect(0, 0, w, h);
+        for (let r = 0; r < 16; r++) for (let c = 0; c < 16; c++) { x.fillStyle = `hsl(40, 6%, ${60 + ((r * 5 + c * 3) % 6)}%)`; x.fillRect(c * 64 + 2, r * 64 + 2, 60, 60); }
+        const cx = w / 2, cy = h / 2;
+        x.fillStyle = '#7d3a2a'; x.beginPath(); x.arc(cx, cy, 352, 0, Math.PI * 2); x.fill();
+        taiji(x, cx, cy, 336, '#1e1e1e', '#efe9dc');
+        const TRI = [[1, 1, 1], [0, 1, 1], [1, 0, 1], [0, 0, 1], [1, 1, 0], [0, 1, 0], [1, 0, 0], [0, 0, 0]];
+        TRI.forEach((b, i) => { const a = i / 8 * Math.PI * 2; trigram(x, b, cx + Math.cos(a) * 430, cy + Math.sin(a) * 430, a + Math.PI / 2, 34, '#3a3530'); });
+      },
+    },
+  };
+
+  const SCENES = {};
+  function sceneTex(id) {
+    const k = PAINT[id] ? id : 'tempio';
+    if (!SCENES[k]) SCENES[k] = { bg: canvasTex(1024, 512, PAINT[k].bg), floor: canvasTex(1024, 1024, PAINT[k].floor), dim: PAINT[k].dim || 1 };
+    return SCENES[k];
+  }
+  // immagine della palestra per la carta terreno (ritaglio centrale del fondale)
+  const artCache = {};
+  function terrainArt(id) {
+    if (!artCache[id] && PAINT[id]) {
+      const full = document.createElement('canvas'); full.width = 1024; full.height = 512;
+      PAINT[id].bg(full.getContext('2d'), 1024, 512);
+      const c = document.createElement('canvas'); c.width = 320; c.height = 240;
+      c.getContext('2d').drawImage(full, 256, 40, 512, 384, 0, 0, 320, 240);
+      artCache[id] = c.toDataURL('image/jpeg', 0.82);
+    }
+    return artCache[id] || '';
+  }
+
+  // ------------------------------------------------------------ armi in mano ai lottatori
+  // Nel pugno l'asse -y prosegue l'avambraccio: lame e aste puntano lì.
+  function weaponMesh(id) {
+    const g = new T.Group();
+    const steel = toon('#dfe7ef'), wood = toon('#8a5a2b'), gold = toon('#d4ae62'), red = toon('#c8202a');
+    const box = (sx, sy, sz, m, y) => { const b = new T.Mesh(new T.BoxGeometry(sx, sy, sz), m); b.position.y = y; g.add(b); return b; };
+    const pole = (len, r, m, y) => { const c = new T.Mesh(new T.CylinderGeometry(r, r, len, 8), m); c.position.y = y; g.add(c); return c; };
+    const tip = (y, m) => { const c = new T.Mesh(new T.ConeGeometry(0.045, 0.2, 8), m); c.rotation.x = Math.PI; c.position.y = y; g.add(c); return c; };
+    if (id === 'jian' || id === 'shuangjian') { box(0.032, 0.72, 0.012, steel, -0.46); box(0.13, 0.025, 0.045, gold, -0.09); box(0.03, 0.12, 0.03, red, 0.0); }
+    else if (id === 'dao' || id === 'shuangdao') { const b = box(0.06, 0.6, 0.012, steel, -0.4); b.rotation.z = 0.12; box(0.1, 0.03, 0.08, gold, -0.09); const t = new T.Mesh(new T.SphereGeometry(0.05, 8, 6), red); t.position.y = 0.06; g.add(t); }
+    else if (id === 'qiang') { pole(1.7, 0.017, wood, -0.5); tip(-1.43, steel); const t = new T.Mesh(new T.SphereGeometry(0.06, 8, 6), red); t.position.y = -1.28; g.add(t); }
+    else if (id === 'dadao') { pole(1.6, 0.02, wood, -0.45); const b = box(0.2, 0.42, 0.014, steel, -1.3); b.position.x = 0.07; b.rotation.z = -0.1; box(0.06, 0.06, 0.06, gold, -1.08); }
+    else if (id === 'qimeigun') { pole(1.3, 0.022, wood, -0.35); }
+    else if (id === 'dagan') { pole(2.3, 0.026, wood, -0.65); }
+    return g;
+  }
+  function equip(ch, id) {
+    if (!id) return;
+    ch.J.rf.add(weaponMesh(id));
+    if (id === 'shuangjian' || id === 'shuangdao') ch.J.lf.add(weaponMesh(id));
   }
 
   // ------------------------------------------------------------ scena
@@ -233,40 +509,11 @@
       const sun = new T.DirectionalLight('#fff0dc', 0.75); sun.position.set(-3, 8, 7); scene.add(sun);
       const rim = new T.DirectionalLight('#e8631c', 0.8); rim.position.set(3, 4, -8); scene.add(rim);
 
-      // fondale: tramonto, montagne e pagoda
-      const bg = canvasTex(1024, 512, (x, w, h) => {
-        const gr = x.createLinearGradient(0, 0, 0, h);
-        gr.addColorStop(0, '#1b0f0b'); gr.addColorStop(0.45, '#6b2a12'); gr.addColorStop(0.7, '#e8631c'); gr.addColorStop(1, '#3a1a0e');
-        x.fillStyle = gr; x.fillRect(0, 0, w, h);
-        x.fillStyle = '#ffcf7a'; x.globalAlpha = 0.85; x.beginPath(); x.arc(w * 0.62, h * 0.62, 70, 0, Math.PI * 2); x.fill(); x.globalAlpha = 1;
-        const ridge = (y0, amp, col, seed) => {
-          x.fillStyle = col; x.beginPath(); x.moveTo(0, h);
-          for (let i = 0; i <= 64; i++) { const px = i / 64 * w; x.lineTo(px, y0 - Math.abs(Math.sin(i * 0.7 + seed) * amp + Math.sin(i * 1.9 + seed * 2) * amp * 0.4)); }
-          x.lineTo(w, h); x.fill();
-        };
-        ridge(h * 0.74, 70, '#3b1a10', 1); ridge(h * 0.84, 50, '#24110b', 3);
-        // pagoda
-        x.fillStyle = '#140a07';
-        const px = w * 0.24, py = h * 0.84;
-        for (let i = 0; i < 4; i++) {
-          const ww = 120 - i * 24, yy = py - 40 - i * 34;
-          x.fillRect(px - ww / 2 + 14, yy, ww - 28, 34);
-          x.beginPath(); x.moveTo(px - ww / 2 - 18, yy + 6); x.quadraticCurveTo(px, yy - 26, px + ww / 2 + 18, yy + 6); x.lineTo(px + ww / 2 - 6, yy + 12); x.lineTo(px - ww / 2 + 6, yy + 12); x.fill();
-        }
-        x.fillRect(px - 2, py - 200, 4, 40);
-      });
-      const back = new T.Mesh(new T.PlaneGeometry(40, 20), new T.MeshBasicMaterial({ map: bg, fog: false }));
+      // fondale e pavimento: cambiano con la palestra (carta terreno)
+      const sc = sceneTex(null);
+      back = new T.Mesh(new T.PlaneGeometry(40, 20), new T.MeshBasicMaterial({ map: sc.bg, fog: false }));
       back.position.set(0, 5, -14); scene.add(back);
-
-      // tatami della palestra
-      const floor = canvasTex(1024, 1024, (x, w, h) => {
-        x.fillStyle = '#5a3a22'; x.fillRect(0, 0, w, h);
-        for (let i = 0; i < 16; i++) { x.fillStyle = i % 2 ? '#5f3e25' : '#553620'; x.fillRect(0, i * 64, w, 64); x.fillStyle = '#3a2414'; x.fillRect(0, i * 64, w, 3); }
-        x.strokeStyle = '#e8631c'; x.lineWidth = 18; x.beginPath(); x.arc(w / 2, h / 2, 380, 0, Math.PI * 2); x.stroke();
-        x.strokeStyle = '#d4ae62'; x.lineWidth = 5; x.beginPath(); x.arc(w / 2, h / 2, 352, 0, Math.PI * 2); x.stroke();
-        x.fillStyle = 'rgba(234,219,192,.18)'; x.font = 'bold 300px serif'; x.textAlign = 'center'; x.textBaseline = 'middle'; x.fillText('道', w / 2, h / 2 + 10);
-      });
-      const ground = new T.Mesh(new T.PlaneGeometry(12, 12), new T.MeshLambertMaterial({ map: floor }));
+      ground = new T.Mesh(new T.PlaneGeometry(12, 12), new T.MeshLambertMaterial({ map: sc.floor }));
       ground.rotation.x = -Math.PI / 2; scene.add(ground);
 
       root = new T.Group(); scene.add(root);
@@ -575,7 +822,7 @@
     const k = 'c:' + card;
     if (!texCache[k]) {
       const cbs = [];
-      const t = new T.TextureLoader().load(`img/${card}.jpg`, () => cbs.forEach(f => f()));
+      const t = new T.TextureLoader().load(window.STT.img(`${card}.jpg`), () => cbs.forEach(f => f()));
       t.minFilter = T.LinearFilter; t.generateMipmaps = false;
       t.onReady = f => { if (t.image && t.image.width) f(); else cbs.push(f); };
       texCache[k] = t;
@@ -775,7 +1022,8 @@
     if (!init()) return;
     const M = MOVES[spec.move] || MOVES['Attacco'];
     let kind = M.anim;
-    if (kind === 'basic') kind = ['punch', 'kick', 'palm', 'punch', 'spin'][Math.floor(Math.random() * 5)];
+    // con un'arma in mano l'attacco base è un affondo o un fendente girato
+    if (kind === 'basic') kind = spec.attacker.weapon ? ['punch', 'spin', 'punch'][Math.floor(Math.random() * 3)] : ['punch', 'kick', 'palm', 'punch', 'spin'][Math.floor(Math.random() * 5)];
 
     // preparazione della scena
     overlay.hidden = false;
@@ -785,16 +1033,22 @@
     titleEl.textContent = spec.label || spec.move;
     flashEl.style.opacity = '0';
     resize();
+    const sc = sceneTex(spec.terrain);
+    back.material.map = sc.bg; ground.material.map = sc.floor;
+    // i pavimenti chiari sotto le luci calde dell'arena sarebbero accecanti
+    ground.material.color.setScalar(sc.dim);
     while (root.children.length) root.remove(root.children[0]);
     tweens.length = 0; parts.length = 0; updaters.length = 0;
     skipping = false;
     speed = spec.speed || 1;
 
     const A = fighter(spec.attacker);
+    equip(A, spec.attacker.weapon);
     A.g.position.set(-0.55, 0, 1.3);
     root.add(A.g);
     const tgs = spec.targets.slice(0, 5).map((t, i, arr) => {
       const ch = fighter(t);
+      equip(ch, t.weapon);
       const n = arr.length;
       const spread = n === 1 ? [0] : Array.from({ length: n }, (_, k) => k / (n - 1) - 0.5);
       const s = spread[i];
@@ -858,7 +1112,7 @@
       } else {
         await toPose(A, wind, 0.3);
         if (M.e && kind !== 'throw') pop(headPos(A).add(new T.Vector3(0, 0.55, 0)), emojiTex(M.e), 0.5, 0.9, 0.3);
-        if (spec.flags && spec.flags.formula) pop(headPos(A).add(new T.Vector3(0, 0.95, 0)), textTex('FATE TIRI FATE TITI!', '#ffd24a'), 0.34, 1.3, 0.1);
+        if (spec.flags && spec.flags.formula) pop(headPos(A).add(new T.Vector3(0, 0.95, 0)), textTex(String(spec.flags.formula).toUpperCase().split(' ').slice(0, 4).join(' ') + '!', '#ffd24a'), 0.34, 1.3, 0.1);
         await toPose(A, hit, 0.14, ease.out);
       }
       const from = kind === 'shout' ? headPos(A) : handPos(A);
@@ -926,7 +1180,7 @@
       await toPose(A, 'guard', 0.3); A.idle = true;
     }
 
-    // contrattacco o danni subiti dall'attaccante (Fuckgammon)
+    // contrattacco o danni subiti dall'attaccante
     if (spec.self && (spec.self.dmg || spec.self.ko) && !(spec.flags && spec.flags.confused)) {
       if (spec.flags && spec.flags.counter) { for (let k = 0; k < 3; k++) lob(chestPos(tgs[0] ? tgs[0].ch : A), chestPos(A), '🎲', 0.45, 0.8); await wait(0.45); }
       await react(A, spec.self, '#eadbc0');
@@ -958,5 +1212,5 @@
   // scarica in anticipo le immagini delle carte della partita
   function preload(cards) { if (T) cards.forEach(cardTex); }
 
-  window.Arena3D = { available, play, skip, setSpeed, preload, MOVES };
+  window.Arena3D = { available, play, skip, setSpeed, preload, terrainArt, MOVES, LOOK };
 })();

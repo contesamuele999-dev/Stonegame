@@ -8,18 +8,18 @@
 <link rel="apple-touch-icon" href="img/icona-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Stone Game">
-<title>Stone Temple Game</title>
+<meta name="apple-mobile-web-app-title" content="Stone Cards">
+<title>Stone Temple Card Game</title>
 <link rel="icon" href="img/favicon.ico" sizes="any">
 <link rel="icon" href="img/icona-192.png" sizes="192x192" type="image/png">
 <meta name="description" content="Il gioco di carte della palestra Stone Temple Tao, con lottatori 3D.">
 <meta property="og:type" content="website">
-<meta property="og:title" content="Stone Temple Game">
+<meta property="og:title" content="Stone Temple Card Game">
 <meta property="og:description" content="Il gioco di carte della palestra Stone Temple Tao, con lottatori 3D.">
 <meta property="og:image" content="https://contesamuele999-dev.github.io/Stonegame/img/icona-512.png">
 <meta property="og:url" content="https://contesamuele999-dev.github.io/Stonegame/">
 <meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="Stone Temple Game">
+<meta name="twitter:title" content="Stone Temple Card Game">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Rubik+Dirt&family=Barlow+Condensed:wght@500;600;700&family=Barlow:wght@400;500;600&display=swap">
@@ -285,6 +285,33 @@
   @keyframes drop { from { opacity: 0; transform: translateY(-30px); } to { opacity: 1; transform: none; } }
   .unlock { display: grid; gap: 6px; justify-items: center; border: 1.5px dashed var(--gold); border-radius: 8px; padding: 10px 14px; }
   .unlock p { color: var(--gold); }
+
+  /* ---------- palestre (carte terreno) e armi ---------- */
+  body { background-image: linear-gradient(#140f0ce6, #140f0cf2), var(--terrain, none); background-size: cover; background-position: center; background-attachment: fixed; }
+  .terrains { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 8px; }
+  .terrain { display: grid; gap: 2px; padding: 0 0 6px; border: 1.5px solid var(--line); border-radius: 7px; background: var(--ink-2); overflow: hidden; cursor: pointer; text-align: left; }
+  .terrain[aria-pressed="true"] { border-color: var(--temple); box-shadow: 0 0 0 2px var(--temple); }
+  .terrain .art { aspect-ratio: 4/3; background: var(--ink-3) center / cover; display: grid; place-items: center; font-size: 30px; margin-bottom: 3px; }
+  .terrain .tn { font-family: var(--label); font-weight: 700; font-size: 13.5px; line-height: 1.1; padding-inline: 6px; }
+  .terrain .tp { font-size: 11.5px; color: var(--paper-dim); line-height: 1.2; padding-inline: 6px; }
+  .terrain-card { display: grid; grid-template-columns: 112px 1fr; gap: 12px; align-items: center; text-align: left; border: 1.5px solid var(--gold); border-radius: 8px; padding: 8px; background: #1f1810; max-width: 420px; }
+  .terrain-card .art { aspect-ratio: 4/3; border-radius: 5px; background: var(--ink-3) center / cover; }
+  .terrain-card b { font-family: var(--label); font-size: 19px; color: var(--paper); display: block; line-height: 1.1; }
+  .terrain-card p { margin: 3px 0 0; font-size: 13.5px; color: var(--paper-dim); }
+  .terrain-chip { justify-self: center; min-height: 32px; padding: 4px 12px; border-radius: 16px; border: 1px solid var(--gold); background: #1f1810cc; color: var(--gold); font-family: var(--label); font-weight: 600; font-size: 13.5px; letter-spacing: .03em; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .weapon-box { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: var(--ink-2); display: grid; gap: 6px; }
+  .weapon-box .hint { margin: 0; }
+  .wrow { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+  .wrow select { min-height: 44px; border-radius: 6px; border: 1.5px solid var(--line); background: var(--ink); color: var(--paper); padding: 6px 8px; font: 15px var(--body); min-width: 0; }
+  .wpn { position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; border-radius: 12px; background: #000b; display: grid; place-items: center; font-size: 13px; }
+  .wline { margin: 0; font-size: 14px; color: var(--paper-dim); }
+  .wline b { color: var(--gold); font-family: var(--label); font-size: 16px; }
+  .coll-list { display: grid; gap: 8px; padding-bottom: 12px; }
+  .weapon-row { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: var(--ink-2); }
+  .weapon-row b { font-family: var(--label); font-size: 17px; }
+  .weapon-row small { margin-left: 8px; color: var(--gold); font-family: var(--label); font-size: 13px; }
+  .weapon-row p { margin: 2px 0 0; font-size: 13.5px; color: var(--paper-dim); }
+  .overlay .terrain-card p { max-width: none; }
 
   /* ---------- arena 3D ---------- */
   .arena3d { position: fixed; inset: 0; z-index: 40; background: #1b120d; overflow: hidden; cursor: pointer; }
