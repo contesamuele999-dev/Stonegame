@@ -272,11 +272,10 @@ Il collegamento usa il server pubblico gratuito di PeerJS solo per far "incontra
 | `vendor/peerjs.min.js` | PeerJS 1.5.4, collegamento diretto tra telefoni |
 | `sw.js`, `manifest.webmanifest` | app installabile e funzionamento offline |
 | `vendor/three.min.js` | Three.js r128 (grafica 3D), incluso così il gioco funziona anche offline |
-| `img/` | carte originali ridimensionate; `img/volti/` i ritagli per le miniature; `img/teste/` i volti per le teste 3D |
+| `img/` | carte originali ridimensionate (le teste 3D prendono il volto da qui, con le posizioni in `FACE` dentro `arena3d.js`); `img/volti/` i ritagli per le miniature |
 | `tools/simulate.js` | simulatore di bilanciamento |
 | `tools/livelli.js` | confronto tra i livelli di difficoltà |
 | `tools/volti.py` | ritaglio delle miniature dalle carte |
-| `tools/teste.py` | ritaglio dei volti per le teste 3D |
 | `tools/tune.py` | piccolo aiuto per ritoccare i valori delle carte |
 
 Per cambiare un valore basta modificare la carta in `engine.js` (per esempio `hp: 150, atk: 90, def: 75`) e rilanciare il simulatore.

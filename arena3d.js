@@ -160,16 +160,19 @@
 
   // Volto della carta per la testa 3D: la foto con i bordi sfumati (si fonde con la pelle del cranio),
   // più il colore della pelle (guancia) e dei capelli (parte alta della foto).
-  // Dove sta il viso nel ritaglio img/teste: [centro x, centro y, larghezza del viso], in frazioni del lato,
-  // più (facoltativo) il colore dei capelli quando dalla foto non si riesce a ricavarlo.
+  // Dove sta il viso nella carta intera (img/<id>.jpg): [centro x e larghezza del viso in frazioni della larghezza,
+  // centro y in frazione dell'altezza], più (facoltativo) il colore dei capelli quando dalla foto non si ricava.
+  // Il volto si prende dalla carta intera perché è sempre completo (i vecchi ritagli tagliavano naso o mento).
   const FACE = {
-    adriano: [0.52, 0.68, 0.85], alessandro: [0.5, 0.62, 0.9], andrea: [0.62, 0.58, 0.5, '#231a16'], annalisa: [0.5, 0.64, 0.45, '#4a3a30'],
-    annastella: [0.52, 0.62, 0.6], carla: [0.55, 0.62, 0.6], caterina: [0.6, 0.5, 0.6], celeste: [0.5, 0.66, 0.7],
-    chen: [0.52, 0.58, 0.55, '#1d1612'], chicca: [0.6, 0.7, 0.4, '#2a1c14'], christian: [0.55, 0.85, 0.7, '#2b1f18'], elia: [0.5, 0.56, 0.45, '#4a3222'],
-    federica: [0.68, 0.45, 0.28], grazia: [0.52, 0.8, 0.5, '#d9a95a'], katya: [0.5, 0.65, 0.45, '#d8d4d0'], lorenzo: [0.5, 0.72, 0.5, '#1e1712'],
-    niccolo: [0.5, 0.62, 0.45, '#2a1f1a'], nicole: [0.52, 0.8, 0.55, '#8a6440'], remigio: [0.55, 0.72, 0.5], samuele: [0.33, 0.55, 0.45, '#2b2018'],
-    sara: [0.5, 0.58, 0.45], signorello: [0.6, 0.58, 0.45], strahinja: [0.5, 0.42, 0.4], viola: [0.5, 0.56, 0.6, '#5a3a24'],
-    vittorio: [0.45, 0.65, 0.7], wangting: [0.5, 0.55, 0.5], zhenglei: [0.5, 0.56, 0.5],
+    adriano: [0.507, 0.332, 0.306], alessandro: [0.5, 0.343, 0.306], andrea: [0.489, 0.245, 0.08, '#231a16'],
+    annalisa: [0.51, 0.31, 0.122, '#4a3a30'], annastella: [0.465, 0.305, 0.156], carla: [0.514, 0.287, 0.168],
+    caterina: [0.502, 0.34, 0.192], celeste: [0.5, 0.311, 0.224], chen: [0.523, 0.226, 0.094, '#1d1612'],
+    chicca: [0.525, 0.204, 0.06, '#2a1c14'], christian: [0.515, 0.3, 0.2, '#2b1f18'], elia: [0.5, 0.228, 0.077, '#4a3222'],
+    federica: [0.527, 0.195, 0.034], grazia: [0.504, 0.274, 0.11, '#d9a95a'], katya: [0.47, 0.257, 0.081, '#d8d4d0'],
+    lorenzo: [0.5, 0.267, 0.09, '#1e1712'], niccolo: [0.54, 0.249, 0.09, '#2a1f1a'], nicole: [0.515, 0.296, 0.127, '#8a6440'],
+    remigio: [0.502, 0.24, 0.12], samuele: [0.576, 0.216, 0.063, '#2b2018'], sara: [0.46, 0.288, 0.126],
+    signorello: [0.479, 0.23, 0.086], strahinja: [0.48, 0.255, 0.096], viola: [0.5, 0.283, 0.168, '#5a3a24'],
+    vittorio: [0.476, 0.288, 0.196], wangting: [0.49, 0.191, 0.085], zhenglei: [0.46, 0.21, 0.105],
   };
   function faceTex(card) {
     if (faceCache[card]) return faceCache[card];
@@ -186,24 +189,28 @@
     const img = new Image();
     img.onload = () => {
       // la foto si sposta e si ingrandisce perché il viso cada al centro e largo sempre uguale
-      const [cx, cy, fw, hairFix] = FACE[card] || [0.5, 0.6, 0.5];
-      // capelli: dalla foto originale, sopra la fronte (se il viso tocca il bordo alto, la striscia in cima)
+      const [cx, cy, fw, hairFix] = FACE[card] || [0.5, 0.25, 0.12];
+      const W = img.width, H = img.height, fpx = fw * W;
+      // capelli: dalla carta, sopra la fronte
       try {
-        x.drawImage(img, 0, 0, 256, 256);
-        const hy = Math.max(0, cy - fw * 0.95) * 256, hh = Math.max(8, (cy - fw * 0.72) * 256 - hy);
-        info.hair = avg(Math.max(0, (cx - fw * 0.2) * 256) | 0, hy | 0, Math.max(8, fw * 0.4 * 256) | 0, hh | 0);
+        const big = document.createElement('canvas'); big.width = W; big.height = H;
+        const bx = big.getContext('2d', { willReadFrequently: true }); bx.drawImage(img, 0, 0);
+        const hy = Math.max(0, cy * H - fpx * 0.95), hh = Math.max(4, cy * H - fpx * 0.72 - hy);
+        const d = bx.getImageData(Math.max(0, cx * W - fpx * 0.2) | 0, hy | 0, Math.max(4, fpx * 0.4) | 0, hh | 0).data;
+        let r = 0, g = 0, b = 0, n = 0;
+        for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+        info.hair = `rgb(${r / n | 0},${g / n | 0},${b / n | 0})`;
         // se è venuto fuori lo sfondo colorato della carta (viola, rosa, blu) e non i capelli: castano scuro
         const hsl = {}; new T.Color(info.hair).getHSL(hsl);
         if (hsl.s > 0.25 && hsl.h > 0.47 && hsl.h < 0.95) info.hair = '#2a1d16';
         if (hairFix) info.hair = hairFix;
       } catch (e) { /* immagine non leggibile */ }
-      x.clearRect(0, 0, 256, 256);
-      const k = 127 / (fw * img.width);
-      x.drawImage(img, 128 - cx * img.width * k, 140 - cy * img.height * k, img.width * k, img.height * k);
-      try { info.skin = avg(108, 152, 40, 18); } catch (e) { /* immagine non leggibile */ }
+      const k = 127 / fpx;
+      x.drawImage(img, 128 - cx * W * k, 152 - cy * H * k, W * k, H * k);
+      try { info.skin = avg(108, 164, 40, 18); } catch (e) { /* immagine non leggibile */ }
       // maschera ovale sfumata: resta il viso, spariscono sfondo e bordi
       x.globalCompositeOperation = 'destination-in';
-      x.save(); x.translate(128, 132); x.scale(0.8, 1);
+      x.save(); x.translate(128, 142); x.scale(0.8, 1);
       const m = x.createRadialGradient(0, 0, 0, 0, 0, 98);
       m.addColorStop(0, 'rgba(0,0,0,1)'); m.addColorStop(0.68, 'rgba(0,0,0,1)'); m.addColorStop(1, 'rgba(0,0,0,0)');
       x.fillStyle = m; x.fillRect(-160, -140, 320, 280);
@@ -212,7 +219,7 @@
       tex.needsUpdate = true;
       (info.onLoad || []).forEach(f => f(info));
     };
-    img.src = window.STT.img(`teste/${card}.jpg`);
+    img.src = window.STT.img(`${card}.jpg`);
     faceCache[card] = info;
     return info;
   }
@@ -700,9 +707,10 @@
     head.add(mesh(new T.SphereGeometry(HEAD_R, 32, 24), skin));
     const fs = mesh(faceGeo(), new T.MeshStandardMaterial({ map: face.tex, emissiveMap: face.tex, emissive: '#ffffff', emissiveIntensity: 0.3, roughness: 0.6, transparent: true, depthWrite: false }));
     fs.renderOrder = 2; head.add(fs); J.face = fs;
-    const cap = mesh(new T.SphereGeometry(HEAD_R * 1.05, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.52), hairM);
-    cap.rotation.z = 0.62; head.add(cap);
-    [1, -1].forEach(sd => { const ear = ball(HEAD_R * 0.2, skin); ear.scale.set(0.5, 1, 0.55); ear.position.set(-0.01, -0.01, sd * HEAD_R * 0.97); head.add(ear); });
+    // capelli che incorniciano il viso: calotta in cima e nuca dietro (da un lato all'altro), il davanti resta libero
+    head.add(mesh(new T.SphereGeometry(HEAD_R * 1.05, 32, 10, 0, Math.PI * 2, 0, Math.PI * 0.25), hairM));
+    head.add(mesh(new T.SphereGeometry(HEAD_R * 1.04, 24, 16, -Math.PI / 2, Math.PI, 0, Math.PI * 0.7), hairM));
+    [1, -1].forEach(sd => { const ear = ball(HEAD_R * 0.2, skin); ear.scale.set(0.5, 1, 0.55); ear.position.set(0.03, -0.02, sd * HEAD_R * 0.97); head.add(ear); });
 
     const arm = (side) => {
       const sh = new T.Group(); sh.position.set(0, 0.47, side * 0.25); torso.add(sh);
@@ -773,6 +781,18 @@
     }, e || ease.io);
   }
   function face(ch, x, z) { ch.facing = Math.atan2(-(z - ch.g.position.z), x - ch.g.position.x); ch.g.rotation.y = ch.facing; }
+  // "di tre quarti verso il pubblico", come a teatro: guarda il bersaglio ma ruota della frazione k
+  // verso la telecamera, così il volto resta visibile. dur > 0: si gira con calma.
+  function stage(ch, x, z, k, dur) {
+    const p = ch.g.position;
+    const a1 = Math.atan2(-(z - p.z), x - p.x), a2 = Math.atan2(-(camBase.z - p.z), camBase.x - p.x);
+    let d = a2 - a1; while (d > Math.PI) d -= 2 * Math.PI; while (d < -Math.PI) d += 2 * Math.PI;
+    const to = a1 + d * k, from = ch.g.rotation.y;
+    ch.facing = to;
+    if (!dur) { ch.g.rotation.y = to; return Promise.resolve(); }
+    let dd = to - from; while (dd > Math.PI) dd -= 2 * Math.PI; while (dd < -Math.PI) dd += 2 * Math.PI;
+    return tween(dur, t => { ch.g.rotation.y = from + dd * t; }, ease.io);
+  }
   function flashChar(ch, color) {
     const col = new T.Color(color);
     ch.mats.forEach(m => m.emissive && m.emissive.copy(col));
@@ -1178,6 +1198,7 @@
   // ------------------------------------------------------------ coreografie
   async function melee(A, tg, kind, spec, M) {
     const tp = tg.ch.g.position;
+    face(A, tp.x, tp.z);
     const home = A.g.position.clone();
     // si ferma davanti al bersaglio
     const dir = new T.Vector3(tp.x - home.x, 0, tp.z - home.z); const dist = dir.length(); dir.normalize();
@@ -1248,8 +1269,8 @@
       return { ch, out: t.out, ally: t.ally };
     });
     const focus = tgs.length ? tgs.map(t => t.ch.g.position).reduce((a, b) => a.clone().add(b)).multiplyScalar(1 / tgs.length) : new T.Vector3(1, 0, -1);
-    face(A, focus.x, focus.z);
-    tgs.forEach(t => face(t.ch, A.g.position.x, A.g.position.z));
+    stage(A, focus.x, focus.z, 0.6);
+    tgs.forEach(t => stage(t.ch, A.g.position.x, A.g.position.z, 0.3));
     const all = [A].concat(tgs.map(t => t.ch));
     const idle = (dt) => all.forEach(c => { c.t += dt; c.apply(); });
     updaters.push(idle);
@@ -1295,7 +1316,7 @@
       if (M.fx === 'steam') rise(new T.Vector3(main.ch.g.position.x, 0.3, main.ch.g.position.z), M.c, 20, 0.5);
       if (M.fx === 'fire' || kind === 'charge') burst(hitPos, '#ff5a1f', 20, 4, 0.08);
       ring(hitPos, M.c, 1.2, 0.35);
-      await Promise.all([impactAll(), (async () => { await wait(0.12); await Promise.all([toPose(A, 'guard', 0.3), moveTo(A, home.x, home.z, 0.35, ease.io, 0.15)]); A.idle = true; })()]);
+      await Promise.all([impactAll(), (async () => { await wait(0.12); await Promise.all([toPose(A, 'guard', 0.3), moveTo(A, home.x, home.z, 0.35, ease.io, 0.15)]); await stage(A, focus.x, focus.z, 0.6, 0.2); A.idle = true; })()]);
     } else if (['cast', 'point', 'shout', 'throw', 'summon', 'dance'].includes(kind) && tgs.length) {
       A.idle = false;
       const wind = { cast: 'castWind', point: 'guard', shout: 'shoutWind', throw: 'throwWind', summon: 'castWind', dance: 'flex' }[kind];
@@ -1405,8 +1426,26 @@
   function skip() { skipping = true; }
 
   function setSpeed(k) { speed = k; }
+  // solo per le prove (indirizzo con #test): lottatori in fila rivolti alla telecamera, da vicino
+  function lineup(list) {
+    if (!init()) return null;
+    overlay.hidden = false; document.body.classList.add('arena-open'); resize();
+    while (root.children.length) root.remove(root.children[0]);
+    tweens.length = 0; parts.length = 0; updaters.length = 0;
+    const all = list.map((d, i) => {
+      const ch = fighter(d);
+      ch.g.position.set((i - (list.length - 1) / 2) * 0.52, 0, 0);
+      root.add(ch.g); return ch;
+    });
+    camBase = new T.Vector3(0, 1.62, 4.1); camera.position.copy(camBase); camera.lookAt(0, 1.55, 0);
+    all.forEach(c => face(c, camBase.x, camBase.z));
+    updaters.push(dt => all.forEach(c => { c.t += dt; c.apply(); }));
+    running = true; clock.getDelta(); loop();
+    return finish;
+  }
   // scarica in anticipo le immagini delle carte della partita
   function preload(cards) { if (T) cards.forEach(cardTex); }
 
   window.Arena3D = { available, play, skip, setSpeed, preload, terrainArt, MOVES, LOOK, FACE };
+  if (location.hash === '#test') window.Arena3D.lineup = lineup;
 })();

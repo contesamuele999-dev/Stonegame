@@ -18,7 +18,7 @@ const src = fs.readFileSync(path.join(dir, 'carte.js'), 'utf8');
 // le carte del pacchetto, per sapere quali immagini prendere
 const ids = require(path.join(dir, 'carte.js'))(new Proxy({}, { get: () => () => {} })).cards.map(c => c.id);
 const img = {};
-for (const id of ids) for (const sub of ['', 'volti/', 'teste/']) {
+for (const id of ids) for (const sub of ['', 'volti/']) {
   const f = path.join(dir, 'img', sub, id + '.jpg');
   img[sub + id + '.jpg'] = fs.readFileSync(f).toString('base64');
 }

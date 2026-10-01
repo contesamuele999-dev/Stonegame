@@ -1,5 +1,5 @@
 /* Service worker: salva il gioco sul telefono per aprirlo anche senza internet. */
-const CACHE = 'stonetao-v10';
+const CACHE = 'stonetao-v11';
 const FILES = [
   "./",
   "index.html",
@@ -71,33 +71,6 @@ const FILES = [
   "img/volti/vittorio.jpg",
   "img/volti/wangting.jpg",
   "img/volti/zhenglei.jpg",
-  "img/teste/adriano.jpg",
-  "img/teste/alessandro.jpg",
-  "img/teste/andrea.jpg",
-  "img/teste/annalisa.jpg",
-  "img/teste/annastella.jpg",
-  "img/teste/carla.jpg",
-  "img/teste/caterina.jpg",
-  "img/teste/celeste.jpg",
-  "img/teste/chen.jpg",
-  "img/teste/chicca.jpg",
-  "img/teste/christian.jpg",
-  "img/teste/elia.jpg",
-  "img/teste/federica.jpg",
-  "img/teste/grazia.jpg",
-  "img/teste/katya.jpg",
-  "img/teste/lorenzo.jpg",
-  "img/teste/niccolo.jpg",
-  "img/teste/nicole.jpg",
-  "img/teste/remigio.jpg",
-  "img/teste/samuele.jpg",
-  "img/teste/sara.jpg",
-  "img/teste/signorello.jpg",
-  "img/teste/strahinja.jpg",
-  "img/teste/viola.jpg",
-  "img/teste/vittorio.jpg",
-  "img/teste/wangting.jpg",
-  "img/teste/zhenglei.jpg"
 ];
 
 self.addEventListener('install', e => {
