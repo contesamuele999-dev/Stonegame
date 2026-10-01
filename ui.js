@@ -46,7 +46,7 @@
     teams: [[], []], builder: 0, filter: 'all',
     game: null, setup: null, log: [], view: 0, me: 0, sel: null, busy: false, logOpen: false, banner: '', first: 0,
     tut: -1, on: null, toast: null,
-    terrain: load('terrain', 'random'), weapons: [null, null],
+    terrain: load('terrain', 'random'),
   };
 
   // ------------------------------------------------------------ utilità
@@ -56,23 +56,13 @@
   const RANK_SHORT = { A: 'Allievo', I: 'Istruttore', M: 'Maestro', L: 'Leggenda' };
   const LEVEL_LABEL = { facile: 'Facile', normale: 'Normale', difficile: 'Difficile' };
 
-  // ------------------------------------------------------------ palestre (carte terreno) e armi
+  // ------------------------------------------------------------ palestre (carte terreno)
   const terrainBg = id => (S.TERRAIN[id] && window.Arena3D && Arena3D.terrainArt ? Arena3D.terrainArt(id) : '');
   // la palestra scelta (se sbloccata) o una a caso fra quelle sbloccate
   function pickTerrain(v) {
     if (S.TERRAIN[v] && !lockedAt('terrain', v)) return v;
     const ok = S.TERRAINS.filter(t => !lockedAt('terrain', t.id));
     return ok[Math.floor(Math.random() * ok.length)].id;
-  }
-  const randomWeapon = cards => ({ id: S.WEAPONS[Math.floor(Math.random() * S.WEAPONS.length)].id, card: cards[Math.floor(Math.random() * cards.length)] });
-  function sanitizeWeapon(w, cards) {
-    return w && typeof w === 'object' && S.WEAPON[w.id] && Array.isArray(cards) && cards.includes(w.card) ? { id: w.id, card: w.card } : null;
-  }
-  // l'arma resta a una carta della squadra: se quella carta esce, passa alla prima
-  function fixWeapon(b) {
-    if (A.weapons[b] && lockedAt('weapon', A.weapons[b].id)) A.weapons[b] = null; // arma non ancora sbloccata
-    const w = A.weapons[b], t = A.teams[b];
-    if (w && !t.includes(w.card)) w.card = t[0] || null;
   }
   function terrainCard(id) {
     const t = S.TERRAIN[id];
@@ -171,11 +161,11 @@
 
   // ------------------------------------------------------------ torneo
   const TORNEO = [
-    { name: 'Gli allievi del lunedì', level: 'facile', terrain: 'priula', weapon: { id: 'dagan', card: 'viola' }, cards: ['grazia', 'viola', 'annastella', 'caterina'], text: 'Si parte con calma: la classe dei principianti.' },
-    { name: 'Il corso serale', level: 'normale', terrain: 'lancenigo', weapon: { id: 'dao', card: 'alessandro' }, cards: ['vittorio', 'alessandro', 'christian', 'adriano'], text: 'Dopo il lavoro, ma pieni di energia.' },
-    { name: 'La squadra agonistica', level: 'difficile', terrain: 'priula', weapon: { id: 'qiang', card: 'lorenzo' }, cards: ['lorenzo', 'celeste', 'remigio', 'chicca'], text: 'Allenati per le gare: non regalano niente.' },
-    { name: 'Gli istruttori', level: 'facile', terrain: 'liming', weapon: { id: 'shuangjian', card: 'samuele' }, cards: ['samuele', 'niccolo', 'strahinja', 'federica'], text: 'Tutti gli Istruttori insieme: chi insegna sa anche combattere.' },
-    { name: 'Il Tempio dei Maestri', level: 'difficile', terrain: 'chenjiagou', weapon: { id: 'jian', card: 'andrea' }, cards: ['andrea', 'chen', 'katya'], boost: 1.1, text: 'La sfida finale: tre Maestri, più forti del solito. Chi vince sblocca le Leggende.' },
+    { name: 'Gli allievi del lunedì', level: 'facile', terrain: 'priula', cards: ['grazia', 'viola', 'annastella', 'caterina'], text: 'Si parte con calma: la classe dei principianti.' },
+    { name: 'Il corso serale', level: 'normale', terrain: 'lancenigo', cards: ['vittorio', 'alessandro', 'christian', 'adriano'], text: 'Dopo il lavoro, ma pieni di energia.' },
+    { name: 'La squadra agonistica', level: 'difficile', terrain: 'priula', cards: ['lorenzo', 'celeste', 'remigio', 'chicca'], text: 'Allenati per le gare: non regalano niente.' },
+    { name: 'Gli istruttori', level: 'facile', terrain: 'liming', cards: ['samuele', 'niccolo', 'strahinja', 'federica'], text: 'Tutti gli Istruttori insieme: chi insegna sa anche combattere.' },
+    { name: 'Il Tempio dei Maestri', level: 'difficile', terrain: 'chenjiagou', cards: ['andrea', 'chen', 'katya'], boost: 1.1, text: 'La sfida finale: tre Maestri, più forti del solito. Chi vince sblocca le Leggende.' },
   ];
   const torneo = () => load('torneo', { stage: 0, titles: 0 });
 
@@ -327,17 +317,7 @@
     const active = S.synergiesFor(team).map(x => x.id);
     return `<div class="syn">${S.SYNERGIES.map(x => `<div class="syn-row ${active.includes(x.id) ? 'on' : ''}"><b>${active.includes(x.id) ? '✓ ' : ''}${esc(x.name)}</b><span>${esc(x.desc)}</span></div>`).join('')}</div>`;
   }
-  function weaponBox() {
-    const team = A.teams[A.builder], w = A.weapons[A.builder];
-    const opts = ['<option value="">Nessuna arma</option>'].concat(S.WEAPONS.map(x => { const l = lockedAt('weapon', x.id); return `<option value="${x.id}" ${w && w.id === x.id ? 'selected' : ''} ${l ? 'disabled' : ''}>${l ? `🔒 ${esc(x.name)} · livello ${l}` : `${esc(x.name)} · ${esc(x.cn)}`}</option>`; })).join('');
-    const who = team.map(id => `<option value="${id}" ${w && w.card === id ? 'selected' : ''}>${esc(S.CARD[id].name)}</option>`).join('');
-    return `<div class="weapon-box"><div class="eyebrow">⚔️ Arma della squadra</div>
-      <div class="wrow"><select data-change="weapon" aria-label="Arma">${opts}</select>
-      <select data-change="weapon-card" aria-label="Chi porta l'arma" ${w && team.length ? '' : 'disabled'}>${who || '<option>Prima scegli le carte</option>'}</select></div>
-      <p class="hint" style="text-align:left">${w ? esc(S.WEAPON[w.id].desc) : "Una carta della squadra può portare un'arma dello stile Chen. Non costa Punti Dojo."}</p></div>`;
-  }
   function renderBuild() {
-    fixWeapon(A.builder);
     const team = A.teams[A.builder];
     const cost = S.teamCost(team);
     const pool = unlocked();
@@ -368,7 +348,6 @@
       ${opp ? `<div class="vs-card"><div class="eyebrow">Avversario · ${LEVEL_LABEL[opp.level]} · ${esc(S.TERRAIN[opp.terrain].name)}</div><b>${esc(opp.name)}</b><div class="faces-row">${opp.cards.map(id => `<i style="${face(id)}" title="${esc(S.CARD[id].name)}"></i>`).join('')}</div></div>` : ''}
       <div class="slots">${slots}</div>
       <div class="budget num"><span>Punti Dojo</span><div class="pips">${pips}</div><span>${cost}/${S.BUDGET}</span></div>
-      ${weaponBox()}
       <details class="syn-box"><summary>Sinergie di squadra (${S.synergiesFor(team).length} attive)</summary>${synergyList(team)}</details>
       <div class="filters" role="group" aria-label="Filtra per grado">${filters.map(([v, l]) => `<button data-act="filter" data-v="${v}" aria-pressed="${A.filter === v}">${l}</button>`).join('')}</div>
       ${pool.length < shown().length ? `<p class="hint" style="text-align:left">🔒 ${shown().length - pool.length} carte da sbloccare: ogni vittoria ne sblocca una.</p>` : ''}
@@ -547,12 +526,9 @@
   // da quale parte del tavolo sta chi tiene il telefono (in 2 sullo stesso telefono e nei replay: nessuna)
   const mySide = () => (A.mode === 'online' ? A.me : (A.mode === 'pvp' || A.mode === 'replay' ? -1 : 0));
 
-  // premi di livello: armi e palestre in più (le altre ci sono da subito)
-  const REWARDS = [
-    { lv: 2, weapon: 'shuangjian' }, { lv: 3, weapon: 'qiang' }, { lv: 4, terrain: 'liming' },
-    { lv: 5, weapon: 'shuangdao' }, { lv: 6, weapon: 'dadao' }, { lv: 8, terrain: 'chenjiagou' },
-  ];
-  const rewardName = r => (r.weapon ? `l'arma ${S.WEAPON[r.weapon].name}` : `la palestra ${S.TERRAIN[r.terrain].name}`);
+  // premi di livello: palestre in più (le armi invece arrivano in partita, come potenziamento)
+  const REWARDS = [{ lv: 4, terrain: 'liming' }, { lv: 8, terrain: 'chenjiagou' }];
+  const rewardName = r => `la palestra ${S.TERRAIN[r.terrain].name}`;
   function lockedAt(kind, id) {
     if (settings.allUnlocked) return 0;
     const r = REWARDS.find(x => x[kind] === id);
@@ -585,7 +561,7 @@
     { id: 'difficile', e: '🧠', name: 'Più forte del computer', desc: 'Batti il computer a livello difficile.' },
     { id: 'online', e: '📡', name: 'Sfida a distanza', desc: 'Vinci una sfida online.' },
     { id: 'palestre', e: '🗺️', name: 'Giramondo', desc: 'Vinci in tutte e 4 le palestre.' },
-    { id: 'armi', e: '⚔️', name: "Maestro d'armi", desc: 'Vinci con ognuna delle 8 armi.' },
+    { id: 'armi', e: '⚔️', name: "Maestro d'armi", desc: 'Impugna in partita tutte e 8 le armi.' },
     { id: 'effetti', e: '🃏', name: 'Asso nella manica', desc: 'Usa 10 carte effetto.' },
     { id: 'oro', e: '✨', name: "Carta d'oro", desc: 'Rendi dorata una carta (5 vittorie con lei).' },
     { id: 'collezione', e: '📚', name: 'Collezionista', desc: 'Sblocca tutte le carte.' },
@@ -616,7 +592,7 @@
     { id: 'g-speciali5', text: 'Usa 5 mosse speciali', need: 5, add: s => s.specials },
     { id: 'g-ko4', text: 'Manda K.O. 4 carte avversarie', need: 4, add: s => s.kos },
     { id: 'g-allievi', text: 'Vinci con almeno 2 Allievi in squadra', need: 1, add: s => (s.win && s.allievi >= 2 ? 1 : 0) },
-    { id: 'g-arma', text: "Vinci con un'arma in squadra", need: 1, add: s => (s.win && s.weapon ? 1 : 0) },
+    { id: 'g-arma', text: "Vinci dopo aver dato un'arma a una tua carta", need: 1, add: s => (s.win && s.arms.length ? 1 : 0) },
     { id: 'g-effetto2', text: 'Usa 2 carte effetto', need: 2, add: s => s.effects },
     { id: 'g-normale', text: 'Batti il computer a livello normale o difficile', need: 1, add: s => (s.win && s.mode === 'cpu' && s.level !== 'facile' ? 1 : 0) },
   ];
@@ -693,7 +669,7 @@
       win: g.winner === side, mode: A.mode, level: g.players[1 - side].cpu || null,
       allievi: pl.cards.filter(id => S.CARD[id] && S.CARD[id].rank === 'A').length,
       legend: pl.cards.some(id => S.CARD[id] && S.CARD[id].rank === 'L'),
-      weapon: (A.setup.players[side].weapon || {}).id || null, terrain: g.terrain,
+      arms: st.arms || [], terrain: g.terrain,
       specials: st.specials || 0, kos: st.kos || 0, effects: st.effects || 0, doubleKo: !!st.doubleKo,
       lost: pl.ko.length, alive: pl.field.length + pl.reserve.length, cards: pl.cards,
     };
@@ -706,13 +682,13 @@
     if (!cloudGame) { const xp = xpFor(s.mode, s.level, s.win); html += `<p class="xp-line">+${xp} punti esperienza · Livello ${lv(load('xp_locale', 0) + xp)}</p>` + addLocalXp(xp); }
     const prog = load('prog', { wins: 0, effects: 0, days: [], terrains: [], weapons: [] });
     prog.effects += s.effects;
+    s.arms.forEach(id => { if (!prog.weapons.includes(id)) prog.weapons.push(id); });
     if (!prog.days.includes(dayKey())) prog.days = prog.days.concat(dayKey()).slice(-30);
     const newMedals = [];
     const give = id => { const m = award(id); if (m) newMedals.push(m); };
     if (s.win) {
       prog.wins++;
       if (s.terrain && !prog.terrains.includes(s.terrain)) prog.terrains.push(s.terrain);
-      if (s.weapon && !prog.weapons.includes(s.weapon)) prog.weapons.push(s.weapon);
       // carte dorate e olografiche
       const vc = load('vittorie_carte', {}), upgraded = [];
       s.cards.forEach(id => { const before = variantOf(id); vc[id] = (vc[id] || 0) + 1; store('vittorie_carte', vc); const now = variantOf(id); if (now !== before) upgraded.push([id, now]); });
@@ -726,8 +702,8 @@
       if (s.mode === 'cpu' && s.level === 'difficile') give('difficile');
       if (s.mode === 'online') give('online');
       if (prog.terrains.length >= S.TERRAINS.length) give('palestre');
-      if (prog.weapons.length >= S.WEAPONS.length) give('armi');
     }
+    if (prog.weapons.length >= S.WEAPONS.length) give('armi');
     if (s.doubleKo) give('doppiok');
     if (prog.effects >= 10) give('effetti');
     if (prog.days.length >= 7) give('fedele');
@@ -767,7 +743,7 @@
       <p class="hint" style="text-align:left">Valgono le sfide contro il computer, il torneo, il tutorial e le sfide online (non quelle in 2 sullo stesso telefono). Ogni giorno e ogni lunedì arrivano missioni nuove.</p>
       <h3 class="sec">Premi di livello</h3>
       <div class="rewards">${REWARDS.map(r => `<div class="${myLevel() >= r.lv || settings.allUnlocked ? 'got' : ''}"><b class="num">Liv. ${r.lv}</b><span>${esc(rewardName(r))}</span></div>`).join('')}</div>
-      <p class="hint" style="text-align:left">Spada, sciabola, i due bastoni e le palestre di Lancenigo e Ponte della Priula ci sono da subito. Le carte diventano dorate dopo 5 vittorie con loro in squadra e olografiche dopo 15.</p>
+      <p class="hint" style="text-align:left">Le palestre di Lancenigo e Ponte della Priula ci sono da subito; le armi si ricevono in partita. Le carte diventano dorate dopo 5 vittorie con loro in squadra e olografiche dopo 15.</p>
     </div>`;
   }
   function renderMedaglie() {
@@ -816,7 +792,7 @@
       <p>Ogni sfida si combatte in una palestra, scelta prima della partita o a sorte. Il suo effetto vale per entrambe le squadre.</p>
       <ul>${S.TERRAINS.map(t => `<li><b>${esc(t.name)}</b> (${esc(t.place)}): ${esc(t.desc)}</li>`).join('')}</ul>
       <h3>Armi</h3>
-      <p>Mentre scegli la squadra puoi dare un'arma dello stile Chen a una tua carta. Non costa Punti Dojo.</p>
+      <p>Le armi dello stile Chen sono potenziamenti: ogni volta che una tua carta va K.O. ne ricevi una a caso. Nel tuo turno toccala e scegli a quale tua carta in campo darla (una sola arma per carta): non costa l'azione.</p>
       <ul>${S.WEAPONS.map(w => `<li><b>${esc(w.name)}</b> (${esc(w.cn)}): ${esc(w.desc)}</li>`).join('')}</ul>
       <h3>Carte effetto</h3>
       <p>All'inizio ognuno pesca 2 carte effetto (si vedono sotto la propria squadra). Dal secondo turno se ne può giocare una per turno, senza usare l'azione di una carta; ognuna vale una volta sola. Si possono spegnere dalle impostazioni.</p>
@@ -1034,18 +1010,25 @@
     const pl = g.players[p];
     const res = pl.reserve.length ? `Riserva: ${pl.reserve.map(f => esc(f.name.split(' ')[0])).join(', ')}` : 'Nessuna riserva';
     const syn = pl.syn && pl.syn.length ? pl.syn.map(id => S.SYNERGIES.find(x => x.id === id).name).map(esc).join(', ') : '';
-    const fx = pl.hand ? ` · 🃏 ${pl.hand.length - pl.usedFx.length}` : '';
+    const fx = (pl.hand ? ` · 🃏 ${pl.hand.length - pl.usedFx.length}` : '') + (pl.arms && pl.arms.length > pl.armsUsed.length ? ` · ⚔️ ${pl.arms.length - pl.armsUsed.length}` : '');
     return `<div class="bar"><div class="side-name ${g.turn === p && g.winner === null ? 'active' : ''}"><i class="turn-dot"></i><span>${esc(pl.name)}</span></div><div class="res-info">${res} · K.O. ${pl.ko.length}${fx}<span class="syn-tag">${syn}</span></div></div>`;
   }
   // le carte effetto in mano a chi tiene il telefono
   function handHtml(g, p) {
     const pl = g.players[p];
-    if (!pl.hand) return '';
-    const usable = isLocalTurn() && g.turn === p && !A.busy ? S.effectOptions(g).map(x => x.id) : [];
-    return `<div class="hand" aria-label="Carte effetto">${pl.hand.map(id => {
+    const arms = (pl.arms || []).filter(id => !pl.armsUsed.includes(id));
+    if (!pl.hand && !arms.length) return '';
+    const mine = isLocalTurn() && g.turn === p && !A.busy;
+    const usable = mine ? S.effectOptions(g).map(x => x.id) : [];
+    const armable = mine ? S.armOptions(g) : [];
+    return `<div class="hand" aria-label="Carte effetto e armi">${(pl.hand || []).map(id => {
       const x = S.EFFECT[id], used = pl.usedFx.includes(id), on = A.sel && A.sel.effect === id;
       return `<button class="fx-card ${used ? 'used' : ''} ${on ? 'on' : ''}" data-act="effect" data-v="${id}" ${usable.includes(id) && !used ? '' : 'disabled'} aria-label="${esc(x.name)}: ${esc(x.desc)}">
         <span class="fx-e">${x.e}</span><span class="fx-t"><b>${esc(x.name)}</b><small>${used ? 'Usata' : esc(x.desc)}</small></span></button>`;
+    }).join('')}${arms.map(id => {
+      const w = S.WEAPON[id], on = A.sel && A.sel.arm === id;
+      return `<button class="fx-card arm ${on ? 'on' : ''}" data-act="arm" data-v="${id}" ${armable.includes(id) ? '' : 'disabled'} aria-label="Arma ${esc(w.name)}: ${esc(w.desc)}">
+        <span class="fx-e">⚔️</span><span class="fx-t"><b>${esc(w.name)}</b><small>${esc(w.desc)}</small></span></button>`;
     }).join('')}</div>`;
   }
 
@@ -1053,6 +1036,7 @@
   const canHint = () => isLocalTurn() && !A.busy && !A.sel && A.mode !== 'online';
   function hintText(g, a) {
     if (a.effect) { const t = a.target ? S.byUid(g, a.target) : null; return `Gioca ${S.EFFECT[a.effect].name}${t ? ` su ${t.name}` : ''}`; }
+    if (a.arm) return `Dai ${S.WEAPON[a.arm].name} a ${S.byUid(g, a.target).name}`;
     const u = S.byUid(g, a.actor), opt = S.actorOptions(g, u).find(o => o.i === a.move);
     const m = opt ? opt.move : S.BASIC, t = a.target ? S.byUid(g, a.target) : null;
     const label = a.pick ? `${m.name} → ${S.refMove(a.pick).name}` : m.name;
@@ -1257,9 +1241,9 @@
 
   async function perform(a, local) {
     const g = A.game;
-    const d = !a.pass && !a.effect && use3D() ? describe(g, a) : null;
+    const d = a.actor && use3D() ? describe(g, a) : null;
     const turnBefore = g.turn;
-    const mover = a.pass ? -1 : a.effect ? g.turn : ((S.byUid(g, a.actor) || {}).owner);
+    const mover = a.pass ? -1 : a.actor ? (S.byUid(g, a.actor) || {}).owner : g.turn;
     applyAct(a);
     if (local && A.mode === 'online') Net.send({ t: 'act', n: A.log.length - 1, a });
     const evs = g.events.splice(0);
@@ -1270,6 +1254,7 @@
       A.stats.kos += kos;
       if (mover === side) {
         if (a.effect) A.stats.effects++;
+        else if (a.arm) A.stats.arms.push(a.arm);
         else if (a.move >= 0) A.stats.specials++;
         if (kos >= 2) A.stats.doubleKo = true;
       }
@@ -1348,6 +1333,8 @@
         await sleep(pace(160));
       } else if (e.type === 'ko') { mark(e.uid, 'ko'); sfx('ko'); if (window.Sound) Sound.buzz([90, 50, 160]); fx = true; }
       else if (e.type === 'gymevent') { if (fx) { await sleep(pace(500)); fx = false; } await showToast(e.name, e.desc); }
+      else if (e.type === 'arm') await showToast(`⚔️ ${S.WEAPON[e.id].name}`, S.WEAPON[e.id].desc, `Potenziamento · ${A.game.players[e.player].name}`);
+      else if (e.type === 'equip') { floatOn(e.uid, `⚔️ ${S.WEAPON[e.id].name}`, 'st'); sfx('shield'); fx = true; }
       else if (e.type === 'effect') { const x = S.EFFECT[e.id]; await showToast(`${x.e} ${x.name}`, x.desc, `🃏 Carta effetto · ${A.game.players[e.player].name}`); }
     }
     if (fx) await sleep(pace(650));
@@ -1501,6 +1488,7 @@
   }
   function actionBanner(g, a) {
     if (a.effect) return `${g.players[g.turn].name} gioca ${S.EFFECT[a.effect].name}`;
+    if (a.arm) return `${g.players[g.turn].name} dà ${S.WEAPON[a.arm].name} a ${S.byUid(g, a.target).name}`;
     const u = S.byUid(g, a.actor);
     if (!u) return '';
     const opt = S.actorOptions(g, u).find(o => o.i === a.move);
@@ -1571,7 +1559,7 @@
     A.log = [];
     A.game = S.createGame(setup);
     A.game.events = [];
-    A.stats = { specials: 0, kos: 0, effects: 0, doubleKo: false };
+    A.stats = { specials: 0, kos: 0, effects: 0, doubleKo: false, arms: [] };
     if (use3D()) Arena3D.preload(setup.players.flatMap(p => p.cards));
     A.ended = null;
     A.sel = null; A.logOpen = false; A.busy = false; A.banner = '';
@@ -1586,6 +1574,7 @@
       first: first === undefined ? (Math.random() < 0.5 ? 0 : 1) : first,
       gymEvents: settings.events,
       effects: settings.effectCards,
+      armory: true, // armi come potenziamento a chi perde una carta
       terrain: terrain === undefined ? pickTerrain(A.terrain) : (S.TERRAIN[terrain] ? terrain : pickTerrain('random')),
       players,
     };
@@ -1593,10 +1582,10 @@
 
   function startGame(first, sameTeams) {
     const cpu = A.mode === 'cpu';
-    if (cpu && !sameTeams) { A.teams[1] = S.randomTeam(null, S.BUDGET - 1, shown().map(c => c.id)); A.weapons[1] = randomWeapon(A.teams[1]); }
+    if (cpu && !sameTeams) A.teams[1] = S.randomTeam(null, S.BUDGET - 1, shown().map(c => c.id));
     const setup = newSetup([
-      { name: A.names[0] || 'Giocatore 1', cards: A.teams[0], weapon: A.weapons[0] },
-      { name: cpu ? 'Computer' : (A.names[1] || 'Giocatore 2'), cards: A.teams[1], weapon: A.weapons[1], cpu: cpu ? A.level : null },
+      { name: A.names[0] || 'Giocatore 1', cards: A.teams[0] },
+      { name: cpu ? 'Computer' : (A.names[1] || 'Giocatore 2'), cards: A.teams[1], cpu: cpu ? A.level : null },
     ], first, sameTeams && A.setup ? A.setup.terrain : undefined);
     A.first = setup.first;
     launch(setup, { view: cpu ? 0 : setup.first });
@@ -1606,8 +1595,8 @@
   function startTorneo() {
     const t = torneo(), o = TORNEO[t.stage];
     const setup = newSetup([
-      { name: A.names[0] || 'Giocatore 1', cards: A.teams[0], weapon: A.weapons[0] },
-      { name: o.name, cards: o.cards, weapon: o.weapon, cpu: o.level, boost: o.boost },
+      { name: A.names[0] || 'Giocatore 1', cards: A.teams[0] },
+      { name: o.name, cards: o.cards, cpu: o.level, boost: o.boost },
     ], undefined, o.terrain);
     A.first = setup.first;
     launch(setup, { view: 0 });
@@ -1650,14 +1639,14 @@
     const g = A.game;
     if (!g || A.mode === 'online' || A.mode === 'tutorial' || A.mode === 'replay') return;
     if (g.winner !== null) { drop('save'); return; }
-    store('save', { mode: A.mode, level: A.level, names: A.names, teams: A.teams, weapons: A.weapons, setup: A.setup, log: A.log, view: A.view, turnNo: g.turnNo, first: A.first });
+    store('save', { mode: A.mode, level: A.level, names: A.names, teams: A.teams, setup: A.setup, log: A.log, view: A.view, turnNo: g.turnNo, first: A.first });
   }
 
   function resumeGame() {
     const s = load('save', null);
     if (!s) return;
     try {
-      A.mode = s.mode; A.level = s.level; A.names = s.names; A.teams = s.teams; A.weapons = s.weapons || [null, null]; A.first = s.first;
+      A.mode = s.mode; A.level = s.level; A.names = s.names; A.teams = s.teams; A.first = s.first;
       const setup = Object.assign({}, s.setup, { silent: true });
       A.setup = s.setup;
       A.game = S.createGame(setup);
@@ -1714,13 +1703,11 @@
         A.mode = 'online'; A.builder = 0; A.filter = 'all';
         A.teams = [load('team0', []).filter(id => unlocked().includes(id)), []];
         if (S.teamCost(A.teams[0]) > S.BUDGET || A.teams[0].length !== S.TEAM_SIZE) A.teams[0] = [];
-        A.weapons = [load('weapon0', null), null].map(w => (w && S.WEAPON[w.id] ? w : null));
         go('build');
         toastQuick(`Collegato con ${o.oppName}! Scegli la tua squadra.`);
       }
     } else if (m.t === 'team') {
       o.oppTeam = sanitizeTeam(m.cards);
-      o.oppWeapon = sanitizeWeapon(m.weapon, o.oppTeam);
       maybeStartOnline();
     } else if (m.t === 'start') {
       if (Net.role !== 'guest' || !m.setup) return;
@@ -1753,8 +1740,8 @@
     const o = A.on;
     if (Net.role !== 'host' || !o.myTeam || !o.oppTeam) return;
     const setup = newSetup([
-      { name: A.names[0] || 'Giocatore 1', cards: o.myTeam, weapon: o.myWeapon },
-      { name: o.oppName || 'Giocatore 2', cards: o.oppTeam, weapon: o.oppWeapon },
+      { name: A.names[0] || 'Giocatore 1', cards: o.myTeam },
+      { name: o.oppName || 'Giocatore 2', cards: o.oppTeam },
     ]);
     Net.send({ t: 'start', setup, key: secretFor(setup.players.flatMap(p => p.cards)) });
     startOnline(setup);
@@ -1836,7 +1823,7 @@
     const o = A.on;
     if (!o.oppRematch || !o.myRematch) return;
     if (Net.role === 'host') {
-      const setup = newSetup(A.setup.players.map(p => ({ name: p.name, cards: p.cards, weapon: p.weapon || null })));
+      const setup = newSetup(A.setup.players.map(p => ({ name: p.name, cards: p.cards })));
       Net.send({ t: 'start', setup, key: secretFor(setup.players.flatMap(p => p.cards)) });
       startOnline(setup);
     }
@@ -1899,7 +1886,6 @@
         A.builder = 0; A.filter = 'all';
         A.teams = [load('team0', []), A.mode === 'pvp' ? load('team1', []) : []];
         A.teams = A.teams.map(t => (t.every(id => unlocked().includes(id)) && S.teamCost(t) <= S.BUDGET) ? t : []);
-        A.weapons = [load('weapon0', null), A.mode === 'pvp' ? load('weapon1', null) : null].map(w => (w && S.WEAPON[w.id] ? w : null));
         go('build'); break;
       case 'build-back':
         if (A.liveMatch && A.builder === 0) { A.liveMatch = null; go('live'); }
@@ -1924,7 +1910,7 @@
       case 'live-play': {
         const L = live(), r = +el.dataset.r, i = +el.dataset.i, m = L.rounds[r][i];
         A.liveMatch = { r, i };
-        A.mode = 'pvp'; A.names = [m.a, m.b]; A.teams = [[], []]; A.weapons = [null, null];
+        A.mode = 'pvp'; A.names = [m.a, m.b]; A.teams = [[], []];
         A.builder = 0; A.filter = 'all';
         go('build'); break;
       }
@@ -1996,15 +1982,13 @@
       case 'random-team': A.teams[A.builder] = S.randomTeam(null, S.BUDGET - 1, unlocked()); render(); break;
       case 'confirm-team':
         store('team' + A.builder, A.teams[A.builder]);
-        store('weapon' + A.builder, A.weapons[A.builder]);
         if (A.mode === 'pvp' && A.builder === 0) {
           A.builder = 1; A.filter = 'all'; render(); window.scrollTo(0, 0);
           openLayer(`<div class="overlay" role="dialog"><div class="eyebrow">Squadra pronta</div><h2>Passa il telefono a ${esc(A.names[1])}</h2><p>Ora tocca a ${esc(A.names[1])} scegliere la sua squadra.</p><button class="btn primary" data-act="close">Sono pronto</button></div>`);
         } else if (A.mode === 'torneo') startTorneo();
         else if (A.mode === 'online') {
           A.on.myTeam = A.teams[0].slice();
-          A.on.myWeapon = sanitizeWeapon(A.weapons[0], A.on.myTeam);
-          Net.send({ t: 'team', cards: A.on.myTeam, weapon: A.on.myWeapon, key: secretFor(A.on.myTeam) });
+          Net.send({ t: 'team', cards: A.on.myTeam, key: secretFor(A.on.myTeam) });
           openLayer(`<div class="overlay" role="dialog"><div class="eyebrow">Squadra pronta</div><h2>In attesa di ${esc(A.on.oppName || 'avversario')}</h2><p>La partita parte quando anche l'altra squadra è pronta.</p><button class="btn ghost" data-act="close">Cambia squadra</button></div>`);
           maybeStartOnline();
         } else startGame();
@@ -2025,6 +2009,7 @@
         if (A.sel) {
           if (A.sel.targets.includes(v)) {
             if (A.sel.effect) act({ effect: A.sel.effect, target: v });
+            else if (A.sel.arm) act({ arm: A.sel.arm, target: v });
             else act({ actor: A.sel.actor, move: A.sel.move, pick: A.sel.pick, target: v }, A.sel.inner);
           }
           else if (v === A.sel.actor) { A.sel = null; A.banner = ''; render(); }
@@ -2047,6 +2032,14 @@
         A.banner = `${x.name}: tocca il bersaglio`;
         render(); break;
       }
+      case 'arm': {
+        if (!isLocalTurn() || A.busy || !S.armOptions(g).includes(v)) break;
+        A.hint = null;
+        if (A.sel && A.sel.arm === v) { A.sel = null; A.banner = ''; render(); break; }
+        A.sel = { arm: v, targets: S.armTargets(g, g.turn).map(f => f.uid) };
+        A.banner = `${S.WEAPON[v].name}: tocca la carta che la impugna`;
+        render(); break;
+      }
       case 'hint': {
         // il computer pensa come al livello normale e propone la mossa che sceglierebbe
         const a = S.chooseAction(g, 'normale');
@@ -2056,6 +2049,7 @@
       case 'hint-do': {
         const h = A.hint && A.hint.a;
         if (h && h.effect && !A.busy) { act({ effect: h.effect, target: h.target }); break; }
+        if (h && h.arm && !A.busy) { act({ arm: h.arm, target: h.target }); break; }
         if (!h || !h.actor || A.busy) break;
         const u = S.byUid(g, h.actor), opt = S.actorOptions(g, u).find(o => o.i === h.move);
         if (!opt || !opt.ok) { A.hint = null; render(); break; }
@@ -2092,7 +2086,6 @@
         A.mode = 'torneo'; A.builder = 0; A.filter = 'all';
         A.teams = [load('team0', []).filter(id => unlocked().includes(id)), []];
         if (A.teams[0].length !== S.TEAM_SIZE || S.teamCost(A.teams[0]) > S.BUDGET) A.teams[0] = [];
-        A.weapons = [load('weapon0', null), null].map(w => (w && S.WEAPON[w.id] ? w : null));
         go('build'); break;
       case 'torneo-next': A.game = null; closeLayer(); if (torneo().stage === 0) go('torneo'); else { A.mode = 'torneo'; go('build'); } break;
       case 'torneo-reset': confirmBox('Ricominciare il torneo?', 'Riparti dal primo incontro. I titoli vinti restano.', 'torneo-reset-yes', 'Ricomincia'); break;
@@ -2124,15 +2117,10 @@
     }
   }
   document.addEventListener('click', handle);
-  // tendine dell'arma nella scelta della squadra
+  // mostra la password
   document.addEventListener('change', e => {
-    const k = e.target.dataset && e.target.dataset.change;
-    if (!k) return;
-    if (k === 'showpw') { const p = document.getElementById('acc-pass'); if (p) p.type = e.target.checked ? 'text' : 'password'; return; }
-    const t = A.teams[A.builder], w = A.weapons[A.builder];
-    if (k === 'weapon') A.weapons[A.builder] = e.target.value ? { id: e.target.value, card: (w && w.card) || t[0] || null } : null;
-    if (k === 'weapon-card' && w) w.card = e.target.value;
-    render();
+    if (!e.target.dataset || e.target.dataset.change !== 'showpw') return;
+    const p = document.getElementById('acc-pass'); if (p) p.type = e.target.checked ? 'text' : 'password';
   });
   document.addEventListener('keydown', e => {
     if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-act]')) { e.preventDefault(); handle(e); }

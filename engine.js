@@ -485,8 +485,8 @@
   TERRAINS.forEach(t => { TERRAIN[t.id] = t; });
 
   // ---------------------------------------------------------------- ARMI (stile Chen)
-  // Una per squadra, la porta una carta a scelta. atk/def = bonus fissi; gli altri campi valgono per l'attacco base
-  // (flat, twice, cleave, stun) o per tutti i colpi (pierceDef).
+  // Potenziamenti: chi perde una carta riceve un'arma a caso e nel suo turno la dà a una sua carta in campo.
+  // atk/def = bonus fissi; gli altri campi valgono per l'attacco base (flat, twice, cleave, stun) o per tutti i colpi (pierceDef).
   const WEAPONS = [
     { id: 'jian', name: 'Spada', cn: 'Jian', desc: '+15 ATK.', atk: 15 },
     { id: 'shuangjian', name: 'Doppia spada', cn: 'Shuang Jian', desc: 'L\'attacco base colpisce due volte, ognuna al 65%.', twice: 0.65 },
@@ -500,6 +500,7 @@
   const WEAPON = {};
   WEAPONS.forEach(w => { WEAPON[w.id] = w; });
   const weaponOf = f => WEAPON[f.weapon] || null;
+  function arm(f, w) { f.weapon = w.id; f.baseAtk += w.atk || 0; f.baseDef += w.def || 0; }
 
   // ---------------------------------------------------------------- CARTE EFFETTO
   // Ogni giocatore ne pesca 2 a inizio partita (dal seme: uguali su entrambi i telefoni e nei replay).
@@ -555,6 +556,33 @@
     x.use(g, p, t);
     checkWin(g);
     if (g.winner === null && !canAct(g)) endTurn(g);
+    return true;
+  }
+
+  // armi come potenziamento (solo nelle partite con opts.armory: le vecchie restano identiche)
+  function gainWeapon(g, p) {
+    const pl = g.players[p], pool = WEAPONS.filter(w => !pl.arms.includes(w.id));
+    if (!pool.length) return;
+    const w = pool[Math.floor(rand(g) * pool.length)];
+    pl.arms.push(w.id);
+    log(g, `⚔️ ${pl.name} riceve un potenziamento: ${w.name}!`);
+    ev(g, { type: 'arm', player: p, id: w.id });
+  }
+  const armTargets = (g, p) => team(g, p).filter(f => !f.weapon);
+  // armi ricevute e non ancora date a nessuno, per il giocatore di turno
+  function armOptions(g) {
+    const pl = g.players[g.turn];
+    if (!pl.arms || g.winner !== null || !armTargets(g, g.turn).length) return [];
+    return pl.arms.filter(id => !pl.armsUsed.includes(id));
+  }
+  // dare l'arma non costa l'azione della carta
+  function equipWeapon(g, a) {
+    const p = g.turn, w = WEAPON[a.arm], t = a.target ? byUid(g, a.target) : null;
+    if (!w || !armOptions(g).includes(w.id) || !t || !armTargets(g, p).includes(t)) return false;
+    g.players[p].armsUsed.push(w.id);
+    arm(t, w);
+    log(g, `⚔️ ${nm(t)} impugna: ${w.name}!`);
+    ev(g, { type: 'equip', uid: t.uid, id: w.id });
     return true;
   }
 
@@ -697,6 +725,7 @@
       ev(g, { type: 'enter', uid: r.uid });
     }
     checkWin(g);
+    if (g.armory && g.winner === null) gainWeapon(g, t.owner);
   }
 
   function checkWin(g) {
@@ -791,11 +820,12 @@
         if (ter && ter.apply) fs.forEach(ter.apply);
         const wp = p.weapon && WEAPON[p.weapon.id];
         const armed = wp && fs.find(f => f.card === p.weapon.card);
-        if (armed) { armed.weapon = wp.id; armed.baseAtk += wp.atk || 0; armed.baseDef += wp.def || 0; }
+        if (armed) arm(armed, wp);
         if (p.boost) fs.forEach(f => { f.hp = f.maxHp = Math.round(f.maxHp * p.boost); f.baseAtk = Math.round(f.baseAtk * (1 + (p.boost - 1) / 2)); });
         return { name: p.name, cpu: p.cpu || null, field: fs.slice(0, FIELD_SIZE), reserve: fs.slice(FIELD_SIZE), ko: [], cards: p.cards.slice(), syn: syn.map(x => x.id) };
       }),
       gymEvents: opts.gymEvents !== false,
+      armory: !!opts.armory,
       terrain: TERRAIN[opts.terrain] ? opts.terrain : null,
       turn: opts.first === undefined ? 0 : opts.first,
       turnNo: 1, actions: 0, winner: null, log: [], events: [], lastSpecial: null, silent: !!opts.silent, passes: 0,
@@ -803,6 +833,7 @@
     // carte effetto: si pescano solo se la partita le prevede (le partite vecchie restano identiche)
     g.players.forEach(pl => {
       pl.usedFx = [];
+      if (opts.armory) { pl.arms = []; pl.armsUsed = []; }
       if (!opts.effects) return;
       const pool = EFFECTS.map(x => x.id);
       pl.hand = [];
@@ -970,12 +1001,14 @@
       if (x.target === 'none') acts.push({ effect: x.id, target: null });
       else for (const t of effectTargets(g, g.turn, x)) acts.push({ effect: x.id, target: t.uid });
     }
+    for (const id of armOptions(g)) for (const t of armTargets(g, g.turn)) acts.push({ arm: id, target: t.uid });
     return acts;
   }
 
   function doAction(g, a) {
     if (g.winner !== null) return false;
     if (a.effect) return playEffect(g, a);
+    if (a.arm) return equipWeapon(g, a);
     const u = byUid(g, a.actor);
     if (!u || u.owner !== g.turn || u.hp <= 0) return false;
     const opt = actorOptions(g, u).find(o => o.i === a.move);
@@ -1185,7 +1218,7 @@
     needsTarget, effAtk, effDef, team, enemies, field, byUid, cardOf, movesOf, isStunned, isNegative,
     teamCost, randomTeam, clone, canAct, passTurn, expectedHit,
     SYNERGIES, synergiesFor, GYM_EVENTS, EVENT_EVERY, previewDamage, isMaster,
-    TERRAINS, TERRAIN, WEAPONS, WEAPON, H, addCards, IMG, img, EFFECTS, EFFECT, effectOptions, effectTargets, RULES,
+    TERRAINS, TERRAIN, WEAPONS, WEAPON, H, addCards, IMG, img, EFFECTS, EFFECT, effectOptions, effectTargets, armOptions, armTargets, RULES,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.STT = api;

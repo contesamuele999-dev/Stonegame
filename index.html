@@ -242,6 +242,7 @@
   .fx-card.on { border-color: var(--temple); box-shadow: 0 0 0 2px var(--temple); }
   .fx-card:disabled { cursor: default; opacity: .55; }
   .fx-card.used { opacity: .3; filter: grayscale(1); }
+  .fx-card.arm { border-color: #b9c4cf; background: linear-gradient(135deg, #262b31, #16191c); }
   .fx-e { font-size: 22px; flex: none; }
   .fx-t { display: grid; gap: 1px; min-width: 0; }
   .fx-t b { font-family: var(--label); font-size: 14.5px; line-height: 1.05; color: var(--gold); }
@@ -380,10 +381,6 @@
   .terrain-card b { font-family: var(--label); font-size: 19px; color: var(--paper); display: block; line-height: 1.1; }
   .terrain-card p { margin: 3px 0 0; font-size: 13.5px; color: var(--paper-dim); }
   .terrain-chip { justify-self: center; min-height: 32px; padding: 4px 12px; border-radius: 16px; border: 1px solid var(--gold); background: #1f1810cc; color: var(--gold); font-family: var(--label); font-weight: 600; font-size: 13.5px; letter-spacing: .03em; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-  .weapon-box { border: 1px solid var(--line); border-radius: 6px; padding: 8px 10px; background: var(--ink-2); display: grid; gap: 6px; }
-  .weapon-box .hint { margin: 0; }
-  .wrow { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
-  .wrow select { min-height: 44px; border-radius: 6px; border: 1.5px solid var(--line); background: var(--ink); color: var(--paper); padding: 6px 8px; font: 15px var(--body); min-width: 0; }
   .wpn { position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; border-radius: 12px; background: #000b; display: grid; place-items: center; font-size: 13px; }
   .wline { margin: 0; font-size: 14px; color: var(--paper-dim); }
   .wline b { color: var(--gold); font-family: var(--label); font-size: 16px; }

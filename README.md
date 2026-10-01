@@ -44,10 +44,10 @@ Missioni, medaglie e classifica della settimana si attivano incollando anche `su
 ### Progressi
 
 - **Livelli**: si guadagnano punti a ogni sfida (contro il computer, torneo, tutorial, online; non in 2 sullo stesso telefono). Con l'account i punti stanno online, senza account restano sul telefono.
-- **Premi di livello**: spada, sciabola, i due bastoni e le palestre di Lancenigo e Ponte della Priula ci sono da subito. Si sbloccano poi doppia spada (livello 2), lancia (3), palestra di Liming Yue (4), doppia sciabola (5), alabarda (6) e piazza di Chenjiagou (8). "Sblocca tutte le carte" nelle impostazioni sblocca anche questi.
+- **Premi di livello**: le palestre di Lancenigo e Ponte della Priula ci sono da subito; quella di Liming Yue si sblocca al livello 4 e la piazza di Chenjiagou all'8. "Sblocca tutte le carte" nelle impostazioni sblocca anche queste. Le armi invece si ricevono in partita.
 - **Carte speciali**: una carta diventa **dorata** dopo 5 vittorie con lei in squadra e **olografica** dopo 15 (bordo e riflessi nella collezione, in partita e sul tatami 3D).
 - **Missioni**: 3 al giorno (30 punti) e 2 a settimana (120 punti), uguali per tutti; il premio si riscuote dalla schermata Missioni. Con l'account lo assegna il database, una volta sola per missione.
-- **Medaglie**: 17 traguardi (prima vittoria, imbattuto, rimonta, doppio K.O., tutte le palestre, tutte le armi...), una nascosta.
+- **Medaglie**: 17 traguardi (prima vittoria, imbattuto, rimonta, doppio K.O., tutte le palestre, impugnare tutte le armi...), una nascosta.
 - **Classifica della settimana**: nella schermata dell'account, i punti fatti da lunedì; accanto resta quella di sempre.
 
 ## Regolamento
@@ -81,7 +81,7 @@ Missioni, medaglie e classifica della settimana si attivano incollando anche `su
 - *Palestra del Maestro Liming Yue* (Inghilterra): le mosse speciali si ricaricano un turno prima.
 - *Piazza del Taiji* (Chenjiagou, Cina): Maestri e Leggende hanno +10 ATK e +10 DEF.
 
-**Armi.** Mentre sceglie la squadra, ogni giocatore può dare un'arma dello stile Chen a una sua carta (non costa Punti Dojo). Nell'arena 3D il lottatore la tiene in mano.
+**Armi (potenziamenti).** Le armi dello stile Chen non si scelgono prima: si ricevono in partita. Ogni volta che una tua carta va K.O. ricevi un'arma a caso (dal seme della partita, come le carte effetto). Nel tuo turno la tocchi e scegli a quale tua carta in campo darla: una sola arma per carta, non costa l'azione. Il computer fa lo stesso. Nell'arena 3D il lottatore la tiene in mano.
 - *Spada* (Jian): +15 ATK.
 - *Doppia spada* (Shuang Jian): l'attacco base colpisce due volte, ognuna al 65%.
 - *Sciabola* (Dao): l'attacco base fa +8 danni.
@@ -91,7 +91,7 @@ Missioni, medaglie e classifica della settimana si attivano incollando anche `su
 - *Bastone al sopracciglio* (Qimei Gun): +15 DEF e l'attacco base stordisce per 1 turno nel 20% dei casi.
 - *Asta lunga* (Da Gan): +25 DEF.
 
-Armi e palestre sono state bilanciate come le carte: con migliaia di partite simulate, ogni arma vince fra il 49 e il 52% delle volte (chi non ne porta nessuna si ferma al 42%, quindi conviene sempre sceglierne una).
+Armi e palestre sono state bilanciate come le carte con migliaia di partite simulate: le armi si equivalgono (chi le usa vince fra il 46 e il 49%: sotto il 50% perché le riceve chi sta perdendo carte). Dato che l'arma arriva a chi perde una carta, aiuta a rimontare: chi perde la prima carta vince il 38% delle sfide, contro il 33% senza armi.
 
 **Carte effetto.** All'inizio ognuno pesca 2 carte effetto da un mazzo di 8 (la pesca dipende dal seme della partita: è identica sui due telefoni online e nei replay). Dal secondo turno se ne può giocare una per turno, senza usare l'azione di una carta; ognuna vale una volta sola. Il computer le usa anche lui. Si possono spegnere dalle impostazioni.
 - 💧 *Pausa acqua*: una tua carta recupera 30 PV.
@@ -262,7 +262,7 @@ node tools/simulate.js 8000          # 8000 partite al livello "normale"
 node tools/livelli.js facile normale 300   # confronto tra livelli dell'IA
 ```
 
-Ultimo risultato su 8000 partite con 30 carte, sinergie ed eventi attivi (in `tools/ultimo-bilanciamento.txt`): le carte normali tra il **45% e il 55%** di vittorie, le due Leggende intorno al **55-58%** (volutamente un po' sopra, perché vanno sbloccate), chi inizia vince il **50%** delle partite.
+Ultimo risultato su 12000 partite con le carte pubbliche, sinergie, eventi, carte effetto e armi come potenziamento (in `tools/ultimo-bilanciamento.txt`): le carte normali tra il **47% e il 55%** di vittorie, le due Leggende intorno al **62-63%** (volutamente sopra, perché vanno sbloccate), chi inizia vince il **51%** delle partite. `node tools/test-armi.js` controlla la regola delle armi.
 
 Il boss del torneo (Andrea, Chen Delang e Katya a livello difficile, un po' potenziati) viene battuto da una squadra casuale giocata dal computer circa 1 volta su 4.
 

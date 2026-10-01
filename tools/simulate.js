@@ -15,18 +15,18 @@ function mulberry(seed) { return () => { let t = (seed = (seed + 0x6D2B79F5) | 0
 function play(seed, level) {
   const rng = mulberry(seed);
   const t0 = S.randomTeam(rng), t1 = S.randomTeam(rng);
-  // palestra a caso e un'arma a caso (o nessuna) per squadra, su una carta a caso
+  // palestra a caso; le armi arrivano in partita (a chi perde una carta)
   const pick = a => a[Math.floor(rng() * a.length)];
   const terrain = pick([null].concat(S.TERRAINS.map(t => t.id)));
-  const arm = t => { const w = pick([null].concat(S.WEAPONS.map(x => x.id))); return w ? { id: w, card: pick(t) } : null; };
-  const w0 = arm(t0), w1 = arm(t1);
-  const g = S.createGame({ seed, silent: true, first: seed % 2, terrain, effects: true, players: [{ name: 'A', cards: t0, weapon: w0 }, { name: 'B', cards: t1, weapon: w1 }] });
+  const g = S.createGame({ seed, silent: true, first: seed % 2, terrain, effects: true, armory: true, players: [{ name: 'A', cards: t0 }, { name: 'B', cards: t1 }] });
   let n = 0;
   const used = {};
+  let firstKo = null;
   while (g.winner === null && n < 400) {
+    if (firstKo === null) firstKo = g.players[0].ko.length ? 0 : g.players[1].ko.length ? 1 : null;
     const a = S.chooseAction(g, level);
     if (!a) break;
-    if (a.effect) { used['fx:' + a.effect] = (used['fx:' + a.effect] || 0) + 1; S.doAction(g, a); n++; continue; }
+    if (a.effect || a.arm) { const k = a.effect ? 'fx:' + a.effect : 'arm:' + a.arm; used[k] = (used[k] || 0) + 1; S.doAction(g, a); n++; continue; }
     const f = S.byUid(g, a.actor);
     const key = S.cardOf(f).id + ':' + a.move;
     used[key] = (used[key] || 0) + 1;
@@ -34,7 +34,7 @@ function play(seed, level) {
     n++;
   }
   // mosse usate
-  return { t0, t1, w: [w0 && w0.id, w1 && w1.id], terrain, winner: g.winner, turns: g.turnNo, first: seed % 2, used };
+  return { t0, t1, w: g.players.map(p => p.armsUsed || []), terrain, winner: g.winner, turns: g.turnNo, first: seed % 2, used, firstKo };
 }
 
 if (isMainThread) {
@@ -76,9 +76,12 @@ function report(rs, ms) {
     const tot = u.reduce((a, b) => a + b, 0) || 1;
     console.log(`${r.id.padEnd(11)} costo ${r.cost}  ${(100 * r.win).toFixed(1).padStart(5)}%  (${r.games})  uso att/m1/m2 ${u.map(x => Math.round(100 * x / tot) + '%').join(' / ')}`);
   }
-  // armi: percentuale di vittoria di chi la porta (nessuna = squadra senza arma)
+  // armi: percentuale di vittoria di chi l'ha impugnata (nessuna = squadra che non ne ha usate)
   const ws = {};
-  for (const r of rs) if (r.winner !== null) r.w.forEach((id, p) => { const k = id || 'nessuna'; const x = ws[k] || (ws[k] = { g: 0, w: 0 }); x.g++; if (r.winner === p) x.w++; });
+  for (const r of rs) if (r.winner !== null) r.w.forEach((ids, p) => (ids.length ? ids : ['nessuna']).forEach(k => { const x = ws[k] || (ws[k] = { g: 0, w: 0 }); x.g++; if (r.winner === p) x.w++; }));
+  // rimonta: chi perde la prima carta quante volte vince
+  const fk = rs.filter(r => r.winner !== null && r.firstKo !== null);
+  console.log(`chi perde la prima carta vince il ${(100 * fk.filter(r => r.winner === r.firstKo).length / fk.length).toFixed(1)}%`);
   console.log('--- armi');
   Object.entries(ws).sort((a, b) => b[1].w / b[1].g - a[1].w / a[1].g).forEach(([k, x]) => console.log(`${k.padEnd(11)} ${(100 * x.w / x.g).toFixed(1).padStart(5)}%  (${x.g})`));
   const tt = {};
