@@ -209,11 +209,12 @@
   const chipsHtml = list => list.map(([c, t]) => `<span class="chip ${c}">${esc(t)}</span>`).join('');
 
   // ------------------------------------------------------------ router
-  function go(screen) { A.screen = screen; closeLayer(); render(); window.scrollTo(0, 0); }
+  function go(screen) { A.screen = screen; closeLayer(); render(); window.scrollTo(0, 0); if (screen === 'account') accountLoad(); }
   function render() {
     const fn = {
       home: renderHome, setup: renderSetup, build: renderBuild, battle: renderBattle, collection: renderCollection,
       rules: renderRules, ranking: renderRanking, settings: renderSettings, torneo: renderTorneo, online: renderOnline,
+      account: renderAccount,
     }[A.screen];
     $app.innerHTML = fn();
     // in partita, sullo sfondo, la palestra in cui si combatte
@@ -248,6 +249,7 @@
         ${save ? `<button class="btn primary" data-act="resume">Riprendi partita · turno ${Math.ceil(save.turnNo / 2)}</button>` : ''}
         ${!tutDone ? `<button class="btn ${save ? '' : 'primary'}" data-act="tutorial">Prima volta? Fai il tutorial</button>` : ''}
         <button class="btn ${save || !tutDone ? '' : 'primary'}" data-act="mode" data-v="cpu">Sfida il computer</button>
+        <button class="btn" data-act="go" data-v="account">${accountLabel()}</button>
         <button class="btn" data-act="go" data-v="torneo">Torneo · incontro ${Math.min(t.stage + 1, 5)} di 5${t.titles ? ` · 🏆 ${t.titles}` : ''}</button>
         <div class="menu-2">
           <button class="btn" data-act="mode" data-v="pvp">2 giocatori<small>stesso telefono</small></button>
@@ -403,6 +405,7 @@
     return `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">Su questo telefono</div></div>
     <div class="rank-page">
       <h2>Classifica</h2>
+      <button class="btn" data-act="go" data-v="account">🌍 Classifica generale</button>
       <h3 class="sec">Giocatori</h3>
       ${players.length ? `<table class="board num"><thead><tr><th>#</th><th>Nome</th><th>V</th><th>S</th><th>%</th></tr></thead><tbody>
         ${players.map((p, i) => `<tr class="${p.cpu ? 'cpu' : ''}"><td>${i + 1}</td><td>${esc(p.n)}</td><td>${p.w}</td><td>${p.l}</td><td>${pct(p.w, p.t)}</td></tr>`).join('')}
@@ -497,6 +500,98 @@
         <li>Quando Chen usa la Spallata del Prodigio, a volte parte la musica dei Prodigy…</li>
       </ul>
     </div>`;
+  }
+
+  // ------------------------------------------------------------ ACCOUNT, LIVELLI E CLASSIFICA GENERALE (cloud.js)
+  const cloudOn = () => !!window.Cloud;
+  function accountLabel() {
+    const p = load('profilo', null);
+    if (cloudOn() && Cloud.signedIn() && p) { const l = Cloud.levelOf(p.xp); return `${esc(p.nome)} · Livello ${l}<small>${esc(Cloud.titleOf(l))} · classifica generale</small>`; }
+    return 'Account e classifica generale<small>livelli, carte salvate online</small>';
+  }
+  // carte sbloccate: le unisco a quelle salvate online (niente segrete, niente Leggende)
+  async function syncCollection() {
+    try {
+      const ok = id => S.CARD[id] && !S.CARD[id].secret && !LEGENDS.includes(id);
+      const remote = await Cloud.collection();
+      const merged = [...new Set(load('unlocked', STARTERS).filter(ok).concat(remote.filter(ok)))];
+      store('unlocked', merged);
+      await Cloud.addToCollection(merged.filter(id => !remote.includes(id)));
+    } catch (e) { /* riprovo la prossima volta */ }
+  }
+  async function accountLoad() {
+    const c = A.acc || (A.acc = { step: 'email' });
+    if (cloudOn() && Cloud.signedIn()) {
+      try {
+        c.prof = await Cloud.profile(); c.loaded = true;
+        if (c.prof) { store('profilo', c.prof); syncCollection(); }
+      } catch (e) { c.msg = e.message; c.loaded = true; }
+    }
+    try { c.board = await Cloud.leaderboard(); c.boardErr = ''; } catch (e) { c.boardErr = 'Classifica non disponibile: serve internet.'; }
+    if (A.screen === 'account') render();
+  }
+  function boardHtml(c) {
+    if (c.boardErr) return `<p class="hint" style="text-align:left">${esc(c.boardErr)}</p>`;
+    if (!c.board) return '<p class="hint">Carico la classifica…</p>';
+    if (!c.board.length) return '<p class="hint" style="text-align:left">Ancora nessun giocatore: il primo posto è libero!</p>';
+    const mine = c.prof && c.prof.nome;
+    return `<table class="board num"><thead><tr><th>#</th><th>Nome</th><th>Liv.</th><th>Punti</th><th>V</th><th>S</th></tr></thead><tbody>
+      ${c.board.map((p, i) => `<tr class="${p.nome === mine ? 'me' : ''}"><td>${i + 1}</td><td>${esc(p.nome)}</td><td>${Cloud.levelOf(p.xp)}</td><td>${p.xp}</td><td>${p.vittorie}</td><td>${p.sconfitte}</td></tr>`).join('')}
+    </tbody></table>`;
+  }
+  function renderAccount() {
+    const c = A.acc || (A.acc = { step: 'email' });
+    const top = `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">Account</div></div>`;
+    if (!cloudOn()) return `${top}<div class="setup"><p class="hint">Account non disponibile.</p></div>`;
+    const dis = c.busy ? 'disabled' : '';
+    const msg = c.msg ? `<p class="err" role="alert">${esc(c.msg)}</p>` : '';
+    let body;
+    if (!Cloud.signedIn()) {
+      body = c.step === 'code' ? `
+        <h2>Controlla l'email</h2>
+        <p class="hint" style="text-align:left">Abbiamo mandato un messaggio a <b>${esc(c.email)}</b>. Scrivi qui il codice che contiene, oppure tocca il link nell'email. Se non lo trovi, guarda nella posta indesiderata.</p>
+        <label class="field-label" for="acc-code"><span class="eyebrow">Codice</span><input id="acc-code" inputmode="numeric" autocomplete="one-time-code" maxlength="10"></label>
+        ${msg}
+        <button class="btn primary" data-act="acc-verify" ${dis}>${c.busy ? 'Controllo…' : 'Entra'}</button>
+        <button class="btn ghost" data-act="acc-back">Cambia email</button>` : `
+        <h2>Il tuo account</h2>
+        <p class="hint" style="text-align:left">Con un account entri nella classifica generale, sali di livello vincendo le sfide e ritrovi le tue carte anche su un altro telefono. Niente password: ti mandiamo un codice via email.</p>
+        <label class="field-label" for="acc-email"><span class="eyebrow">Email</span><input id="acc-email" type="email" inputmode="email" autocomplete="email" value="${esc(c.email || '')}"></label>
+        ${msg}
+        <button class="btn primary" data-act="acc-send" ${dis}>${c.busy ? 'Invio…' : 'Mandami il codice'}</button>`;
+    } else if (!c.loaded) {
+      body = '<p class="hint">Carico il profilo…</p>';
+    } else if (!c.prof) {
+      body = `<h2>Come ti chiami?</h2>
+        <p class="hint" style="text-align:left">È il nome che vedranno tutti nella classifica generale (da 2 a 20 caratteri).</p>
+        <label class="field-label" for="acc-name"><span class="eyebrow">Nome da combattente</span><input id="acc-name" maxlength="20" value="${esc(A.names[0] !== 'Giocatore 1' ? A.names[0] : '')}"></label>
+        ${msg}
+        <button class="btn primary" data-act="acc-create" ${dis}>Entra in classifica</button>
+        <button class="btn ghost" data-act="acc-logout">Esci dall'account</button>`;
+    } else {
+      const p = c.prof, l = Cloud.levelOf(p.xp), from = Cloud.xpFor(l), to = Cloud.xpFor(l + 1);
+      body = `<div class="acc-card">
+          <div class="eyebrow">${esc(Cloud.email())}</div>
+          <b class="acc-name">${esc(p.nome)}</b>
+          <div class="acc-lvl"><span class="num">Livello ${l}</span> · ${esc(Cloud.titleOf(l))}</div>
+          <div class="xpbar" role="progressbar" aria-valuemin="${from}" aria-valuemax="${to}" aria-valuenow="${p.xp}"><i style="width:${(100 * (p.xp - from) / (to - from)).toFixed(1)}%"></i></div>
+          <small class="num">${p.xp} punti · ${to - p.xp} al livello ${l + 1} · ${p.vittorie} vittorie, ${p.sconfitte} sconfitte</small>
+        </div>
+        <p class="hint" style="text-align:left">Punti a ogni sfida: vittoria contro il computer 20 / 30 / 45 (facile, normale, difficile), torneo 40, online 50; anche una sconfitta vale 10.</p>
+        ${msg}
+        <details class="syn-box"><summary>Cambia nome o esci</summary>
+          <div class="acc-edit"><input id="acc-name" maxlength="20" value="${esc(p.nome)}" aria-label="Nuovo nome"><button class="btn small" data-act="acc-rename" ${dis}>Cambia nome</button></div>
+          <button class="btn ghost" data-act="acc-logout">Esci dall'account</button>
+        </details>`;
+    }
+    return `${top}<div class="setup">${body}<h3 class="sec">🌍 Classifica generale</h3>${boardHtml(c)}</div>`;
+  }
+  // esegue una richiesta all'account mostrando "attendere" e l'eventuale errore
+  function accDo(promise, after) {
+    const c = A.acc;
+    c.busy = true; c.msg = ''; render();
+    promise.then(r => { c.busy = false; if (after) after(r); render(); })
+      .catch(e => { c.busy = false; c.msg = e.message || 'Qualcosa non ha funzionato.'; render(); });
   }
 
   // ------------------------------------------------------------ ONLINE
@@ -893,6 +988,19 @@
     A.ended = g;
     drop('save');
     recordResult(g);
+    // account: la partita vale punti esperienza (non in 2 sullo stesso telefono: non si sa chi è il proprietario)
+    const cloudGame = cloudOn() && Cloud.signedIn() && A.mode !== 'pvp';
+    if (cloudGame) {
+      const meP = A.mode === 'online' ? A.me : 0;
+      Cloud.record(g.winner === meP, A.mode, g.players[1 - meP].cpu || null, g.players[meP].cards.filter(id => !S.CARD[id].secret))
+        .then(xp => {
+          const p = load('profilo', null);
+          if (p) { p.xp += xp; if (g.winner === meP) p.vittorie++; else p.sconfitte++; store('profilo', p); }
+          const el = document.getElementById('xp-line');
+          if (el) el.textContent = `+${xp} punti esperienza${p ? ` · Livello ${Cloud.levelOf(p.xp)}` : ''}`;
+        })
+        .catch(e => { const el = document.getElementById('xp-line'); if (el) el.textContent = e.message; });
+    }
     const w = g.players[g.winner];
     const localWin = A.mode === 'pvp' || (A.mode === 'online' ? g.winner === A.me : g.winner === 0);
     sfx(localWin ? 'win' : 'lose');
@@ -901,6 +1009,7 @@
     let got = [];
     if (A.mode === 'tutorial') { store('tutorial', true); got = unlockRandom(2); }
     else if (localWin) got = unlockRandom(1);
+    if (got.length && cloudOn() && Cloud.signedIn()) Cloud.addToCollection(got.filter(id => !LEGENDS.includes(id))).catch(() => { /* alla prossima sincronizzazione */ });
     // torneo
     let torneoMsg = '';
     if (A.mode === 'torneo') {
@@ -933,6 +1042,7 @@
       <p>${esc(w.name)} vince con ${alive.length} cart${alive.length === 1 ? 'a' : 'e'} ancora in piedi.</p>
       <div class="faces">${alive.map(f => `<i style="${face(f.card)}"></i>`).join('')}</div>
       ${torneoMsg ? `<p><b>${esc(torneoMsg)}</b></p>` : ''}
+      ${cloudGame ? '<p id="xp-line" class="xp-line" aria-live="polite">Registro la partita…</p>' : ''}
       ${A.mode === 'tutorial' ? '<p>Tutorial completato!</p>' : ''}
       ${extra}
       ${btns}
@@ -1311,6 +1421,27 @@
         else if (A.builder === 1) { A.builder = 0; render(); } else go('setup');
         break;
       case 'filter': A.filter = v; render(); break;
+      case 'acc-send': {
+        const email = ((document.getElementById('acc-email') || {}).value || '').trim();
+        A.acc.email = email;
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { A.acc.msg = 'Scrivi un indirizzo email valido.'; render(); break; }
+        accDo(Cloud.sendCode(email), () => { A.acc.step = 'code'; });
+        break;
+      }
+      case 'acc-verify': {
+        const code = ((document.getElementById('acc-code') || {}).value || '').replace(/\D/g, '');
+        if (code.length < 6) { A.acc.msg = 'Il codice è fatto di almeno 6 cifre.'; render(); break; }
+        accDo(Cloud.verify(A.acc.email, code), () => { A.acc.loaded = false; toastQuick('Sei dentro!'); accountLoad(); });
+        break;
+      }
+      case 'acc-back': A.acc.step = 'email'; A.acc.msg = ''; render(); break;
+      case 'acc-create': case 'acc-rename': {
+        const nome = ((document.getElementById('acc-name') || {}).value || '').trim();
+        if (nome.length < 2) { A.acc.msg = 'Il nome deve avere almeno 2 caratteri.'; render(); break; }
+        accDo(kind === 'acc-create' ? Cloud.createProfile(nome) : Cloud.rename(nome), () => { A.acc.loaded = false; accountLoad(); });
+        break;
+      }
+      case 'acc-logout': accDo(Cloud.logout(), () => { drop('profilo'); A.acc = { step: 'email', board: A.acc.board }; }); break;
       case 'egg': {
         const now = Date.now();
         A.egg = (A.egg || []).filter(t => now - t < 4000).concat(now);
@@ -1448,6 +1579,7 @@
   });
   document.addEventListener('keydown', e => {
     if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-act]')) { e.preventDefault(); handle(e); }
+    if (e.key === 'Enter' && ['acc-email', 'acc-code', 'acc-name'].includes(e.target.id)) { const b = $app.querySelector('[data-act^="acc-"].primary, [data-act="acc-rename"]'); if (b) handle({ target: b }); }
     if (e.key === 'Enter' && e.target.id === 'segreto') handle({ target: document.querySelector('[data-act="egg-try"]') });
     if (e.key === 'Escape' && $layer.innerHTML && !$layer.querySelector('input') && $layer.querySelector('.sheet')) closeLayer();
   });
@@ -1462,6 +1594,13 @@
   if (location.hash === '#test') window.__sttTest = { A, S };
 
   render();
+  if (cloudOn()) {
+    Cloud.init().then(r => {
+      if (r.signedIn) { toastQuick('Sei dentro!'); go('account'); }
+      else if (r.error) toastQuick(r.error);
+      else if (Cloud.signedIn()) Cloud.profile().then(p => { if (p) { store('profilo', p); syncCollection(); if (A.screen === 'home') render(); } }).catch(() => { /* offline */ });
+    });
+  }
   const savedKey = load('chiave', null);
   if (savedKey) {
     openSecret({ key: savedKey, persist: true })

@@ -313,6 +313,18 @@
   .weapon-row p { margin: 2px 0 0; font-size: 13.5px; color: var(--paper-dim); }
   .overlay .terrain-card p { max-width: none; }
 
+  /* ---------- account e classifica generale ---------- */
+  .acc-card { display: grid; gap: 4px; border: 1.5px solid var(--gold); border-radius: 8px; padding: 12px 14px; background: #1f1810; }
+  .acc-name { font-family: var(--display); font-weight: 400; font-size: 32px; color: var(--temple); line-height: 1.05; }
+  .acc-lvl { font-family: var(--label); font-weight: 700; font-size: 18px; color: var(--gold); }
+  .acc-card small { color: var(--paper-dim); font-size: 13px; }
+  .xpbar { height: 10px; border-radius: 5px; background: #000; overflow: hidden; }
+  .xpbar i { display: block; height: 100%; background: linear-gradient(90deg, var(--temple), var(--gold)); }
+  .acc-edit { display: grid; grid-template-columns: 1fr auto; gap: 6px; margin: 10px 0 8px; }
+  .acc-edit input { min-height: 42px; border-radius: 6px; border: 1.5px solid var(--line); background: var(--ink); color: var(--paper); padding: 6px 10px; font: 16px var(--body); min-width: 0; }
+  .board tr.me td { color: var(--temple); font-weight: 700; }
+  .xp-line { color: var(--gold) !important; font-family: var(--label); font-weight: 700; font-size: 17px; }
+
   /* ---------- arena 3D ---------- */
   .arena3d { position: fixed; inset: 0; z-index: 40; background: #1b120d; overflow: hidden; cursor: pointer; }
   .arena3d canvas { position: absolute; inset: 0; display: block; }
@@ -340,6 +352,7 @@
 <script src="audio.js"></script>
 <script src="net.js"></script>
 <script src="arena3d.js"></script>
+<script src="cloud.js"></script>
 <script src="ui.js"></script>
 </body>
 </html>

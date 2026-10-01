@@ -83,5 +83,6 @@ begin
   return guadagno;
 end;
 $$;
-revoke execute on function public.registra_partita from anon;
+-- le funzioni nascono eseguibili da tutti (PUBLIC): la riserviamo a chi ha un account
+revoke execute on function public.registra_partita(boolean, text, text, text[]) from public, anon;
 grant execute on function public.registra_partita to authenticated;

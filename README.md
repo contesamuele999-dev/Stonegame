@@ -9,6 +9,7 @@ Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal tele
 - **Tutorial** guidato dal Maestro Samuele per la prima partita.
 - **Carte da sbloccare**: si parte con 10 carte, ogni vittoria ne sblocca una (o tutte subito dalle impostazioni).
 - **Classifica** di giocatori e carte, salvata sul telefono (comprese le partite online).
+- **Account e classifica generale**: accesso con un codice via email (niente password), livelli con punti esperienza a ogni sfida, classifica di tutti i giocatori e carte sbloccate salvate online, da ritrovare su un altro telefono.
 - **Suoni e musica** sintetizzati nel browser, **vibrazione** sui colpi forti, **partita salvata** in automatico e **installabile come app**, anche offline.
 - **Collezione** con tutte le carte originali e i valori usati in gioco.
 - **Animazioni 3D**: a ogni azione parte una scena in un'arena 3D. I lottatori hanno il volto preso dalla propria carta, la divisa nei colori della carta e la cintura del grado (oro Maestro, nera Istruttore, bianca Allievo). Ogni mossa ha il suo gesto e il suo effetto, e il bersaglio reagisce al risultato vero: danni, schivata, immunità, stordimento, confusione, K.O.
@@ -25,6 +26,15 @@ Il gioco è una pagina web statica (`index.html` + `engine.js` + `ui.js` + carte
 ### Animazioni
 
 Dalle impostazioni si accendono o spengono le **animazioni 3D**. La **velocità di gioco** (🐢 lenta, ▶ normale, 🐇 veloce) si sceglie dalle impostazioni e con i tre tasti sempre visibili in alto a destra durante la partita (e in basso a destra durante le scene 3D): rallenta o accelera le scene, le mosse del computer e le scritte. Toccando lo schermo durante una scena la si fa scorrere velocemente. Se il telefono non supporta la grafica 3D (WebGL) il gioco usa automaticamente le animazioni semplici.
+
+### Account (Supabase)
+
+Account, livelli, classifica generale e collezione stanno su Supabase (`cloud.js`, senza librerie). Il database si crea una volta incollando `supabase/schema.sql` nell'editor SQL del progetto. La chiave "anon" nel codice è pubblica per natura: i dati sono protetti dalle regole del database (ognuno modifica solo il proprio nome; i punti si assegnano solo con la funzione `registra_partita`, al massimo una partita al minuto).
+
+Nelle impostazioni di Supabase:
+- *Authentication → URL Configuration*: Site URL `https://contesamuele999-dev.github.io/Stonegame/` (serve per il link nell'email).
+- *Authentication → Email Templates*: nei modelli "Magic Link" e "Confirm signup" aggiungere il codice `{{ .Token }}`, così si può entrare scrivendo il codice anche dall'app installata.
+- Il servizio email incluso in Supabase manda pochi messaggi l'ora: con tanti giocatori conviene collegare un servizio email proprio (*Authentication → SMTP*).
 
 ## Regolamento
 

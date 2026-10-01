@@ -1,11 +1,12 @@
 /* Service worker: salva il gioco sul telefono per aprirlo anche senza internet. */
-const CACHE = 'stonetao-v6';
+const CACHE = 'stonetao-v7';
 const FILES = [
   "./",
   "index.html",
   "engine.js",
   "ui.js",
   "arena3d.js",
+  "cloud.js",
   "audio.js",
   "net.js",
   "vendor/three.min.js",
