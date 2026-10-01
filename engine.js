@@ -1152,6 +1152,15 @@
     return minCost > 0 ? randomTeam(rng, minCost - 1, only) : null;
   }
 
+  // ---------------------------------------------------------------- VERSIONE DELLE REGOLE
+  // Impronta dei valori di gioco: un replay fatto con regole diverse potrebbe non tornare identico.
+  const RULES = (() => {
+    const s = JSON.stringify([CARDS.map(c => [c.id, c.cost, c.hp, c.atk, c.def]), WEAPONS, TERRAINS.map(t => t.id + t.desc), EFFECTS.map(x => x.id + x.desc)]);
+    let h = 0;
+    for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) | 0;
+    return (h >>> 0).toString(36);
+  })();
+
   // ---------------------------------------------------------------- CARTE AGGIUNTE DA FUORI (pacchetto segreto)
   // Le funzioni del motore che le mosse delle carte aggiunte possono usare.
   const H = {
@@ -1176,7 +1185,7 @@
     needsTarget, effAtk, effDef, team, enemies, field, byUid, cardOf, movesOf, isStunned, isNegative,
     teamCost, randomTeam, clone, canAct, passTurn, expectedHit,
     SYNERGIES, synergiesFor, GYM_EVENTS, EVENT_EVERY, previewDamage, isMaster,
-    TERRAINS, TERRAIN, WEAPONS, WEAPON, H, addCards, IMG, img, EFFECTS, EFFECT, effectOptions, effectTargets,
+    TERRAINS, TERRAIN, WEAPONS, WEAPON, H, addCards, IMG, img, EFFECTS, EFFECT, effectOptions, effectTargets, RULES,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.STT = api;

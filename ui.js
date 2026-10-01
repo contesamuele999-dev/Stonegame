@@ -731,7 +731,7 @@
   // è il turno di chi tiene in mano questo telefono?
   function isLocalTurn() {
     const g = A.game;
-    if (!g || g.winner !== null || g.players[g.turn].cpu) return false;
+    if (!g || g.winner !== null || g.players[g.turn].cpu || A.mode === 'replay') return false;
     if (A.mode === 'online' && g.turn !== A.me) return false;
     return true;
   }
@@ -963,14 +963,7 @@
     while (A.game === g && g.winner === null && g.players[g.turn].cpu && guard++ < 30) {
       const a = S.chooseAction(g, g.players[g.turn].cpu);
       if (!a) { applyAct({ pass: true }); g.events.splice(0); break; }
-      if (a.effect) A.banner = `${g.players[g.turn].name} gioca ${S.EFFECT[a.effect].name}`;
-      else {
-        const u = S.byUid(g, a.actor);
-        const opt = S.actorOptions(g, u).find(o => o.i === a.move);
-        let label = opt ? opt.move.name : '';
-        if (opt && a.pick) label = `${opt.move.name} → ${S.refMove(a.pick).name}`;
-        A.banner = `${u.name}: ${label}`;
-      }
+      A.banner = actionBanner(g, a);
       render();
       if (a.actor) mark(a.actor, 'acting'); if (a.target) mark(a.target, 'target');
       await sleep(pace(use3D() ? 450 : 900));
@@ -1107,7 +1100,85 @@
       ${A.mode === 'tutorial' ? '<p>Tutorial completato!</p>' : ''}
       ${extra}
       ${btns}
+      <div class="menu-2"><button class="btn" data-act="share-replay">📤 Condividi</button><button class="btn ghost" data-act="watch-replay">▶ Rivedi</button></div>
     </div>`);
+  }
+
+  // ------------------------------------------------------------ REPLAY da condividere
+  // Una partita è tutta nel suo setup (seme compreso) più l'elenco delle mosse: basta un link per rivederla.
+  const toB64url = u8 => { let s = ''; for (let i = 0; i < u8.length; i += 0x8000) s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000)); return btoa(s).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, ''); };
+  const fromB64url = s => Uint8Array.from(atob(s.replace(/-/g, '+').replace(/_/g, '/')), c => c.charCodeAt(0));
+  async function packReplay() {
+    const setup = Object.assign({}, A.setup, { silent: undefined });
+    const bytes = new TextEncoder().encode(JSON.stringify({ r: S.RULES, setup, log: A.log }));
+    try { // compresso dove il browser lo permette ("z"), altrimenti così com'è ("j")
+      return 'z' + toB64url(new Uint8Array(await new Response(new Blob([bytes]).stream().pipeThrough(new CompressionStream('deflate-raw'))).arrayBuffer()));
+    } catch (e) { return 'j' + toB64url(bytes); }
+  }
+  async function unpackReplay(code) {
+    const bytes = fromB64url(code.slice(1));
+    const json = code[0] === 'z' ? await new Response(new Blob([bytes]).stream().pipeThrough(new DecompressionStream('deflate-raw'))).text() : new TextDecoder().decode(bytes);
+    const d = JSON.parse(json);
+    if (!d || !d.setup || !Array.isArray(d.log) || !Array.isArray(d.setup.players)) throw new Error('replay non valido');
+    return d;
+  }
+  async function shareReplay() {
+    const g = A.game;
+    const url = `${location.origin}${location.pathname}#replay=${await packReplay()}`;
+    const text = `${g.players[0].name} contro ${g.players[1].name}: rivedi la sfida su Stone Temple Cards Game!`;
+    if (navigator.share) {
+      try { await navigator.share({ title: 'Stone Temple Cards Game', text, url }); return; } catch (e) { if (e.name === 'AbortError') return; }
+    }
+    try { await navigator.clipboard.writeText(url); toastQuick('Link copiato: incollalo dove vuoi.'); }
+    catch (e) {
+      openLayer(`<div class="overlay" role="dialog"><h2>Il link della sfida</h2><p>Copialo e mandalo a chi vuoi.</p>
+        <textarea class="share-link" readonly>${esc(url)}</textarea><button class="btn ghost" data-act="close">Chiudi</button></div>`);
+      const t = $layer.querySelector('textarea'); if (t) t.select();
+    }
+  }
+  function startReplay(d) {
+    if (d.setup.players.some(p => p.cards.some(id => !S.CARD[id]))) {
+      openLayer(`<div class="overlay" role="dialog"><h2>Carte segrete</h2><p>Questa sfida usa carte segrete: per rivederla bisogna averle sbloccate.</p><button class="btn primary" data-act="quit-now">Menu</button></div>`);
+      return;
+    }
+    A.mode = 'replay';
+    A.replay = { log: d.log, i: 0, data: d };
+    // il setup senza "cpu": nel replay non pensa nessuno, si rivedono le mosse registrate
+    A.setup = Object.assign({}, d.setup, { players: d.setup.players.map(p => Object.assign({}, p, { cpu: null })) });
+    A.log = [];
+    A.game = S.createGame(A.setup); A.game.events = [];
+    A.ended = null; A.sel = null; A.hint = null; A.busy = true; A.banner = ''; A.logOpen = false; A.view = 0;
+    go('battle');
+    if (d.r !== S.RULES) toastQuick('Sfida giocata con una versione precedente: il replay potrebbe non tornare identico.');
+    beginOverlay();
+  }
+  function actionBanner(g, a) {
+    if (a.effect) return `${g.players[g.turn].name} gioca ${S.EFFECT[a.effect].name}`;
+    const u = S.byUid(g, a.actor);
+    if (!u) return '';
+    const opt = S.actorOptions(g, u).find(o => o.i === a.move);
+    let label = opt ? opt.move.name : '';
+    if (opt && a.pick) label = `${opt.move.name} → ${S.refMove(a.pick).name}`;
+    return `${u.name}: ${label}`;
+  }
+  async function runReplay() {
+    const g = A.game, R = A.replay;
+    while (A.game === g && A.mode === 'replay' && R.i < R.log.length && g.winner === null) {
+      const a = R.log[R.i++];
+      if (!a.pass) {
+        A.banner = `▶ ${actionBanner(g, a)}`; render();
+        if (a.actor) mark(a.actor, 'acting'); if (a.target) mark(a.target, 'target');
+        await sleep(pace(use3D() ? 350 : 700));
+      }
+      await perform(a);
+      A.banner = ''; render();
+      await sleep(pace(250));
+    }
+    if (A.game !== g) return;
+    A.busy = false;
+    const w = g.winner !== null ? g.players[g.winner].name : null;
+    openLayer(`<div class="overlay" role="dialog"><div class="eyebrow">Fine del replay</div><h2>${w ? `Vince ${esc(w)}` : 'Replay finito'}</h2>
+      <button class="btn primary" data-act="replay-again">Rivedi da capo</button><button class="btn ghost" data-act="quit-now">Menu</button></div>`);
   }
 
   // formula segreta di Flavio
@@ -1229,7 +1300,7 @@
   // ------------------------------------------------------------ salvataggio della partita
   function saveGame() {
     const g = A.game;
-    if (!g || A.mode === 'online' || A.mode === 'tutorial') return;
+    if (!g || A.mode === 'online' || A.mode === 'tutorial' || A.mode === 'replay') return;
     if (g.winner !== null) { drop('save'); return; }
     store('save', { mode: A.mode, level: A.level, names: A.names, teams: A.teams, weapons: A.weapons, setup: A.setup, log: A.log, view: A.view, turnNo: g.turnNo, first: A.first });
   }
@@ -1566,7 +1637,10 @@
         break;
       case 'card': e.stopPropagation(); cardSheet(v); break;
       case 'close': closeLayer(); if (A.screen === 'battle' && A.mode === 'tutorial') render(); break;
-      case 'begin': closeLayer(); if (g.players[g.turn].cpu) runCPU(); else if (A.mode === 'online') processRemote(); break;
+      case 'begin': closeLayer(); if (A.mode === 'replay') runReplay(); else if (g.players[g.turn].cpu) runCPU(); else if (A.mode === 'online') processRemote(); break;
+      case 'share-replay': shareReplay(); break;
+      case 'watch-replay': startReplay({ r: S.RULES, setup: A.setup, log: A.log.slice() }); break;
+      case 'replay-again': closeLayer(); startReplay(A.replay.data); break;
       case 'handoff-ok': A.view = g.turn; closeLayer(); render(); break;
       case 'log': A.logOpen = !A.logOpen; render(); if (A.logOpen) { const l = $app.querySelector('.log'); if (l) l.scrollTop = l.scrollHeight; } break;
       case 'tile': {
@@ -1699,8 +1773,9 @@
   }
 
   // solo per i test automatici (indirizzo che termina con #test)
-  if (location.hash === '#test') window.__sttTest = { A, S };
+  if (location.hash === '#test') window.__sttTest = { A, S, packReplay };
 
+  const replayLink = location.hash.startsWith('#replay=');
   render();
   if (cloudOn()) {
     Cloud.init().then(r => {
@@ -1710,18 +1785,27 @@
       else if (Cloud.signedIn()) Cloud.profile().then(p => { if (p) { store('profilo', p); syncCollection(); if (A.screen === 'home') render(); } }).catch(() => { /* offline */ });
       // l'accesso è la prima cosa che si vede, finché non si entra o si sceglie di giocare senza account
       let guestNow = false; try { guestNow = !!sessionStorage.getItem('stt_ospite'); } catch (err) { /* niente */ }
-      if (!Cloud.signedIn() && !guestNow && A.screen === 'home' && !$layer.innerHTML) { A.acc = Object.assign(A.acc || {}, { start: true }); go('account'); }
+      if (!Cloud.signedIn() && !guestNow && !replayLink && A.screen === 'home' && !$layer.innerHTML) { A.acc = Object.assign(A.acc || {}, { start: true }); go('account'); }
     });
   }
   const savedKey = load('chiave', null);
   // carte segrete già sbloccate: le riapro (con due nuovi tentativi se la rete fa i capricci)
+  let secretDone;
+  const secretReady = new Promise(res => { secretDone = res; });
   function reopenSecret(tries) {
     openSecret({ key: savedKey, persist: true })
-      .then(() => { if (A.screen !== 'battle') render(); })
+      .then(() => { if (A.screen !== 'battle') render(); secretDone(); })
       .catch(e => {
         if (e && e.name === 'OperationError') drop('chiave'); // frase cambiata: chiave vecchia
-        else if (tries > 0) setTimeout(() => reopenSecret(tries - 1), 3000);
+        if (tries > 0 && !(e && e.name === 'OperationError')) setTimeout(() => reopenSecret(tries - 1), 3000);
+        else secretDone();
       });
   }
-  if (savedKey) reopenSecret(2);
+  if (savedKey) reopenSecret(2); else secretDone();
+  // aperto da un link di replay: si rivede la sfida (dopo aver riaperto le eventuali carte segrete)
+  if (replayLink) {
+    const code = location.hash.slice('#replay='.length);
+    history.replaceState(null, '', location.pathname + location.search);
+    secretReady.then(() => unpackReplay(code)).then(startReplay).catch(() => toastQuick('Il link della sfida non è valido.'));
+  }
 })();
