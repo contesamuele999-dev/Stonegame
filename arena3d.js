@@ -158,37 +158,82 @@
     return s;
   }
 
-  function faceTex(card, trim) {
+  // Volto della carta per la testa 3D: la foto con i bordi sfumati (si fonde con la pelle del cranio),
+  // più il colore della pelle (guancia) e dei capelli (parte alta della foto).
+  // Dove sta il viso nel ritaglio img/teste: [centro x, centro y, larghezza del viso], in frazioni del lato,
+  // più (facoltativo) il colore dei capelli quando dalla foto non si riesce a ricavarlo.
+  const FACE = {
+    adriano: [0.52, 0.68, 0.85], alessandro: [0.5, 0.62, 0.9], andrea: [0.62, 0.58, 0.5, '#231a16'], annalisa: [0.5, 0.64, 0.45, '#4a3a30'],
+    annastella: [0.52, 0.62, 0.6], carla: [0.55, 0.62, 0.6], caterina: [0.6, 0.5, 0.6], celeste: [0.5, 0.66, 0.7],
+    chen: [0.52, 0.58, 0.55, '#1d1612'], chicca: [0.6, 0.7, 0.4, '#2a1c14'], christian: [0.55, 0.85, 0.7, '#2b1f18'], elia: [0.5, 0.56, 0.45, '#4a3222'],
+    federica: [0.68, 0.45, 0.28], grazia: [0.52, 0.8, 0.5, '#d9a95a'], katya: [0.5, 0.65, 0.45, '#d8d4d0'], lorenzo: [0.5, 0.72, 0.5, '#1e1712'],
+    niccolo: [0.5, 0.62, 0.45, '#2a1f1a'], nicole: [0.52, 0.8, 0.55, '#8a6440'], remigio: [0.55, 0.72, 0.5], samuele: [0.33, 0.55, 0.45, '#2b2018'],
+    sara: [0.5, 0.58, 0.45], signorello: [0.6, 0.58, 0.45], strahinja: [0.5, 0.42, 0.4], viola: [0.5, 0.56, 0.6, '#5a3a24'],
+    vittorio: [0.45, 0.65, 0.7], wangting: [0.5, 0.55, 0.5], zhenglei: [0.5, 0.56, 0.5],
+  };
+  function faceTex(card) {
     if (faceCache[card]) return faceCache[card];
     const c = document.createElement('canvas'); c.width = c.height = 256;
     const tex = new T.CanvasTexture(c);
-    const info = { tex, skin: '#d9a47f' };
-    const x = c.getContext('2d');
-    const draw = (img) => {
-      x.clearRect(0, 0, 256, 256);
-      x.save(); x.beginPath(); x.arc(128, 128, 118, 0, Math.PI * 2); x.clip();
-      if (img) x.drawImage(img, 0, 0, 256, 256); else { x.fillStyle = '#d9a47f'; x.fillRect(0, 0, 256, 256); }
-      x.restore();
-      x.lineWidth = 12; x.strokeStyle = trim; x.beginPath(); x.arc(128, 128, 120, 0, Math.PI * 2); x.stroke();
-      x.lineWidth = 4; x.strokeStyle = '#140f0c'; x.beginPath(); x.arc(128, 128, 126, 0, Math.PI * 2); x.stroke();
-      tex.needsUpdate = true;
+    const info = { tex, skin: '#d9a47f', hair: '#2a1d16' };
+    const x = c.getContext('2d', { willReadFrequently: true });
+    const avg = (sx, sy, w, h) => {
+      const d = x.getImageData(sx, sy, w, h).data;
+      let r = 0, g = 0, b = 0, n = 0;
+      for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
+      return `rgb(${r / n | 0},${g / n | 0},${b / n | 0})`;
     };
-    draw(null);
     const img = new Image();
     img.onload = () => {
-      draw(img);
-      // colore della pelle preso dalla guancia della foto
+      // la foto si sposta e si ingrandisce perché il viso cada al centro e largo sempre uguale
+      const [cx, cy, fw, hairFix] = FACE[card] || [0.5, 0.6, 0.5];
+      // capelli: dalla foto originale, sopra la fronte (se il viso tocca il bordo alto, la striscia in cima)
       try {
-        const d = x.getImageData(100, 150, 56, 30).data;
-        let r = 0, g = 0, b = 0, n = 0;
-        for (let i = 0; i < d.length; i += 4) { r += d[i]; g += d[i + 1]; b += d[i + 2]; n++; }
-        info.skin = `rgb(${r / n | 0},${g / n | 0},${b / n | 0})`;
-        (info.onSkin || []).forEach(f => f(info.skin));
+        x.drawImage(img, 0, 0, 256, 256);
+        const hy = Math.max(0, cy - fw * 0.95) * 256, hh = Math.max(8, (cy - fw * 0.72) * 256 - hy);
+        info.hair = avg(Math.max(0, (cx - fw * 0.2) * 256) | 0, hy | 0, Math.max(8, fw * 0.4 * 256) | 0, hh | 0);
+        // se è venuto fuori lo sfondo colorato della carta (viola, rosa, blu) e non i capelli: castano scuro
+        const hsl = {}; new T.Color(info.hair).getHSL(hsl);
+        if (hsl.s > 0.25 && hsl.h > 0.47 && hsl.h < 0.95) info.hair = '#2a1d16';
+        if (hairFix) info.hair = hairFix;
       } catch (e) { /* immagine non leggibile */ }
+      x.clearRect(0, 0, 256, 256);
+      const k = 127 / (fw * img.width);
+      x.drawImage(img, 128 - cx * img.width * k, 140 - cy * img.height * k, img.width * k, img.height * k);
+      try { info.skin = avg(108, 152, 40, 18); } catch (e) { /* immagine non leggibile */ }
+      // maschera ovale sfumata: resta il viso, spariscono sfondo e bordi
+      x.globalCompositeOperation = 'destination-in';
+      x.save(); x.translate(128, 132); x.scale(0.8, 1);
+      const m = x.createRadialGradient(0, 0, 0, 0, 0, 98);
+      m.addColorStop(0, 'rgba(0,0,0,1)'); m.addColorStop(0.68, 'rgba(0,0,0,1)'); m.addColorStop(1, 'rgba(0,0,0,0)');
+      x.fillStyle = m; x.fillRect(-160, -140, 320, 280);
+      x.restore();
+      x.globalCompositeOperation = 'source-over';
+      tex.needsUpdate = true;
+      (info.onLoad || []).forEach(f => f(info));
     };
     img.src = window.STT.img(`teste/${card}.jpg`);
     faceCache[card] = info;
     return info;
+  }
+
+  // Sfera con la foto proiettata di fronte (asse +x): dietro le coordinate escono dall'immagine
+  // e cadono nella parte trasparente, così il volto compare solo davanti.
+  // FACE_U / FACE_V: quanta parte della foto (da 0 a 1) copre il davanti della testa, in larghezza e in altezza
+  const HEAD_R = 0.22, FACE_U = 0.62, FACE_V = 0.74;
+  function faceGeo() {
+    return geo('face', () => {
+      const r = HEAD_R * 1.012;
+      const gm = new T.SphereGeometry(r, 40, 30);
+      const pos = gm.attributes.position, uv = gm.attributes.uv;
+      for (let i = 0; i < pos.count; i++) {
+        const px = pos.getX(i), py = pos.getY(i), pz = pos.getZ(i);
+        if (px < r * 0.05) uv.setXY(i, pz >= 0 ? -0.2 : 1.2, 1.2);
+        else uv.setXY(i, 0.5 - (pz / r) * 0.5 * FACE_U, 0.5 + (py / r) * 0.5 * FACE_V);
+      }
+      uv.needsUpdate = true;
+      return gm;
+    });
   }
 
   function toon(color) {
@@ -619,9 +664,10 @@
     const gi = cloth(look[0]);
     const pants = cloth(new T.Color(look[0]).multiplyScalar(0.72));
     const trim = cloth(look[1], 0.6);
-    const face = faceTex(d.card, look[1]);
+    const face = faceTex(d.card);
     const skin = cloth(face.skin, 0.55);
-    (face.onSkin = face.onSkin || []).push(c => skin.color.set(c));
+    const hairM = cloth(face.hair, 0.9);
+    (face.onLoad = face.onLoad || []).push(f => { skin.color.set(f.skin); hairM.color.set(f.hair); });
     const belt = cloth(BELT[d.rank] || BELT.A, 0.7);
     const shoe = cloth('#16110e', 0.55), sole = cloth('#efe9dc', 0.9);
     const mesh = (gm, m) => new T.Mesh(gm, m);
@@ -649,8 +695,14 @@
     [-0.18, 0.12].forEach((a, i) => { const tl = mesh(new T.BoxGeometry(0.045, 0.22 - i * 0.04, 0.012), belt); tl.position.y = -0.1 + i * 0.02; tl.rotation.z = a; tails.add(tl); });
     const neck = new T.Group(); neck.position.y = 0.58; torso.add(neck); J.neck = neck;
     const nk = cyl(0.058, 0.07, 0.12, skin); nk.position.y = 0.04; neck.add(nk);
-    const fs = new T.Sprite(new T.SpriteMaterial({ map: face.tex, transparent: true }));
-    fs.scale.set(0.72, 0.72, 1); fs.position.y = 0.33; fs.renderOrder = 2; neck.add(fs); J.face = fs;
+    // testa 3D: cranio a uovo color pelle, volto della carta davanti, calotta di capelli e orecchie
+    const head = new T.Group(); head.position.y = 0.28; head.scale.set(0.92, 1.08, 0.9); neck.add(head); J.head = head;
+    head.add(mesh(new T.SphereGeometry(HEAD_R, 32, 24), skin));
+    const fs = mesh(faceGeo(), new T.MeshStandardMaterial({ map: face.tex, emissiveMap: face.tex, emissive: '#ffffff', emissiveIntensity: 0.3, roughness: 0.6, transparent: true, depthWrite: false }));
+    fs.renderOrder = 2; head.add(fs); J.face = fs;
+    const cap = mesh(new T.SphereGeometry(HEAD_R * 1.05, 32, 16, 0, Math.PI * 2, 0, Math.PI * 0.52), hairM);
+    cap.rotation.z = 0.62; head.add(cap);
+    [1, -1].forEach(sd => { const ear = ball(HEAD_R * 0.2, skin); ear.scale.set(0.5, 1, 0.55); ear.position.set(-0.01, -0.01, sd * HEAD_R * 0.97); head.add(ear); });
 
     const arm = (side) => {
       const sh = new T.Group(); sh.position.set(0, 0.47, side * 0.25); torso.add(sh);
@@ -1031,7 +1083,7 @@
     if (full) { light = new T.PointLight(K.c, 0, 3.4); light.position.y = 1.1; grp.add(light); }
     if (full && K.hair) {
       hair = new T.Sprite(new T.SpriteMaterial({ map: spikeTex(), color: K.c2 || K.c, transparent: true, blending: T.AdditiveBlending, depthWrite: false, opacity: 0 }));
-      hair.scale.set(1.15, 1.15, 1); hair.position.y = 0.36; hair.renderOrder = 1; ch.J.neck.add(hair);
+      hair.scale.set(0.95, 0.95, 1); hair.position.y = 0.32; hair.renderOrder = 1; ch.J.neck.add(hair);
     }
     let t = 0, on = 0, want = 1;
     const u = dt => {
@@ -1356,5 +1408,5 @@
   // scarica in anticipo le immagini delle carte della partita
   function preload(cards) { if (T) cards.forEach(cardTex); }
 
-  window.Arena3D = { available, play, skip, setSpeed, preload, terrainArt, MOVES, LOOK };
+  window.Arena3D = { available, play, skip, setSpeed, preload, terrainArt, MOVES, LOOK, FACE };
 })();

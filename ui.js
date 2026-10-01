@@ -102,7 +102,7 @@
       new Function('module', pack.src)(mod);
       const p = mod.exports(S.H);
       S.addCards(p.cards);
-      if (window.Arena3D) { Object.assign(Arena3D.MOVES, p.moves3d); Object.assign(Arena3D.LOOK, p.look); }
+      if (window.Arena3D) { Object.assign(Arena3D.MOVES, p.moves3d); Object.assign(Arena3D.LOOK, p.look); Object.assign(Arena3D.FACE, p.face || {}); }
       for (const k in pack.img) S.IMG[k] = URL.createObjectURL(new Blob([fromB64(pack.img[k])], { type: 'image/jpeg' }));
       secretKey = toB64(raw);
     }
@@ -246,10 +246,10 @@
       </div>
       <div class="fan" aria-hidden="true">${ids.map((id, i) => `<img src="${S.img(id + '.jpg')}" alt="" style="transform:rotate(${(i - 2) * 7}deg) translateY(${Math.abs(i - 2) * 8}px)">`).join('')}</div>
       <div class="menu">
+        ${cloudOn() ? `<button class="btn acc-btn ${Cloud.signedIn() ? '' : 'primary'}" data-act="go" data-v="account">${accountLabel()}</button>` : ''}
         ${save ? `<button class="btn primary" data-act="resume">Riprendi partita · turno ${Math.ceil(save.turnNo / 2)}</button>` : ''}
         ${!tutDone ? `<button class="btn ${save ? '' : 'primary'}" data-act="tutorial">Prima volta? Fai il tutorial</button>` : ''}
         <button class="btn ${save || !tutDone ? '' : 'primary'}" data-act="mode" data-v="cpu">Sfida il computer</button>
-        <button class="btn" data-act="go" data-v="account">${accountLabel()}</button>
         <button class="btn" data-act="go" data-v="torneo">Torneo · incontro ${Math.min(t.stage + 1, 5)} di 5${t.titles ? ` · 🏆 ${t.titles}` : ''}</button>
         <div class="menu-2">
           <button class="btn" data-act="mode" data-v="pvp">2 giocatori<small>stesso telefono</small></button>
@@ -506,8 +506,8 @@
   const cloudOn = () => !!window.Cloud;
   function accountLabel() {
     const p = load('profilo', null);
-    if (cloudOn() && Cloud.signedIn() && p) { const l = Cloud.levelOf(p.xp); return `${esc(p.nome)} · Livello ${l}<small>${esc(Cloud.titleOf(l))} · classifica generale</small>`; }
-    return 'Account e classifica generale<small>livelli, carte salvate online</small>';
+    if (cloudOn() && Cloud.signedIn() && p) { const l = Cloud.levelOf(p.xp); return `👤 ${esc(p.nome)} · Livello ${l}<small>${esc(Cloud.titleOf(l))} · classifica generale</small>`; }
+    return 'Entra o registrati<small>classifica generale, livelli, carte salvate online</small>';
   }
   // carte sbloccate: le unisco a quelle salvate online (niente segrete, niente Leggende)
   async function syncCollection() {
@@ -520,11 +520,12 @@
     } catch (e) { /* riprovo la prossima volta */ }
   }
   async function accountLoad() {
-    const c = A.acc || (A.acc = { step: 'email' });
+    const c = A.acc || (A.acc = {});
     if (cloudOn() && Cloud.signedIn()) {
       try {
         c.prof = await Cloud.profile(); c.loaded = true;
         if (c.prof) { store('profilo', c.prof); syncCollection(); }
+        if (c.prof && c.afterLogin) { c.afterLogin = false; toastQuick(`Bentornato, ${c.prof.nome}!`); go('home'); return; }
       } catch (e) { c.msg = e.message; c.loaded = true; }
     }
     try { c.board = await Cloud.leaderboard(); c.boardErr = ''; } catch (e) { c.boardErr = 'Classifica non disponibile: serve internet.'; }
@@ -540,25 +541,41 @@
     </tbody></table>`;
   }
   function renderAccount() {
-    const c = A.acc || (A.acc = { step: 'email' });
+    const c = A.acc || (A.acc = {});
     const top = `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">Account</div></div>`;
     if (!cloudOn()) return `${top}<div class="setup"><p class="hint">Account non disponibile.</p></div>`;
     const dis = c.busy ? 'disabled' : '';
     const msg = c.msg ? `<p class="err" role="alert">${esc(c.msg)}</p>` : '';
     let body;
-    if (!Cloud.signedIn()) {
-      body = c.step === 'code' ? `
-        <h2>Controlla l'email</h2>
-        <p class="hint" style="text-align:left">Abbiamo mandato un messaggio a <b>${esc(c.email)}</b>. Scrivi qui il codice che contiene, oppure tocca il link nell'email. Se non lo trovi, guarda nella posta indesiderata.</p>
-        <label class="field-label" for="acc-code"><span class="eyebrow">Codice</span><input id="acc-code" inputmode="numeric" autocomplete="one-time-code" maxlength="10"></label>
-        ${msg}
-        <button class="btn primary" data-act="acc-verify" ${dis}>${c.busy ? 'Controllo…' : 'Entra'}</button>
-        <button class="btn ghost" data-act="acc-back">Cambia email</button>` : `
-        <h2>Il tuo account</h2>
-        <p class="hint" style="text-align:left">Con un account entri nella classifica generale, sali di livello vincendo le sfide e ritrovi le tue carte anche su un altro telefono. Niente password: ti mandiamo un codice via email.</p>
-        <label class="field-label" for="acc-email"><span class="eyebrow">Email</span><input id="acc-email" type="email" inputmode="email" autocomplete="email" value="${esc(c.email || '')}"></label>
-        ${msg}
-        <button class="btn primary" data-act="acc-send" ${dis}>${c.busy ? 'Invio…' : 'Mandami il codice'}</button>`;
+    const info = c.info ? `<p class="ok-msg" role="status">${esc(c.info)}</p>` : '';
+    const emailF = `<label class="field-label" for="acc-email"><span class="eyebrow">Email</span><input id="acc-email" type="email" inputmode="email" autocomplete="email" value="${esc(c.email || '')}"></label>`;
+    const passF = (label, auto) => `<label class="field-label" for="acc-pass"><span class="eyebrow">${label}</span><input id="acc-pass" type="password" autocomplete="${auto}" value="${esc(c.pw || '')}"></label>
+      <label class="showpw"><input type="checkbox" data-change="showpw"> Mostra la password</label>`;
+    const guest = c.start ? '<button class="btn ghost" data-act="acc-guest">Gioca senza account</button>' : '';
+    const mode = c.mode || 'login';
+    if (Cloud.signedIn() && mode === 'newpass') {
+      body = `<h2>Nuova password</h2>
+        <p class="hint" style="text-align:left">Scegli la nuova password per il tuo account (almeno 6 caratteri).</p>
+        ${passF('Nuova password', 'new-password')}${msg}
+        <button class="btn primary" data-act="acc-newpass" ${dis}>Salva la password</button>`;
+    } else if (!Cloud.signedIn()) {
+      if (mode === 'signup') body = `<h2>Crea il tuo account</h2>
+        <p class="hint" style="text-align:left">Con un account entri nella classifica generale, sali di livello vincendo le sfide e ritrovi le tue carte anche su un altro telefono.</p>
+        ${emailF}${passF('Password (almeno 6 caratteri)', 'new-password')}${msg}${info}
+        <button class="btn primary" data-act="acc-signup" ${dis}>${c.busy ? 'Un attimo…' : 'Crea account'}</button>
+        <button class="btn ghost" data-act="acc-mode" data-v="login">Ho già un account</button>${guest}`;
+      else if (mode === 'recover') body = `<h2>Password dimenticata</h2>
+        <p class="hint" style="text-align:left">Scrivi la tua email: ti mandiamo un link per sceglierne una nuova. Se non lo trovi, guarda nella posta indesiderata.</p>
+        ${emailF}${msg}${info}
+        <button class="btn primary" data-act="acc-recover" ${dis}>${c.busy ? 'Invio…' : 'Mandami il link'}</button>
+        <button class="btn ghost" data-act="acc-mode" data-v="login">Torna all'accesso</button>`;
+      else body = `<h2>Entra</h2>
+        <p class="hint" style="text-align:left">Entra nel tuo account per la classifica generale, i livelli e le carte salvate online.</p>
+        ${emailF}${passF('Password', 'current-password')}${msg}${info}
+        <button class="btn primary" data-act="acc-login" ${dis}>${c.busy ? 'Un attimo…' : 'Entra'}</button>
+        <button class="btn ghost small" data-act="acc-mode" data-v="recover">Password dimenticata?</button>
+        <div class="or">non hai ancora un account?</div>
+        <button class="btn" data-act="acc-mode" data-v="signup">Registrati</button>${guest}`;
     } else if (!c.loaded) {
       body = '<p class="hint">Carico il profilo…</p>';
     } else if (!c.prof) {
@@ -590,6 +607,7 @@
   function accDo(promise, after) {
     const c = A.acc;
     c.busy = true; c.msg = ''; render();
+    c.info = '';
     promise.then(r => { c.busy = false; if (after) after(r); render(); })
       .catch(e => { c.busy = false; c.msg = e.message || 'Qualcosa non ha funzionato.'; render(); });
   }
@@ -1421,27 +1439,36 @@
         else if (A.builder === 1) { A.builder = 0; render(); } else go('setup');
         break;
       case 'filter': A.filter = v; render(); break;
-      case 'acc-send': {
-        const email = ((document.getElementById('acc-email') || {}).value || '').trim();
-        A.acc.email = email;
-        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(email)) { A.acc.msg = 'Scrivi un indirizzo email valido.'; render(); break; }
-        accDo(Cloud.sendCode(email), () => { A.acc.step = 'code'; });
+      case 'acc-mode': A.acc.mode = v; A.acc.msg = ''; A.acc.info = ''; render(); break;
+      case 'acc-guest': try { sessionStorage.setItem('stt_ospite', '1'); } catch (err) { /* niente */ } go('home'); break;
+      case 'acc-login': case 'acc-signup': case 'acc-recover': {
+        const c = A.acc;
+        c.email = ((document.getElementById('acc-email') || {}).value || '').trim();
+        c.pw = (document.getElementById('acc-pass') || {}).value || ''; // solo in memoria, per non doverla riscrivere dopo un errore
+        if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c.email)) { c.msg = 'Scrivi un indirizzo email valido.'; render(); break; }
+        if (kind !== 'acc-recover' && c.pw.length < 6) { c.msg = 'La password deve avere almeno 6 caratteri.'; render(); break; }
+        if (kind === 'acc-login') accDo(Cloud.signIn(c.email, c.pw), () => { c.pw = ''; c.loaded = false; c.afterLogin = true; accountLoad(); });
+        else if (kind === 'acc-signup') accDo(Cloud.signUp(c.email, c.pw), r => {
+          c.pw = '';
+          if (r.signedIn) { c.loaded = false; accountLoad(); }
+          else { c.mode = 'login'; c.info = `Account creato! Ti abbiamo mandato un'email a ${c.email}: apri il link per confermarla, poi entra qui con la tua password.`; }
+        });
+        else accDo(Cloud.recover(c.email), () => { c.info = `Se ${c.email} ha un account, ti abbiamo mandato il link per la nuova password.`; });
         break;
       }
-      case 'acc-verify': {
-        const code = ((document.getElementById('acc-code') || {}).value || '').replace(/\D/g, '');
-        if (code.length < 6) { A.acc.msg = 'Il codice è fatto di almeno 6 cifre.'; render(); break; }
-        accDo(Cloud.verify(A.acc.email, code), () => { A.acc.loaded = false; toastQuick('Sei dentro!'); accountLoad(); });
+      case 'acc-newpass': {
+        const pw = (document.getElementById('acc-pass') || {}).value || '';
+        if (pw.length < 6) { A.acc.msg = 'La password deve avere almeno 6 caratteri.'; render(); break; }
+        accDo(Cloud.setPassword(pw), () => { A.acc.mode = 'login'; toastQuick('Password cambiata!'); A.acc.loaded = false; accountLoad(); });
         break;
       }
-      case 'acc-back': A.acc.step = 'email'; A.acc.msg = ''; render(); break;
       case 'acc-create': case 'acc-rename': {
         const nome = ((document.getElementById('acc-name') || {}).value || '').trim();
         if (nome.length < 2) { A.acc.msg = 'Il nome deve avere almeno 2 caratteri.'; render(); break; }
         accDo(kind === 'acc-create' ? Cloud.createProfile(nome) : Cloud.rename(nome), () => { A.acc.loaded = false; accountLoad(); });
         break;
       }
-      case 'acc-logout': accDo(Cloud.logout(), () => { drop('profilo'); A.acc = { step: 'email', board: A.acc.board }; }); break;
+      case 'acc-logout': accDo(Cloud.logout(), () => { drop('profilo'); A.acc = { board: A.acc.board }; }); break;
       case 'egg': {
         const now = Date.now();
         A.egg = (A.egg || []).filter(t => now - t < 4000).concat(now);
@@ -1572,6 +1599,7 @@
   document.addEventListener('change', e => {
     const k = e.target.dataset && e.target.dataset.change;
     if (!k) return;
+    if (k === 'showpw') { const p = document.getElementById('acc-pass'); if (p) p.type = e.target.checked ? 'text' : 'password'; return; }
     const t = A.teams[A.builder], w = A.weapons[A.builder];
     if (k === 'weapon') A.weapons[A.builder] = e.target.value ? { id: e.target.value, card: (w && w.card) || t[0] || null } : null;
     if (k === 'weapon-card' && w) w.card = e.target.value;
@@ -1579,7 +1607,7 @@
   });
   document.addEventListener('keydown', e => {
     if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-act]')) { e.preventDefault(); handle(e); }
-    if (e.key === 'Enter' && ['acc-email', 'acc-code', 'acc-name'].includes(e.target.id)) { const b = $app.querySelector('[data-act^="acc-"].primary, [data-act="acc-rename"]'); if (b) handle({ target: b }); }
+    if (e.key === 'Enter' && ['acc-email', 'acc-pass', 'acc-name'].includes(e.target.id)) { const b = $app.querySelector('[data-act^="acc-"].primary, [data-act="acc-rename"]'); if (b) handle({ target: b }); }
     if (e.key === 'Enter' && e.target.id === 'segreto') handle({ target: document.querySelector('[data-act="egg-try"]') });
     if (e.key === 'Escape' && $layer.innerHTML && !$layer.querySelector('input') && $layer.querySelector('.sheet')) closeLayer();
   });
@@ -1596,15 +1624,24 @@
   render();
   if (cloudOn()) {
     Cloud.init().then(r => {
-      if (r.signedIn) { toastQuick('Sei dentro!'); go('account'); }
+      if (r.recovery) { A.acc = { mode: 'newpass' }; go('account'); }
+      else if (r.signedIn) { toastQuick('Email confermata: sei dentro!'); A.acc = { afterLogin: true }; go('account'); }
       else if (r.error) toastQuick(r.error);
       else if (Cloud.signedIn()) Cloud.profile().then(p => { if (p) { store('profilo', p); syncCollection(); if (A.screen === 'home') render(); } }).catch(() => { /* offline */ });
+      // l'accesso è la prima cosa che si vede, finché non si entra o si sceglie di giocare senza account
+      let guestNow = false; try { guestNow = !!sessionStorage.getItem('stt_ospite'); } catch (err) { /* niente */ }
+      if (!Cloud.signedIn() && !guestNow && A.screen === 'home' && !$layer.innerHTML) { A.acc = Object.assign(A.acc || {}, { start: true }); go('account'); }
     });
   }
   const savedKey = load('chiave', null);
-  if (savedKey) {
+  // carte segrete già sbloccate: le riapro (con due nuovi tentativi se la rete fa i capricci)
+  function reopenSecret(tries) {
     openSecret({ key: savedKey, persist: true })
       .then(() => { if (A.screen !== 'battle') render(); })
-      .catch(e => { if (e && e.name === 'OperationError') drop('chiave'); /* frase cambiata: chiave vecchia */ });
+      .catch(e => {
+        if (e && e.name === 'OperationError') drop('chiave'); // frase cambiata: chiave vecchia
+        else if (tries > 0) setTimeout(() => reopenSecret(tries - 1), 3000);
+      });
   }
+  if (savedKey) reopenSecret(2);
 })();

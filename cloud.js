@@ -1,7 +1,7 @@
 /* STONE TEMPLE CARD GAME — account, livelli, classifica generale e collezione online (Supabase).
  * Solo fetch, nessuna libreria. La chiave "anon" è pubblica per natura: i dati sono protetti
  * dalle regole del database (supabase/schema.sql), non dalla segretezza della chiave.
- * API: Cloud.init() · signedIn() · sendCode(email) · verify(email, code) · logout()
+ * API: Cloud.init() · signedIn() · signIn(email, pw) · signUp(email, pw) · recover(email) · setPassword(pw) · logout()
  *      profile() · createProfile(nome) · rename(nome) · record(vinta, modalita, livello, carte)
  *      leaderboard() · collection() · addToCollection(ids) · levelOf(xp) · titleOf(livello) · xpFor(livello)
  */
@@ -28,7 +28,12 @@
   // messaggi d'errore di Supabase tradotti in qualcosa di comprensibile
   function friendly(d, status) {
     const m = String((d && (d.msg || d.message || d.error_description || d.error)) || '');
-    if (/expired|invalid/i.test(m) && /token|otp/i.test(m)) return 'Codice sbagliato o scaduto: chiedine uno nuovo.';
+    if (/invalid login credentials/i.test(m)) return 'Email o password sbagliate.';
+    if (/email not confirmed/i.test(m)) return "Prima conferma l'email: apri il link che ti abbiamo mandato.";
+    if (/already registered|already been registered/i.test(m)) return 'Esiste già un account con questa email: entra con la tua password.';
+    if (/password/i.test(m) && /(at least|characters|weak|short)/i.test(m)) return 'La password deve avere almeno 6 caratteri.';
+    if (/same.*password|different from the old/i.test(m)) return 'La nuova password deve essere diversa da quella vecchia.';
+    if (/expired|invalid/i.test(m) && /token|link|otp/i.test(m)) return 'Il link è scaduto: chiedine uno nuovo.';
     if (/rate limit|too many|security purposes/i.test(m)) return 'Troppe richieste: aspetta qualche minuto e riprova.';
     if (/duplicate key|profili_nome_key/i.test(m)) return 'Questo nome è già usato da un altro giocatore.';
     if (/troppo presto/i.test(m)) return 'Punti non assegnati: è passata meno di un minuto dalla partita precedente.';
@@ -68,16 +73,21 @@
     return raw(path, Object.assign({}, opt, { headers: Object.assign({ Authorization: 'Bearer ' + t }, opt.headers || {}) }));
   }
 
-  // ------------------------------------------------------------ accesso con email (codice o link)
-  async function sendCode(email) {
-    const back = location.origin + location.pathname;
-    await raw('/auth/v1/otp?redirect_to=' + encodeURIComponent(back), { method: 'POST', body: { email, create_user: true } });
+  // ------------------------------------------------------------ accesso con email e password
+  const back = () => encodeURIComponent(location.origin + location.pathname);
+  async function signIn(email, password) {
+    save(fromAuth(await raw('/auth/v1/token?grant_type=password', { method: 'POST', body: { email, password } })));
   }
-  async function verify(email, code) {
-    const d = await raw('/auth/v1/verify', { method: 'POST', body: { type: 'email', email, token: code } });
-    save(fromAuth(d));
+  // se Supabase chiede di confermare l'email, la sessione arriva solo dopo aver aperto il link
+  async function signUp(email, password) {
+    const d = await raw('/auth/v1/signup?redirect_to=' + back(), { method: 'POST', body: { email, password } });
+    if (d && d.access_token) { save(fromAuth(d)); return { signedIn: true }; }
+    return { confirm: true };
   }
-  // chi tocca il link nell'email torna al sito con i token dopo il "#"
+  const recover = email => raw('/auth/v1/recover?redirect_to=' + back(), { method: 'POST', body: { email } });
+  const setPassword = password => api('/auth/v1/user', { method: 'PUT', body: { password } });
+
+  // chi tocca un link nell'email (conferma dell'account o nuova password) torna al sito con i token dopo il "#"
   async function init() {
     const h = new URLSearchParams(location.hash.slice(1));
     if (h.get('error_description')) {
@@ -90,7 +100,7 @@
     try {
       const u = await api('/auth/v1/user');
       ses.user = { id: u.id, email: u.email }; save(ses);
-      return { signedIn: true };
+      return { signedIn: true, recovery: h.get('type') === 'recovery' };
     } catch (e) { save(null); return { error: e.message }; }
   }
   async function logout() {
@@ -124,7 +134,7 @@
 
   window.Cloud = {
     init, signedIn: () => !!(ses && ses.user), email: () => (ses && ses.user ? ses.user.email : ''),
-    sendCode, verify, logout, profile, createProfile, rename, record, leaderboard, collection, addToCollection,
+    signIn, signUp, recover, setPassword, logout, profile, createProfile, rename, record, leaderboard, collection, addToCollection,
     levelOf, xpFor, titleOf,
   };
 })();

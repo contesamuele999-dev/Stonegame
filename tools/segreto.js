@@ -23,10 +23,14 @@ for (const id of ids) for (const sub of ['', 'volti/', 'teste/']) {
   img[sub + id + '.jpg'] = fs.readFileSync(f).toString('base64');
 }
 
-const salt = crypto.randomBytes(16), iv = crypto.randomBytes(12);
+// stesso sale del pacchetto già pubblicato: con la stessa frase la chiave non cambia e chi aveva
+// già sbloccato le carte non deve riscriverla. --nuovo-sale per cambiarlo (es. quando si cambia frase).
+const out = path.join(__dirname, '..', 'segreto.dat');
+const old = !process.argv.includes('--nuovo-sale') && fs.existsSync(out) ? fs.readFileSync(out) : null;
+const salt = old && old.slice(0, 4).toString() === 'STT1' ? old.slice(4, 20) : crypto.randomBytes(16);
+const iv = crypto.randomBytes(12);
 const key = crypto.pbkdf2Sync(phrase, salt, ITER, 32, 'sha256');
 const c = crypto.createCipheriv('aes-256-gcm', key, iv);
 const data = Buffer.concat([c.update(JSON.stringify({ v: 1, src, img }), 'utf8'), c.final(), c.getAuthTag()]);
-const out = path.join(__dirname, '..', 'segreto.dat');
 fs.writeFileSync(out, Buffer.concat([Buffer.from('STT1'), salt, iv, data]));
 console.log(`segreto.dat: ${ids.length} carte, ${(fs.statSync(out).size / 1024).toFixed(0)} KB`);
