@@ -542,7 +542,7 @@
     try { await fn(); } catch (e) { console.error(e); }
     finally {
       lockN--;
-      if (!lockN) { el.box.hidden = true; el.choice.hidden = true; refreshNpcs(); save(); hud(); }
+      if (!lockN) { el.box.hidden = true; el.choice.hidden = true; refreshNpcs(); save(); hud(); if (MAP && playing) setTrack(MAP.def.music || 'mondo'); }
     }
   }
 
@@ -1017,14 +1017,13 @@
           { name: s.name, cards: s.team.slice(), lv: s.team.map(id => s.cards[id].lv) },
           { name: o.name, cards: o.cards.slice(), lv, cpu: o.cpu || 'normale' },
         ],
-        terrain: o.terrain,
+        terrain: o.terrain, music: o.music,
         onEnd: win => {
           el.root.hidden = false; document.body.classList.add('st-open');
-          setTrack(MAP.def.music || 'mondo'); startLoop();
+          setTrack(win ? 'vittoria' : MAP.def.music || 'mondo'); startLoop(); // la fanfara accompagna premi e livelli
           res(win);
         },
       });
-      setTrack('tempio');
     });
   }
   async function flash() { el.fade.className = 'st-fade flash'; await sleep(900); }
@@ -1053,10 +1052,12 @@
   // sfida con un allenatore (visto per strada o a cui si parla)
   function fight(n) { const d = n.def; return challenge(d.trainer, { name: d.trainer.name || d.name, face: d.face }, trKey(n)); }
   async function challenge(tr, who, key) {
+    const music = tr.music || (tr.badge === 3 ? 'finale' : tr.badge !== undefined ? 'capopalestra' : 'allenatore');
+    setTrack(music); // la musica della sfida parte già quando ci si guarda negli occhi
     await say(tr.intro, who);
     const cards = typeof tr.cards === 'function' ? tr.cards(s) : tr.cards;
     sfx('encounter'); await flash();
-    const win = await battle({ name: fmt(who.name), cards, lv: tr.lv, cpu: tr.cpu, terrain: tr.terrain || MAP.def.terrain });
+    const win = await battle({ name: fmt(who.name), cards, lv: tr.lv, cpu: tr.cpu, terrain: tr.terrain || MAP.def.terrain, music });
     await unflash();
     const lvs = [].concat(tr.lv), lvAvg = avg(lvs);
     if (win) {
@@ -1089,14 +1090,14 @@
       if (!foes.some(f => f.id === p[0])) foes.push({ id: p[0], lv: p[1] + Math.floor(Math.random() * (p[2] - p[1] + 1)) });
     }
     foes.forEach(f => seen(f.id));
-    sfx('encounter'); await flash();
+    sfx('encounter'); setTrack('selvatico'); await flash();
     const go = await panel(`<div class="st-wild"><div class="st-eyebrow">Incontro selvatico</div>
       <div class="st-wild-cards">${foes.map(f => `<div><img src="${S.img(f.id + '.jpg')}" alt=""><b>${esc(S.CARD[f.id].name)}</b><small>${RANKN[S.CARD[f.id].rank]} · Lv ${f.lv}</small></div>`).join('')}</div>
       <h3>${foes.length > 1 ? 'Due spiriti delle carte saltano fuori!' : `Lo spirito di ${esc(S.CARD[foes[0].id].name)} salta fuori!`}</h3>
       <div class="st-acts"><button class="st-btn pri" data-st="fight">Combatti</button><button class="st-btn" data-st="run" data-close>Scappa</button></div></div>`,
       a => closePanel(a === 'fight'));
-    if (!go) { await unflash(); grace = 3; await say('Ti allontani in silenzio...'); return; }
-    const win = await battle({ name: 'Spirito selvatico', cards: foes.map(f => f.id), lv: foes.map(f => f.lv), cpu: w.cpu || 'facile', terrain: MAP.def.terrain });
+    if (!go) { await unflash(); setTrack(MAP.def.music || 'mondo'); grace = 3; await say('Ti allontani in silenzio...'); return; }
+    const win = await battle({ name: 'Spirito selvatico', cards: foes.map(f => f.id), lv: foes.map(f => f.lv), cpu: w.cpu || 'facile', terrain: MAP.def.terrain, music: 'selvatico' });
     await unflash();
     grace = 3;
     const lvAvg = avg(foes.map(f => f.lv));

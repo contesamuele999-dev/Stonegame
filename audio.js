@@ -171,7 +171,7 @@
   const noteM = (base, n) => base * Math.pow(2, (MAJ[((n % 5) + 5) % 5] + 12 * Math.floor(n / 5)) / 12);
   const TRACKS = {
     // in palestra: taiko, bordone e melodia pentatonica che varia lentamente
-    tempio: { beat: BEAT, step(t, s) {
+    tempio: { beat: BEAT, step(t, s) { s %= 32;
       if (s % 8 === 0) taiko(t, 0.5, musicBus);
       if (s % 8 === 6 && Math.random() < 0.6) taiko(t, 0.22, musicBus);
       if (s % 16 === 12) noise(t, 0.05, 0.12, 'bandpass', 2500, 2000, 4, musicBus); // legnetto
@@ -180,7 +180,7 @@
       if (s % 2 === 0) { const n = phrase[s / 2]; if (n !== null && n !== undefined) pluck(noteF(146.83, n), t, 0.28, musicBus); }
     } },
     // in viaggio: allegra, giro di basso Sol–Mi–Do–Re e un tema che torna (A A')
-    mondo: { beat: 60 / 116 / 2, step(t, s) {
+    mondo: { beat: 60 / 116 / 2, step(t, s) { s %= 32;
       const root = [98, 82.41, 65.41, 73.42][Math.floor(s / 8)];
       if (s % 8 === 0) tone('triangle', root, root, t, 0.5, 0.22, musicBus);
       if (s % 8 === 4) tone('triangle', root * 1.5, root * 1.5, t, 0.35, 0.16, musicBus);
@@ -190,7 +190,7 @@
       if (n !== null && n !== undefined) pluck(noteM(196, n), t, 0.2, musicBus);
     } },
     // in grotta: bordone basso, note rade con eco, gocce
-    grotta: { beat: 60 / 70 / 2, step(t, s) {
+    grotta: { beat: 60 / 70 / 2, step(t, s) { s %= 32;
       if (s === 0) tone('sine', 55, 55, t, 6, 0.2, musicBus);
       if (s === 0 && (!phrase.length || Math.random() < 0.5)) phrase = newPhrase(32, 3, 12, 0.75);
       const n = phrase[s];
@@ -198,10 +198,85 @@
       if (Math.random() < 0.06) tone('sine', 1900, 1100, t, 0.09, 0.05, musicBus);
     } },
   };
+  // ------------------------------------------------------------ musiche di battaglia: chiptune da console portatile
+  // Melodie originali. Un gettone per sedicesimo: nota (es. "f#5", "bb4"), "-" la tiene, "." è pausa; "|" separa le battute.
+  // Accordi: uno per battuta ("em", "c", "f#"…): da lì nascono il basso che salta d'ottava e gli arpeggi.
+  const SEMI = { c: 0, d: 2, e: 4, f: 5, g: 7, a: 9, b: 11 };
+  const midi = n => { const m = /^([a-g])(#|b)?(\d)$/.exec(n); return SEMI[m[1]] + (m[2] === '#' ? 1 : m[2] ? -1 : 0) + 12 * (+m[3] + 1); };
+  const mhz = m => 440 * Math.pow(2, (m - 69) / 12);
+  function parseLead(str) {
+    const tk = str.trim().split(/\s+/).filter(x => x !== '|');
+    return tk.map((x, i) => { if (x === '-' || x === '.') return null; let len = 1; while (tk[i + len] === '-') len++; return [mhz(midi(x)), len]; });
+  }
+  const parseChord = c => { const m = /^([a-g])(#|b)?(m)?$/.exec(c); const r = midi(m[1] + (m[2] || '') + '2'); return [r, r + (m[3] ? 3 : 4), r + 7]; };
+  // voce solista: onda quadra filtrata, con vibrato sulle note lunghe
+  function lead(f, t, dur, vol, type) {
+    const o = ctx.createOscillator(), g = ctx.createGain(), fl = ctx.createBiquadFilter();
+    o.type = type || 'square'; o.frequency.setValueAtTime(f, t);
+    fl.type = 'lowpass'; fl.frequency.value = 3200;
+    g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(vol, t + 0.008);
+    g.gain.setTargetAtTime(vol * 0.62, t + 0.03, 0.08); g.gain.setTargetAtTime(0.0001, t + dur * 0.9, 0.025);
+    if (dur > 0.3) { const l = ctx.createOscillator(), lg = ctx.createGain(); l.frequency.value = 6; lg.gain.value = f * 0.014; l.connect(lg); lg.connect(o.frequency); l.start(t + 0.14); l.stop(t + dur + 0.1); }
+    o.connect(fl); fl.connect(g); g.connect(musicBus); o.start(t); o.stop(t + dur + 0.2);
+  }
+  function chip(d) {
+    const beat = 60 / d.bpm / 4, mel = parseLead(d.lead), chords = d.chords.split(' ').map(parseChord), bars = mel.length / 16;
+    const dr = d.drums || {};
+    return { beat, step(t, s) {
+      const intro = d.intro === false ? 0 : 16;
+      if (s < intro) { // intro: scala che precipita e rullata, come quando parte la sfida
+        const top = chords[0][0] + 36;
+        if (s < 12) lead(mhz(top - s * (s % 2 ? 1 : 2)), t, beat * 0.9, 0.16);
+        if (s % 4 === 0) tone('sine', 150, 45, t, 0.18, 0.4, musicBus);
+        if (s >= 12) noise(t, 0.08, 0.14 + (s - 12) * 0.04, 'bandpass', 1800, 1200, 0.8, musicBus);
+        if (s === 0 || s === 8) tone('triangle', mhz(chords[0][0]), null, t, beat * 6, 0.22, musicBus);
+        return;
+      }
+      const k = (s - intro) % mel.length, b = Math.floor(k / 16) % chords.length, i = k % 16, ch = chords[b];
+      const n = mel[k];
+      if (n) { lead(n[0], t, n[1] * beat, d.vol || 0.2); lead(n[0] / 2, t, n[1] * beat, 0.05, 'triangle'); }
+      if (i % 2 === 0) tone('triangle', mhz(ch[0] + (i % 4 ? 12 : 0)), null, t, beat * 1.6, 0.2, musicBus); // basso che salta d'ottava
+      if (d.arp !== false) lead(mhz([ch[0], ch[1], ch[2], ch[0] + 12][i % 4] + 24), t, beat * 0.8, 0.035, 'sawtooth');
+      if ((dr.k || 'x.......x.......')[i] === 'x') tone('sine', 150, 45, t, 0.18, 0.38, musicBus);
+      if ((dr.s || '....x.......x...')[i] === 'x') { noise(t, 0.12, 0.2, 'bandpass', 1900, 1300, 0.8, musicBus); tone('triangle', 230, 170, t, 0.06, 0.12, musicBus); }
+      if ((dr.h || 'x.x.x.x.x.x.x.x.')[i] === 'x') noise(t, 0.03, 0.05, 'highpass', 8000, 8000, 1, musicBus);
+      if (d.taiko && i % 8 === 0) taiko(t, i ? 0.35 : 0.6, musicBus);
+      if (bars && i === 0 && b === 0 && d.drone) tone('sine', mhz(ch[0] - 12), null, t, beat * 64, 0.14, musicBus);
+    } };
+  }
+  Object.assign(TRACKS, {
+    // spirito selvatico: mi minore, saltellante
+    selvatico: chip({ bpm: 156, chords: 'em c d b em c am b', lead: `
+      e5 - - - b4 - e5 - g5 - - - f#5 - e5 - | c5 - - - e5 - g5 - c6 - - - b5 - g5 - | a5 - - - f#5 - d5 - a5 - b5 - c6 - b5 - | b5 - - - - - a5 g5 f#5 - d#5 - f#5 - b4 - |
+      g5 - f#5 - e5 - - - g5 - a5 - b5 - - - | c6 - b5 - a5 - g5 - e5 - - - g5 - c6 - | a5 - - - c6 - e6 - d6 - c6 - b5 - a5 - | b5 - - - - - - - d#6 - - - f#6 - - -` }),
+    // allenatore: la minore, incalzante
+    allenatore: chip({ bpm: 162, chords: 'am f g e am f dm e', drums: { k: 'x.....x.x.......' }, lead: `
+      a4 - c5 - e5 - a5 - - - g5 - a5 - e5 - | f5 - - - a5 - c6 - - - a5 - f5 - c5 - | g5 - - - d5 - g5 - b5 - - - a5 - g5 - | g#5 - - - - - e5 - f5 - g#5 - b5 - - - |
+      c6 - b5 - a5 - e5 - a5 - - - c6 - - - | d6 - c6 - a5 - f5 - c6 - - - a5 - - - | f5 - e5 - d5 - f5 - a5 - d6 - f6 - e6 - | e6 - - - - - - - d6 - c6 - b5 - g#5 -` }),
+    // rivale: re minore, sfrontato e sincopato
+    rivale: chip({ bpm: 168, chords: 'dm bb c a dm bb gm a', drums: { k: 'x..x..x.x..x....', s: '....x..x....x...' }, lead: `
+      d5 - . d5 . f5 - a5 . a5 - g5 f5 - e5 - | f5 - . f5 . bb5 - d6 . d6 - c6 bb5 - a5 - | g5 - . g5 . c6 - e6 . e6 - d6 c6 - bb5 - | a5 - - - c#6 - - - e6 - - - a5 - - - |
+      d6 - c6 - a5 - f5 - d5 - f5 - a5 - d6 - | bb5 - - - a5 - - - f5 - - - d5 - - - | g5 - a5 - bb5 - d6 - g6 - - - f6 - d6 - | e6 - - - c#6 - - - a5 - b5 - c#6 - e6 -` }),
+    // capopalestra: sol minore, eroico
+    capopalestra: chip({ bpm: 150, chords: 'gm eb f d gm eb cm d', drums: { k: 'x...x...x...x...', h: 'xxxxxxxxxxxxxxxx' }, lead: `
+      g5 - - - - - d5 - g5 - a5 - bb5 - - - | bb5 - a5 - g5 - eb5 - g5 - - - bb5 - - - | c6 - - - bb5 - a5 - f5 - - - a5 - c6 - | d6 - - - - - - - f#5 - - - a5 - - - |
+      g6 - - - f6 - d6 - bb5 - - - g5 - - - | eb6 - - - d6 - c6 - bb5 - g5 - eb5 - - - | c6 - d6 - eb6 - g6 - f6 - eb6 - d6 - c6 - | d6 - - - - - - - - - - - f#6 - - -` }),
+    // Leggende: do minore, solenne, con taiko e bordone
+    leggenda: chip({ bpm: 132, chords: 'cm ab bb g cm ab fm g', taiko: true, drone: true, drums: { k: '................', h: 'x...x...x...x...' }, lead: `
+      c5 - - - - - eb5 - f5 - - - g5 - - - | ab5 - - - g5 - - - eb5 - - - c5 - - - | bb4 - - - d5 - f5 - bb5 - - - ab5 - g5 - | g5 - - - - - - - b4 - d5 - f5 - g5 - |
+      c6 - - - bb5 - g5 - f5 - - - eb5 - f5 - | g5 - - - eb5 - c5 - ab5 - - - g5 - - - | f5 - - - ab5 - c6 - f6 - - - eb6 - c6 - | d6 - - - - - - - b5 - - - g5 - - -` }),
+    // la sfida finale con il Maestro: si minore, velocissima
+    finale: chip({ bpm: 172, chords: 'bm g a f# bm g em f#', drums: { k: 'x.x...x.x.x...x.', h: 'xxxxxxxxxxxxxxxx' }, lead: `
+      b5 - f#5 - b5 - d6 - c#6 - b5 - a5 - f#5 - | g5 - d5 - g5 - b5 - a5 - g5 - f#5 - d5 - | e5 - a5 - c#6 - e6 - d6 - c#6 - a5 - e5 - | f#5 - - - a#5 - - - c#6 - - - f#6 - - - |
+      b6 - - - a6 - f#6 - d6 - - - b5 - - - | g6 - f#6 - e6 - d6 - b5 - - - g5 - - - | e6 - f#6 - g6 - a6 - g6 - f#6 - e6 - c#6 - | f#6 - - - - - - - - - - - a#5 - c#6 -` }),
+    // vittoria: fanfara in do maggiore
+    vittoria: chip({ bpm: 140, intro: false, chords: 'c f g c', drums: { k: 'x.......x.......', s: '....x.......x...', h: 'x...x...x...x...' }, lead: `
+      c5 - e5 - g5 - c6 - - - g5 - e5 - g5 - | a5 - - - f5 - a5 - c6 - - - a5 - - - | b5 - - - g5 - d5 - g5 - a5 - b5 - d6 - | c6 - - - - - - - g5 - e5 - c5 - - -` }),
+  });
   function schedule() {
     if (!ctx || ctx.state !== 'running') return;
     const tr = TRACKS[track];
-    while (nextNote < ctx.currentTime + 0.25) { tr.step(nextNote, step % 32); nextNote += tr.beat; step++; }
+    while (nextNote < ctx.currentTime + 0.25) { tr.step(nextNote, step); nextNote += tr.beat; step++; }
   }
   // cambia la musica di sottofondo: 'tempio' (in partita), 'mondo' o 'grotta' (modalità storia)
   function setTrack(name) {

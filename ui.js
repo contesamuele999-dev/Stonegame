@@ -209,7 +209,14 @@
   const chipsHtml = list => list.map(([c, t]) => `<span class="chip ${c}">${esc(t)}</span>`).join('');
 
   // ------------------------------------------------------------ router
-  function go(screen) { A.screen = screen; closeLayer(); render(); window.scrollTo(0, 0); if (screen === 'account') accountLoad(); }
+  function go(screen) { A.screen = screen; closeLayer(); render(); window.scrollTo(0, 0); if (screen === 'account') accountLoad(); music(); }
+  // musica: una per ogni tipo di sfida, quella calma del tempio nei menu (nella storia sceglie storia.js)
+  const TRACK = { cpu: 'allenatore', pvp: 'rivale', online: 'rivale', tutorial: 'selvatico', replay: 'allenatore' };
+  function music(name) {
+    if (!window.Sound || !Sound.setTrack || A.screen === 'storia') return;
+    Sound.setTrack(name || (A.screen !== 'battle' ? 'tempio' : A.mode === 'storia' ? A.storyTrack || 'allenatore'
+      : A.mode === 'torneo' ? (torneo().stage >= TORNEO.length - 1 ? 'capopalestra' : 'allenatore') : TRACK[A.mode] || 'allenatore'));
+  }
   function render() {
     const fn = {
       home: renderHome, setup: renderSetup, build: renderBuild, battle: renderBattle, collection: renderCollection,
@@ -1400,6 +1407,7 @@
     const w = g.players[g.winner];
     const localWin = A.mode === 'pvp' || (A.mode === 'online' ? g.winner === A.me : g.winner === 0);
     sfx(localWin ? 'win' : 'lose');
+    music(localWin ? 'vittoria' : 'tempio');
     let extra = afterMatch(g, cloudGame);
     // carte sbloccate
     let got = [];
@@ -2156,9 +2164,9 @@
   }
 
   // ------------------------------------------------------------ MODALITÀ STORIA (storia.js): battaglie e carte
-  // o = { players, terrain, onEnd(vinta: true/false, null se si scappa) }
+  // o = { players, terrain, music, onEnd(vinta: true/false, null se si scappa) }
   function storyBattle(o) {
-    A.mode = 'storia'; A.storyEnd = o.onEnd;
+    A.mode = 'storia'; A.storyEnd = o.onEnd; A.storyTrack = o.music;
     const setup = newSetup(o.players);
     setup.terrain = S.TERRAIN[o.terrain] ? o.terrain : null;
     A.first = setup.first;

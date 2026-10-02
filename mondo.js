@@ -298,7 +298,7 @@
             await W.say(['Ehi, aspetta! Maestro, anch\'io voglio una carta!', 'Prendo questa!'], RIV);
             await W.say(`${RIVAL} sceglie ${nameOf(rivalCard(s))}!`);
             await W.say(['{n}, facciamo subito una sfida! Vediamo chi ha scelto meglio!'], RIV);
-            await W.challenge({ name: RIVAL, cards: [rivalCard(s), 'vittorio', 'viola'], lv: [2, 1, 1], cpu: 'facile', terrain: 'lancenigo',
+            await W.challenge({ name: RIVAL, cards: [rivalCard(s), 'vittorio', 'viola'], lv: [2, 1, 1], cpu: 'facile', terrain: 'lancenigo', music: 'rivale',
               win: 'Cosa?! Ho perso? Era solo il riscaldamento!', lose: 'Visto? Ho scelto meglio io!',
               onLose: async () => {} }, RIV);
             await W.say(['Mi alleno e ci rivediamo lungo la strada. Non ti lascerò vincere ancora!'], RIV);
@@ -533,7 +533,7 @@
         trainer: { cards: ['christian', 'caterina', 'annalisa', 'viola'], lv: 5, cpu: 'normale', sight: 4,
           intro: 'Quattro carte e una gran paura del buio. Combattiamo, così non ci penso!', win: 'Grazie, mi sento meglio. Più o meno.', after: 'Hai visto quell\'Istruttore che parla da solo vicino all\'uscita?' } },
       { id: 'signorello', x: 13, y: 18, dir: 'up', look: 'signorello', name: 'Lorenzo Signorello', face: 'signorello',
-        trainer: { cards: ['signorello', 'lorenzo', 'adriano', 'nicole'], lv: [7, 6, 6, 6], cpu: 'normale', sight: 2, vanish: true,
+        trainer: { cards: ['signorello', 'lorenzo', 'adriano', 'nicole'], lv: [7, 6, 6, 6], cpu: 'normale', sight: 2, vanish: true, music: 'capopalestra',
           intro: ['Shhh... Senti? È il Sussurro Eterno.', 'Parlo con ogni manifestazione dell\'esistenza. E oggi mi hanno detto che saresti arrivato tu.'],
           win: ['Il Montello ha parlato: sei degno.', 'Prendi la mia carta. Ti sussurrerò consigli da lontano.'],
           after: '...',
@@ -586,7 +586,7 @@
         trainer: { cards: ['strahinja', 'nicole', 'viola'], lv: 6, cpu: 'normale', sight: 5,
           intro: 'Strahinja ha mal di schiena, ma combatte lo stesso!', win: 'Nessuno nota i suoi dolori... nemmeno tu.', after: 'A Treviso c\'è l\'aeroporto: da lì si vola in Inghilterra.' } },
       { id: 'rival2', x: 11, y: 20, dir: 'up', look: 'rival', name: RIVAL, show: s => !!s.flags.rival1,
-        trainer: { cards: s => [rivalCard(s), 'remigio', 'christian', 'caterina'], lv: [7, 6, 6, 6], cpu: 'normale', sight: 3, vanish: true,
+        trainer: { cards: s => [rivalCard(s), 'remigio', 'christian', 'caterina'], lv: [7, 6, 6, 6], cpu: 'normale', sight: 3, vanish: true, music: 'rivale',
           intro: ['{n}! Ti aspettavo!', 'Ho preso il Sigillo dell\'Allievo anch\'io. Ora vediamo chi è più forte davvero!'],
           win: ['Di nuovo?! Va bene, va bene...', 'Vado in Cina ad allenarmi con i veri Maestri. Ci rivediamo là!'],
           lose: 'Te l\'avevo detto! Allenati ancora, {n}!' } },
@@ -795,7 +795,7 @@
       { id: 'monaco', x: 12, y: 6, look: 'monaco', name: 'Monaco', hide: s => s.badges.length >= 3,
         say: ['Il Tempio Ancestrale è aperto solo a chi porta tre sigilli.'] },
       { id: 'rival3', x: 12, y: 6, dir: 'down', look: 'rival', name: RIVAL, show: s => s.badges.length >= 3 && !!s.flags.rival1,
-        trainer: { cards: s => [rivalCard(s), 'lorenzo', 'strahinja', 'annalisa'], lv: [10, 9, 9, 9], cpu: 'difficile', sight: 3, vanish: true, terrain: 'chenjiagou',
+        trainer: { cards: s => [rivalCard(s), 'lorenzo', 'strahinja', 'annalisa'], lv: [10, 9, 9, 9], cpu: 'difficile', sight: 3, vanish: true, music: 'rivale', terrain: 'chenjiagou',
           intro: ['{n}! Anch\'io ho tre sigilli. Il Tempio è mio!', 'Questa volta ho studiato. Ultima sfida, ultima occasione!'],
           win: ['...Va bene. Hai vinto tu. Davvero.', 'Entra nel Tempio. E salutami le Leggende.'],
           lose: 'Te l\'avevo detto! Torna quando sei pronto.' } },
@@ -844,12 +844,12 @@
         trainer: { cards: ['katya', 'remigio', 'annastella'], lv: 9, cpu: 'difficile', sight: 8,
           intro: 'Ultima prova prima della sala delle Leggende!', win: 'Passa pure. Che le Leggende siano con te.', after: 'Chen Zhenglei ti aspetta nella sala.' } },
       { id: 'zhenglei', x: 8, y: 5, look: 'zhenglei', name: 'Chen Zhenglei', face: 'zhenglei',
-        trainer: { cards: ['zhenglei', 'annalisa', 'nicole', 'caterina'], lv: 10, cpu: 'difficile', sight: 2, vanish: true,
+        trainer: { cards: ['zhenglei', 'annalisa', 'nicole', 'caterina'], lv: 10, cpu: 'difficile', sight: 2, vanish: true, music: 'leggenda',
           intro: ['Sei arrivato fin qui. Bene.', 'Io sono lo spirito del Gran Maestro. Ciuffata Cosmica!'],
           win: ['Il tuo Taiji è sincero.', 'Il mio spirito viaggerà con te.'],
           onWin: W => W.gain('zhenglei', 8, 'Chen Zhenglei si unisce a te!') } },
       { id: 'wangting', x: 8, y: 2, look: 'wangting', name: 'Chen Wangting', face: 'wangting',
-        trainer: { cards: ['wangting', 'andrea'], lv: 10, cpu: 'difficile', sight: 1, vanish: true,
+        trainer: { cards: ['wangting', 'andrea'], lv: 10, cpu: 'difficile', sight: 1, vanish: true, music: 'leggenda',
           intro: ['Io ho creato quest\'arte, quattro secoli fa.', 'Vediamo se l\'hai capita davvero. Creazione Marziale!'],
           win: ['Hai capito. Il Taiji vive in te.', 'Ora torna a casa, {n}: il tuo Maestro ti aspetta per l\'ultima prova.'],
           onWin: W => W.gain('wangting', 8, 'Chen Wangting si unisce a te!') } },
