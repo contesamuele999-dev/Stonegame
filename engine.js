@@ -814,6 +814,8 @@
       players: [0, 1].map(i => {
         const p = opts.players[i];
         const fs = p.cards.map(id => makeFighter(id, i));
+        // modalità storia: livello di ogni carta, +4% a PV, ATK e DEF per livello oltre il primo
+        if (p.lv) fs.forEach((f, j) => { const k = 1 + 0.04 * ((p.lv[j] || 1) - 1); f.lv = p.lv[j] || 1; f.hp = f.maxHp = Math.round(f.maxHp * k); f.baseAtk = Math.round(f.baseAtk * k); f.baseDef = Math.round(f.baseDef * k); });
         const syn = opts.synergies === false ? [] : synergiesFor(p.cards);
         fs.forEach(f => syn.forEach(x => x.apply(f)));
         const ter = TERRAIN[opts.terrain];

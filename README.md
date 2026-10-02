@@ -18,6 +18,21 @@ Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal tele
 - **Aure di energia** in stile Super Saiyan in base al grado: Allievo alone bianco, Istruttore fiamma blu, Maestro fiamma d'oro con fulmini e capelli luminosi a punta, Leggenda aura viola e oro con fulmini e onda d'urto. Chi agisce si carica all'inizio della scena; Maestri e Leggende coinvolti restano accesi.
 - **Ologrammi** in stile Yu-Gi-Oh: ogni lottatore sta sulla propria carta appoggiata sul tatami e si materializza da lì con un fascio di luce. Con le mosse speciali la carta si alza e si attiva; quando un lottatore va K.O. la sua carta si spegne.
 - **Velocità di gioco** regolabile in ogni momento (lenta, normale, veloce): pensata anche per chi ha bisogno di più tempo per leggere.
+- **Modalità Storia**: un viaggio a piedi in stile gioco di ruolo portatile, con città, percorsi, grotte e palestre (vedi sotto).
+- **Promemoria di accesso**: chi gioca senza account vede in home (e a fine partita) un invito ad accedere o registrarsi, che serve per le statistiche di gioco e per entrare in classifica. "Più tardi" lo nasconde fino alla prossima visita.
+
+## Modalità Storia
+
+Dal menu iniziale, "📖 Modalità Storia". Si crea il proprio personaggio (nome, capelli, colori di pelle, divisa, pantaloni e cintura; si cambia poi dalla Tessera) e si parte da casa, a Lancenigo.
+
+- **Il mondo**: Lancenigo, Percorso 1, Ponte della Priula, la Grotta del Montello (buia), Percorso 2, Treviso con l'aeroporto, l'Inghilterra (sotto la pioggia), Chenjiagou e il Tempio Ancestrale. Ci si muove a caselle con la croce direzionale (o le frecce/WASD), A parla ed esamina (Z, spazio, invio), B annulla e, tenuto premuto, fa correre (X), MENU apre carte, tessera e salvataggio (M o Esc). Le sporgenze si saltano solo verso il basso; di sera e di notte i luoghi all'aperto cambiano luce.
+- **La trama**: il Maestro Samuele dà il primo compagno (Grazia, Alessandro o Annastella) e due allieve; il rivale Tommaso si ripresenta tre volte. Quattro sigilli: Federica (Palestrina delle medie), il Maestro Liming Yue (Inghilterra), Chen Delang (Piazza del Taiji), e infine Samuele alla Stone Temple Tao, dopo aver incontrato le Leggende nel Tempio Ancestrale.
+- **Le sfide** si giocano con il motore e lo schermo di sempre. Gli allenatori ti sfidano quando ti vedono; chi perde paga il 10% delle monete e torna all'ultima città.
+- **Spiriti selvatici**: nell'erba alta (e nelle grotte) saltano fuori gli spiriti delle carte. Si combatte o si scappa; chi vince può usare una **pergamena** per reclutarli (riesce più spesso con gli Allievi, meno con Istruttori e Maestri).
+- **Livelli delle carte**: ogni carta in squadra guadagna esperienza (anche perdendo, un terzo); ogni livello dà +4% a PV, ATK e DEF, fino al livello 10. **Potenziare** una carta (dal menu Carte) usa una copia doppia e qualche moneta: +1 livello subito.
+- **Comprare, vendere, scambiare**: in bottega pergamene e bustine (Allievi, Istruttori, Maestri: più sigilli hai, più alto il livello della carta che esce) e si vendono le copie doppie. Alcuni abitanti propongono scambi di carte.
+- **Squadra**: 4 carte e 10 Punti Dojo come nel gioco normale; le carte trovate nella storia si sbloccano anche nel resto del gioco. Le carte segrete, se sbloccate, possono comparire come spiriti rarissimi nel Montello.
+- Il viaggio si salva da solo (a ogni porta, sfida e acquisto) sul telefono. Mappe e trama stanno in `mondo.js`, il motore del mondo in `storia.js`; `node tools/test-storia.js` controlla che le mappe siano percorribili.
 
 ## Come aprirlo
 

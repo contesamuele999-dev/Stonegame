@@ -214,7 +214,7 @@
     const fn = {
       home: renderHome, setup: renderSetup, build: renderBuild, battle: renderBattle, collection: renderCollection,
       rules: renderRules, ranking: renderRanking, settings: renderSettings, torneo: renderTorneo, online: renderOnline, live: renderLive, missioni: renderMissioni, medaglie: renderMedaglie,
-      account: renderAccount,
+      account: renderAccount, storia: () => '',
     }[A.screen];
     $app.innerHTML = fn();
     // in partita, sullo sfondo, la palestra in cui si combatte
@@ -245,10 +245,12 @@
         </div>
       </div>
       <div class="fan" aria-hidden="true">${ids.map((id, i) => `<img src="${S.img(id + '.jpg')}" alt="" style="transform:rotate(${(i - 2) * 7}deg) translateY(${Math.abs(i - 2) * 8}px)">`).join('')}</div>
+      ${loginNudge()}
       <div class="menu">
         ${cloudOn() ? `<button class="btn acc-btn ${Cloud.signedIn() ? '' : 'primary'}" data-act="go" data-v="account">${accountLabel()}</button>` : ''}
         ${save ? `<button class="btn primary" data-act="resume">Riprendi partita · turno ${Math.ceil(save.turnNo / 2)}</button>` : ''}
         ${!tutDone ? `<button class="btn ${save ? '' : 'primary'}" data-act="tutorial">Prima volta? Fai il tutorial</button>` : ''}
+        <button class="btn story-btn" data-act="storia">📖 Modalità Storia<small>${window.Storia && Storia.hasSave() ? 'Continua il viaggio' : 'Un viaggio tra palestre, grotte e templi'}</small></button>
         <button class="btn ${save || !tutDone ? '' : 'primary'}" data-act="mode" data-v="cpu">Sfida il computer</button>
         <button class="btn" data-act="go" data-v="live">🏆 Torneo dal vivo<small>4 o 8 giocatori, tabellone sul telefono di chi organizza</small></button>
         <button class="btn" data-act="go" data-v="torneo">Torneo · incontro ${Math.min(t.stage + 1, 5)} di 5${t.titles ? ` · 🏆 ${t.titles}` : ''}</button>
@@ -808,6 +810,15 @@
 
   // ------------------------------------------------------------ ACCOUNT, LIVELLI E CLASSIFICA GENERALE (cloud.js)
   const cloudOn = () => !!window.Cloud;
+  // promemoria per chi gioca senza essere connesso (si può nascondere fino alla prossima visita)
+  function loginNudge(after) {
+    if (!cloudOn() || Cloud.signedIn()) return '';
+    let hidden = false; try { hidden = !after && !!sessionStorage.getItem('stt_promemoria'); } catch (e) { /* niente */ }
+    if (hidden) return '';
+    return `<div class="login-nudge" role="note"><b>🔔 Non sei ancora connesso</b>
+      <p>${after ? 'Questa partita non entra nelle statistiche.' : 'Stai giocando come ospite.'} Accedi o registrati: serve per salvare le statistiche di gioco ed entrare in classifica.</p>
+      <div class="menu-2"><button class="btn small primary" data-act="nudge-login">Accedi o registrati</button>${after ? '' : '<button class="btn small ghost" data-act="nudge-later">Più tardi</button>'}</div></div>`;
+  }
   function accountLabel() {
     const p = load('profilo', null);
     if (cloudOn() && Cloud.signedIn() && p) { const l = Cloud.levelOf(p.xp); return `👤 ${esc(p.nome)} · Livello ${l}<small>${esc(Cloud.titleOf(l))} · classifica generale</small>`; }
@@ -977,7 +988,7 @@
       pv = `<span class="pv num ${lo >= f.hp ? 'ko' : ''}">${lo === 0 && hi === 0 ? 'Bloccato' : lo >= f.hp ? 'K.O.!' : `−${lo}–${hi}`}</span>`;
     }
     return `<button class="${classes.join(' ')}" data-act="tile" data-v="${f.uid}" aria-label="${esc(f.name)}, ${f.hp} PV su ${f.maxHp}">
-      <span class="face" style="${face(f.card)}"><span class="rank ${f.rank}">${RANK_SHORT[f.rank]}</span>${f.weapon ? `<span class="wpn" title="${esc(S.WEAPON[f.weapon].name)}">⚔️</span>` : ''}${pv}</span>
+      <span class="face" style="${face(f.card)}"><span class="rank ${f.rank}">${RANK_SHORT[f.rank]}${f.lv ? ` · Lv${f.lv}` : ''}</span>${f.weapon ? `<span class="wpn" title="${esc(S.WEAPON[f.weapon].name)}">⚔️</span>` : ''}${pv}</span>
       <span class="body">
         <span class="nm">${esc(f.name)}</span>
         <span class="hp"><i class="${cls}" style="width:${(pct * 100).toFixed(1)}%"></i></span>
@@ -1384,7 +1395,7 @@
           if (el) el.textContent = `+${xp} punti esperienza${p ? ` · Livello ${Cloud.levelOf(p.xp)}` : ''}`;
           if (p && lv(p.xp) > lv(p.xp - xp)) toastQuick(`Livello ${lv(p.xp)}!`);
         })
-        .catch(e => { const el = document.getElementById('xp-line'); if (el) el.textContent = e.message; });
+        .catch(e => { const el = document.getElementById('xp-line'); if (el) el.textContent = A.mode === 'storia' ? '' : e.message; });
     }
     const w = g.players[g.winner];
     const localWin = A.mode === 'pvp' || (A.mode === 'online' ? g.winner === A.me : g.winner === 0);
@@ -1393,7 +1404,8 @@
     // carte sbloccate
     let got = [];
     if (A.mode === 'tutorial') { store('tutorial', true); got = unlockRandom(2); }
-    else if (localWin) got = unlockRandom(1);
+    else if (localWin && A.mode !== 'storia') got = unlockRandom(1);
+    A.storyWin = localWin;
     if (got.length && cloudOn() && Cloud.signedIn()) Cloud.addToCollection(got.filter(id => !LEGENDS.includes(id))).catch(() => { /* alla prossima sincronizzazione */ });
     // torneo
     let torneoMsg = '';
@@ -1417,6 +1429,7 @@
     const alive = w.field.concat(w.reserve);
     if (A.liveMatch) { const { r, i } = A.liveMatch; liveResult(r, i, w.name); }
     const btns = A.liveMatch ? '<button class="btn primary" data-act="live-back">Torna al tabellone</button>'
+      : A.mode === 'storia' ? '<button class="btn primary" data-act="storia-back">Continua il viaggio</button>'
       : A.mode === 'torneo'
       ? `<button class="btn primary" data-act="torneo-next">${g.winner === 0 ? (torneo().stage === 0 ? 'Torna al torneo' : 'Prossimo incontro') : 'Ritenta'}</button><button class="btn ghost" data-act="quit-now">Menu</button>`
       : A.mode === 'tutorial'
@@ -1430,7 +1443,7 @@
       <p>${esc(w.name)} vince con ${alive.length} cart${alive.length === 1 ? 'a' : 'e'} ancora in piedi.</p>
       <div class="faces">${alive.map(f => `<i style="${face(f.card)}"></i>`).join('')}</div>
       ${torneoMsg ? `<p><b>${esc(torneoMsg)}</b></p>` : ''}
-      ${cloudGame ? '<p id="xp-line" class="xp-line" aria-live="polite">Registro la partita…</p>' : ''}
+      ${cloudGame ? '<p id="xp-line" class="xp-line" aria-live="polite">Registro la partita…</p>' : A.mode !== 'pvp' && A.mode !== 'replay' && A.mode !== 'storia' ? loginNudge(true) : ''}
       ${A.mode === 'tutorial' ? '<p>Tutorial completato!</p>' : ''}
       ${extra}
       ${btns}
@@ -1637,7 +1650,7 @@
   // ------------------------------------------------------------ salvataggio della partita
   function saveGame() {
     const g = A.game;
-    if (!g || A.mode === 'online' || A.mode === 'tutorial' || A.mode === 'replay') return;
+    if (!g || A.mode === 'online' || A.mode === 'tutorial' || A.mode === 'replay' || A.mode === 'storia') return;
     if (g.winner !== null) { drop('save'); return; }
     store('save', { mode: A.mode, level: A.level, names: A.names, teams: A.teams, setup: A.setup, log: A.log, view: A.view, turnNo: g.turnNo, first: A.first });
   }
@@ -1869,6 +1882,7 @@
     switch (kind) {
       case 'go': if (v === 'online') A.on = A.on || { phase: 'menu' }; go(v); break;
       case 'mode': A.mode = v; go('setup'); break;
+      case 'storia': if (window.Storia) { A.screen = 'storia'; render(); Storia.open(); } break;
       case 'level': A.level = v; store('level', v); saveNames(); render(); break;
       case 'set': {
         const key = el.dataset.k;
@@ -1918,6 +1932,9 @@
       case 'live-reset': confirmBox('Chiudere il torneo?', 'Il tabellone verrà cancellato. I nomi restano per il prossimo.', 'live-reset-yes', 'Chiudi il torneo'); break;
       case 'live-reset-yes': drop('live'); closeLayer(); render(); break;
       case 'acc-mode': A.acc.mode = v; A.acc.msg = ''; A.acc.info = ''; render(); break;
+      case 'nudge-login':
+        A.game = null; A.acc = Object.assign(A.acc || {}, { mode: 'login', msg: '', info: '' }); go('account'); break;
+      case 'nudge-later': try { sessionStorage.setItem('stt_promemoria', '1'); } catch (err) { /* niente */ } render(); break;
       case 'acc-guest': try { sessionStorage.setItem('stt_ospite', '1'); } catch (err) { /* niente */ } go('home'); break;
       case 'acc-login': case 'acc-signup': case 'acc-recover': {
         const c = A.acc;
@@ -2064,9 +2081,12 @@
         }
         break;
       case 'quit':
-        confirmBox('Abbandoni?', A.mode === 'online' ? 'La partita online verrà chiusa anche per l\'altro giocatore.' : 'Puoi riprendere la partita dal menu.', 'quit-now', 'Esci dalla partita');
+        confirmBox('Abbandoni?', A.mode === 'online' ? 'La partita online verrà chiusa anche per l\'altro giocatore.'
+          : A.mode === 'storia' ? 'Da uno spirito selvatico si scappa e basta; contro un allenatore conta come sconfitta.' : 'Puoi riprendere la partita dal menu.', 'quit-now', 'Esci dalla partita');
         break;
+      case 'storia-back': storyReturn(A.storyWin); break;
       case 'quit-now':
+        if (A.mode === 'storia' && A.storyEnd) { storyReturn(null); break; }
         if (A.mode === 'online') leaveOnline();
         A.liveMatch = null;
         A.game = null; A.tut = -1; go('home'); break;
@@ -2134,6 +2154,30 @@
   if ('serviceWorker' in navigator && window.top === window && /^https:$|^http:$/.test(location.protocol) && location.hostname !== 'localhost') {
     window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* non installabile qui */ }); });
   }
+
+  // ------------------------------------------------------------ MODALITÀ STORIA (storia.js): battaglie e carte
+  // o = { players, terrain, onEnd(vinta: true/false, null se si scappa) }
+  function storyBattle(o) {
+    A.mode = 'storia'; A.storyEnd = o.onEnd;
+    const setup = newSetup(o.players);
+    setup.terrain = S.TERRAIN[o.terrain] ? o.terrain : null;
+    A.first = setup.first;
+    launch(setup, { view: 0 });
+    beginOverlay();
+  }
+  function storyReturn(win) {
+    const f = A.storyEnd;
+    A.storyEnd = null; A.game = null; A.mode = 'cpu';
+    closeLayer(); A.screen = 'storia'; render();
+    if (f) f(win);
+  }
+  // le carte trovate nella storia si sbloccano anche nel resto del gioco
+  function unlockCards(ids) {
+    const have = load('unlocked', STARTERS).filter(id => S.CARD[id]);
+    const add = ids.filter(id => S.CARD[id] && !have.includes(id) && !S.CARD[id].secret);
+    if (add.length) store('unlocked', have.concat(add));
+  }
+  S.UI = { storyBattle, unlockCards, toastQuick, sfx, home: () => { A.screen = 'home'; render(); } };
 
   // solo per i test automatici (indirizzo che termina con #test)
   if (location.hash === '#test') window.__sttTest = { A, S, packReplay };

@@ -1,7 +1,7 @@
 /* STONE TEMPLE TAO — suoni, musica e vibrazione
  * Tutto è sintetizzato al volo con Web Audio: nessun file audio, nessuna musica protetta da diritti.
  * API: Sound.unlock() · Sound.play(nome, forza) · Sound.setSfx(bool) · Sound.setMusic(bool)
- *      Sound.setVibration(bool) · Sound.buzz(pattern) · Sound.prodigy()
+ *      Sound.setVibration(bool) · Sound.buzz(pattern) · Sound.prodigy() · Sound.setTrack(nome)
  */
 (function () {
   'use strict';
@@ -110,6 +110,13 @@
     event(t) { FX.ko(t); for (let i = 0; i < 8; i++) taiko(t + 0.3 + i * 0.08, 0.25 + i * 0.05); },
     win(t) { [0, 2, 4, 5, 7, 9].forEach((n, i) => pluck(noteF(293.66, n + 5), t + i * 0.12, 0.45)); taiko(t, 0.8); taiko(t + 0.72, 0.9); },
     lose(t) { [7, 5, 3, 0].forEach((n, i) => pluck(noteF(146.83, n + 5), t + i * 0.22, 0.4)); },
+    // modalità storia
+    bump(t) { tone('square', 110, 80, t, 0.07, 0.06); },
+    door(t) { noise(t, 0.18, 0.2, 'bandpass', 600, 1500, 2); tone('sine', 520, 390, t + 0.05, 0.15, 0.1); },
+    jump(t) { tone('sine', 280, 640, t, 0.16, 0.14); },
+    item(t) { [0, 2, 4, 5].forEach((n, i) => pluck(noteM(392, n + 5), t + i * 0.09, 0.32)); },
+    alert(t) { tone('square', 1320, 1320, t, 0.07, 0.1); tone('square', 1760, 1760, t + 0.08, 0.12, 0.1); },
+    encounter(t) { tone('sawtooth', 120, 900, t, 0.5, 0.18); for (let i = 0; i < 4; i++) taiko(t + 0.1 + i * 0.1, 0.3 + i * 0.1); },
   };
 
   function play(name, k) {
@@ -158,27 +165,49 @@
     if (ctx) musicBus.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.3);
   }
   const BEAT = 60 / 84 / 2; // crome a 84 bpm
-  let phrase = [];
-  function schedule() {
-    if (!ctx || ctx.state !== 'running') return;
-    while (nextNote < ctx.currentTime + 0.25) {
-      const t = nextNote, s = step % 32;
-      // taiko: colpo forte sul battere, piccoli colpi di contorno
+  let phrase = [], track = 'tempio';
+  const newPhrase = (len, lo, hi, rest) => { let n = lo + 3 + Math.floor(Math.random() * 3); return Array.from({ length: len }, () => { n += Math.floor(Math.random() * 5) - 2; n = Math.max(lo, Math.min(hi, n)); return Math.random() < rest ? null : n; }); };
+  const MAJ = [0, 2, 4, 7, 9]; // pentatonica maggiore, per la musica del viaggio
+  const noteM = (base, n) => base * Math.pow(2, (MAJ[((n % 5) + 5) % 5] + 12 * Math.floor(n / 5)) / 12);
+  const TRACKS = {
+    // in palestra: taiko, bordone e melodia pentatonica che varia lentamente
+    tempio: { beat: BEAT, step(t, s) {
       if (s % 8 === 0) taiko(t, 0.5, musicBus);
       if (s % 8 === 6 && Math.random() < 0.6) taiko(t, 0.22, musicBus);
       if (s % 16 === 12) noise(t, 0.05, 0.12, 'bandpass', 2500, 2000, 4, musicBus); // legnetto
-      // bordone
-      if (s === 0) { tone('sine', 73.42, 73.42, t, BEAT * 30, 0.18, musicBus); }
-      // melodia pentatonica che varia lentamente
-      if (s === 0) {
-        if (!phrase.length || Math.random() < 0.5) {
-          let n = 5 + Math.floor(Math.random() * 3);
-          phrase = Array.from({ length: 16 }, () => { n += Math.floor(Math.random() * 5) - 2; n = Math.max(2, Math.min(11, n)); return Math.random() < 0.45 ? null : n; });
-        }
-      }
+      if (s === 0) tone('sine', 73.42, 73.42, t, BEAT * 30, 0.18, musicBus);
+      if (s === 0 && (!phrase.length || Math.random() < 0.5)) phrase = newPhrase(16, 2, 11, 0.45);
       if (s % 2 === 0) { const n = phrase[s / 2]; if (n !== null && n !== undefined) pluck(noteF(146.83, n), t, 0.28, musicBus); }
-      nextNote += BEAT; step++;
-    }
+    } },
+    // in viaggio: allegra, giro di basso Sol–Mi–Do–Re e un tema che torna (A A')
+    mondo: { beat: 60 / 116 / 2, step(t, s) {
+      const root = [98, 82.41, 65.41, 73.42][Math.floor(s / 8)];
+      if (s % 8 === 0) tone('triangle', root, root, t, 0.5, 0.22, musicBus);
+      if (s % 8 === 4) tone('triangle', root * 1.5, root * 1.5, t, 0.35, 0.16, musicBus);
+      if (s % 4 === 2) noise(t, 0.03, 0.06, 'highpass', 7000, 7000, 1, musicBus);
+      if (s === 0 && (!phrase.length || Math.random() < 0.3)) phrase = newPhrase(16, 4, 12, 0.3);
+      const n = s < 28 ? phrase[s % 16] : phrase[s % 16] === null ? null : phrase[s % 16] - 1;
+      if (n !== null && n !== undefined) pluck(noteM(196, n), t, 0.2, musicBus);
+    } },
+    // in grotta: bordone basso, note rade con eco, gocce
+    grotta: { beat: 60 / 70 / 2, step(t, s) {
+      if (s === 0) tone('sine', 55, 55, t, 6, 0.2, musicBus);
+      if (s === 0 && (!phrase.length || Math.random() < 0.5)) phrase = newPhrase(32, 3, 12, 0.75);
+      const n = phrase[s];
+      if (n !== null && n !== undefined) { pluck(noteF(220, n), t, 0.16, musicBus); pluck(noteF(220, n), t + 0.32, 0.05, musicBus); }
+      if (Math.random() < 0.06) tone('sine', 1900, 1100, t, 0.09, 0.05, musicBus);
+    } },
+  };
+  function schedule() {
+    if (!ctx || ctx.state !== 'running') return;
+    const tr = TRACKS[track];
+    while (nextNote < ctx.currentTime + 0.25) { tr.step(nextNote, step % 32); nextNote += tr.beat; step++; }
+  }
+  // cambia la musica di sottofondo: 'tempio' (in partita), 'mondo' o 'grotta' (modalità storia)
+  function setTrack(name) {
+    if (!TRACKS[name] || name === track) return;
+    track = name; step = 0; phrase = [];
+    if (ctx) nextNote = ctx.currentTime + 0.15;
   }
 
   // ------------------------------------------------------------ vibrazione
@@ -188,7 +217,7 @@
   }
 
   window.Sound = {
-    unlock, play, prodigy, buzz,
+    unlock, play, prodigy, buzz, setTrack,
     setSfx(v) { opt.sfx = !!v; },
     setMusic(v) { opt.music = !!v; if (!v) stopMusic(); else if (ctx && ctx.state === 'running') startMusic(); },
     setVibration(v) { opt.vibration = !!v; },
