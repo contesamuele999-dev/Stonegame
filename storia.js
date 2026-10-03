@@ -708,7 +708,7 @@
   let el = null, menuOpen = false, dlg = null, cho = null;
   function build() {
     const root = document.createElement('div');
-    root.className = 'st'; root.hidden = true;
+    root.className = 'storia'; root.hidden = true; // non "st": è già la classe della riga PV · ATK · DEF delle carte
     root.innerHTML = `<div class="st-wrap">
       <div class="st-top">
         <canvas aria-label="Il mondo della storia"></canvas>

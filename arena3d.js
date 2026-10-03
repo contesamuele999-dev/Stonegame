@@ -40,8 +40,8 @@
     'Annotazione Omnidirezionale': { anim: 'palm', fx: 'burst', e: '✒️', c: '#6fb3e6' },
     'Blocco Telematico': { anim: 'palm', fx: 'burst', e: '💻', c: '#38d6ff' },
     'Ventaglio Perforante': { anim: 'spin', fx: 'burst', e: '🪭', c: '#ff8fb1' },
-    'Videopatia': { anim: 'cast', fx: 'flash', e: '📸', c: '#ffffff' },
-    'Gomiti di Ferro': { anim: 'powerup', fx: 'metal', e: '🛡️', c: '#c9d3dd' },
+    'Videopatia': { anim: 'cast', fx: 'flash', e: '📸', c: '#ffffff', wind: 'frameWind', pose: 'frame' },
+    'Gomiti di Ferro': { anim: 'powerup', fx: 'metal', e: '🛡️', c: '#c9d3dd', pose: 'elbows' },
     'Terza Persona Colloquiale': { anim: 'shout', fx: 'bubble', t: 'LEI', c: '#eadbc0' },
     'Mutandone Dirompente': { anim: 'sumo', fx: 'aura', e: '🩲', c: '#ff9a3d' },
     'Dolori Omnidirezionali': { anim: 'cast', fx: 'wave', e: '💢', c: '#d8412f' },
@@ -170,6 +170,8 @@
     signorello: [0.479, 0.23, 0.086], strahinja: [0.48, 0.255, 0.096], viola: [0.5, 0.283, 0.168, '#5a3a24'],
     vittorio: [0.476, 0.288, 0.196], wangting: [0.49, 0.191, 0.085], zhenglei: [0.46, 0.21, 0.105],
   };
+  // foto del viso di fronte, solo per le teste 3D: [file in img/, centro x, centro y, larghezza del viso, capelli]
+  const PHOTO = { samuele: ['volti3d/samuele.webp', 0.503, 0.6, 0.66, '#2b2018'] };
   function faceTex(card) {
     if (faceCache[card]) return faceCache[card];
     const c = document.createElement('canvas'); c.width = c.height = 256;
@@ -185,7 +187,7 @@
     const img = new Image();
     img.onload = () => {
       // la foto si sposta e si ingrandisce perché il viso cada al centro e largo sempre uguale
-      const [cx, cy, fw, hairFix] = FACE[card] || [0.5, 0.25, 0.12];
+      const [cx, cy, fw, hairFix] = PHOTO[card] ? PHOTO[card].slice(1) : FACE[card] || [0.5, 0.25, 0.12];
       const W = img.width, H = img.height, fpx = fw * W;
       // capelli: dalla carta, sopra la fronte
       try {
@@ -202,6 +204,8 @@
         if (hairFix) info.hair = hairFix;
       } catch (e) { /* immagine non leggibile */ }
       const k = 127 / fpx;
+      // foto ritagliata (trasparente intorno al viso): dietro, in alto, il colore dei capelli fino alla calotta
+      if (PHOTO[card]) { x.fillStyle = info.hair; x.beginPath(); x.ellipse(128, 62, 96, 46, 0, 0, Math.PI * 2); x.fill(); }
       x.drawImage(img, 128 - cx * W * k, 152 - cy * H * k, W * k, H * k);
       try { info.skin = avg(108, 164, 40, 18); } catch (e) { /* immagine non leggibile */ }
       // maschera ovale sfumata: resta il viso, spariscono sfondo e bordi
@@ -216,7 +220,7 @@
       (info.onLoad || []).forEach(f => f(info));
     };
     // se la rete perde l'immagine riprovo due volte (altrimenti il viso resterebbe vuoto per tutta la partita)
-    const url = window.STT.img(`${card}.jpg`);
+    const url = window.STT.img(PHOTO[card] ? PHOTO[card][0] : `${card}.jpg`);
     let tries = 0;
     img.onerror = () => { if (tries++ < 2) setTimeout(() => { img.src = url.startsWith('blob:') ? url : `${url}?r=${tries}`; }, 800); };
     img.src = url;
@@ -658,6 +662,10 @@
     ko: { hy: -0.62, tz: 1.45, hd: -0.3, ls: 2.4, le: 0.3, rs: 2.2, re: 0.4, lh: 1.3, lk: -0.2, rh: 1.1, rk: -0.6 },
     dizzy: { hy: -0.1, tz: 0.15, hd: 0.3, ls: 0.4, le: 0.6, rs: 0.3, re: 0.5, lh: 0.2, lk: -0.3, rh: -0.3, rk: -0.2 },
     win: { hy: 0, hd: 0.2, ls: 0.3, le: 1.8, rs: 3.0, re: 0.2, lh: 0.1, lk: -0.1, rh: -0.1, rk: -0.1 },
+    // mosse personali (MOVES[...].pose): doppia gomitata in posizione bassa, mani a cornice come un obiettivo
+    elbows: { hy: -0.3, tz: -0.08, lsx: -1.35, ls: 0.25, le: 2.05, rsx: 1.35, rs: 0.25, re: 2.05, lh: 0.6, lk: -1.05, rh: -0.6, rk: -1.05 },
+    frameWind: { hy: -0.08, tz: 0.1, hd: 0.05, ls: 0.5, le: 1.9, rs: 0.5, re: 1.9, lh: 0.3, lk: -0.35, rh: -0.3, rk: -0.3 },
+    frame: { hy: -0.1, tz: -0.12, hd: 0.12, lsx: -0.25, ls: 1.25, le: 1.05, rsx: 0.25, rs: 1.6, re: 0.55, lh: 0.4, lk: -0.45, rh: -0.4, rk: -0.2 },
   };
   function pose(name) { return Object.assign({}, POSE0, P[name]); }
 
@@ -666,6 +674,7 @@
   const lathe = (pts, seg) => new T.LatheGeometry(pts.map(([r, y]) => new T.Vector2(r, y)), seg || 22);
 
   function fighter(d) {
+    if (STYLE[d.card]) return skinnedFighter(d); // lottatori con il corpo vero (per ora solo Samuele)
     const look = LOOK[d.card] || ['#444', '#e8631c'];
     const g = new T.Group();
     const gi = cloth(look[0]);
@@ -750,6 +759,172 @@
     shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.03; g.add(shadow);
 
     const ch = { d, g, J, pose: pose('guard'), mats: [gi, pants, trim, skin, belt, shoe], body: [chest, pelvis], idle: true, t: Math.random() * 6, face: fs, facing: 0 };
+    ch.apply = () => applyPose(ch);
+    applyPose(ch);
+    return ch;
+  }
+
+  // ------------------------------------------------------------ lottatori "in carne e ossa" (per ora: Samuele)
+  // Stesse giunture e stesse pose dei lottatori classici, ma su uno scheletro vero: busto, maniche e pantaloni
+  // sono superfici uniche che si piegano morbide a spalle, gomiti, vita, anche e ginocchia invece di pezzi staccati.
+  // Mani, piedi, testa, alamari e polsini sono pezzi rigidi appesi alle ossa. STYLE: come veste ogni carta.
+  const STYLE = {
+    samuele: { gi: '#c9c6c2', trim: '#17130f', silk: true, bun: true, frogs: 6, belt: false },
+  };
+  const smooth = t => { t = Math.max(0, Math.min(1, t)); return t * t * (3 - 2 * t); };
+  // tela di seta: pieghe verticali morbide e una lucentezza leggera
+  function silkTex(color) {
+    const k = 'silk' + color;
+    if (texCache[k]) return texCache[k];
+    const tex = canvasTex(256, 256, (x, w, h) => {
+      x.fillStyle = color; x.fillRect(0, 0, w, h);
+      for (let i = 0; i < 46; i++) {
+        const px = Math.random() * w, ww = 4 + Math.random() * 18, a = Math.random() * 0.1;
+        const gr = x.createLinearGradient(px - ww, 0, px + ww, 0);
+        gr.addColorStop(0, 'rgba(0,0,0,0)'); gr.addColorStop(0.5, Math.random() < 0.5 ? `rgba(0,0,0,${a})` : `rgba(255,255,255,${a * 1.4})`); gr.addColorStop(1, 'rgba(0,0,0,0)');
+        x.fillStyle = gr; x.fillRect(px - ww, 0, ww * 2, h);
+      }
+    });
+    tex.wrapS = tex.wrapT = T.RepeatWrapping;
+    texCache[k] = tex;
+    return tex;
+  }
+  // tubo deformabile lungo l'asse verticale: anelli da yTop a yBot, raggio r(y), pesi delle ossa w(x, y, z)
+  function skinTube(cx, cz, yTop, yBot, rings, segs, r, w, sx, sz) {
+    const pos = [], si = [], sw = [], uv = [], idx = [];
+    for (let i = 0; i <= rings; i++) {
+      const y = yTop + (yBot - yTop) * (i / rings), rr = r(y);
+      for (let j = 0; j <= segs; j++) {
+        const a = j / segs * Math.PI * 2, x = cx + Math.cos(a) * rr * (sx || 1), z = cz + Math.sin(a) * rr * (sz || 1);
+        pos.push(x, y, z); uv.push(j / segs, y);
+        const ws = w(x, y, z).filter(p => p[1] > 0.001).sort((p, q) => q[1] - p[1]).slice(0, 4);
+        const tot = ws.reduce((s, p) => s + p[1], 0) || 1;
+        for (let k = 0; k < 4; k++) { si.push(ws[k] ? ws[k][0] : 0); sw.push(ws[k] ? ws[k][1] / tot : 0); }
+      }
+    }
+    const row = segs + 1;
+    for (let i = 0; i < rings; i++) for (let j = 0; j < segs; j++) {
+      const a = i * row + j, b = a + row, c = a + 1, d = b + 1;
+      idx.push(a, c, b, c, d, b);
+    }
+    const gm = new T.BufferGeometry();
+    gm.setAttribute('position', new T.Float32BufferAttribute(pos, 3));
+    gm.setAttribute('uv', new T.Float32BufferAttribute(uv, 2));
+    gm.setAttribute('skinIndex', new T.Uint16BufferAttribute(si, 4));
+    gm.setAttribute('skinWeight', new T.Float32BufferAttribute(sw, 4));
+    gm.setIndex(idx);
+    gm.computeVertexNormals();
+    return gm;
+  }
+  // raggio che passa per dei punti [y, r], interpolato in modo morbido
+  const profile = pts => y => {
+    if (y >= pts[0][0]) return pts[0][1];
+    for (let i = 1; i < pts.length; i++) if (y >= pts[i][0]) { const [y0, r0] = pts[i - 1], [y1, r1] = pts[i]; return r1 + (r0 - r1) * smooth((y - y1) / (y0 - y1)); }
+    return pts[pts.length - 1][1];
+  };
+
+  function skinnedFighter(d) {
+    const look = LOOK[d.card] || ['#444', '#e8631c'], st = STYLE[d.card] || {};
+    const g = new T.Group();
+    const giCol = st.gi || look[0];
+    const gi = new T.MeshStandardMaterial({ color: '#ffffff', map: st.silk ? silkTex(giCol) : null, roughness: st.silk ? 0.42 : 0.82, metalness: st.silk ? 0.06 : 0, skinning: true, side: T.DoubleSide }); // r128: serve per piegarsi con le ossa; doppia faccia per l'interno delle maniche
+    if (!st.silk) gi.color.set(giCol);
+    const pants = gi;
+    const trim = cloth(st.trim || look[1], 0.5);
+    const face = faceTex(d.card);
+    const skin = cloth(face.skin, 0.5);
+    const hairM = cloth(face.hair, 0.75);
+    (face.onLoad = face.onLoad || []).push(f => { skin.color.set(f.skin); hairM.color.set(f.hair); });
+    const belt = cloth(BELT[d.rank] || BELT.A, 0.7);
+    const shoe = cloth('#121010', 0.45), sole = cloth('#2a2622', 0.9);
+    const mesh = (gm, m) => new T.Mesh(gm, m);
+    const cyl = (r1, r2, h, m, s) => mesh(new T.CylinderGeometry(r1, r2, h, s || 20), m);
+    const ball = (r, m) => mesh(new T.SphereGeometry(r, 22, 16), m);
+
+    // scheletro: stesse giunture (e stessi nomi) dei lottatori classici
+    const B = {}, bones = [];
+    const bone = (n, x, y, z, p) => { const b = new T.Bone(); b.name = n; b.position.set(x, y, z); if (p) p.add(b); B[n] = b; bones.push(b); return b; };
+    bone('hips', 0, 0.8, 0); bone('torso', 0, 0.04, 0, B.hips); bone('neck', 0, 0.58, 0, B.torso); bone('head', 0, 0.28, 0, B.neck);
+    for (const [s, z] of [['l', 1], ['r', -1]]) {
+      bone(s + 's', 0, 0.47, z * 0.25, B.torso); bone(s + 'e', 0, -0.3, 0, B[s + 's']); bone(s + 'f', 0, -0.315, 0, B[s + 'e']);
+      bone(s + 'h', 0, -0.06, z * 0.105, B.hips); bone(s + 'k', 0, -0.38, 0, B[s + 'h']); bone(s + 'ft', 0.04, -0.345, 0, B[s + 'k']);
+    }
+    const I = n => bones.indexOf(B[n]);
+    g.add(B.hips); g.updateMatrixWorld(true);
+    const skel = new T.Skeleton(bones);
+    const skinned = (gm, m) => { const sm = new T.SkinnedMesh(gm, m); g.add(sm); sm.bind(skel); sm.frustumCulled = false; return sm; };
+
+    // busto e giacca: dalla vita alle spalle, si piega in vita e verso le spalle
+    const side = z => (z >= 0 ? 'l' : 'r');
+    const torsoGeo = skinTube(0, 0, 1.43, 0.7, 40, 32,
+      profile([[1.43, 0.075], [1.405, 0.135], [1.37, 0.205], [1.30, 0.245], [1.2, 0.236], [1.05, 0.205], [0.93, 0.185], [0.84, 0.19], [0.74, 0.2], [0.7, 0.19]]),
+      (x, y, z) => {
+        const up = smooth((y - 0.86) / 0.2), nk = smooth((y - 1.37) / 0.06) * 0.6;
+        const sh = smooth((Math.abs(z) - 0.15) / 0.09) * smooth((y - 1.16) / 0.12) * 0.55;
+        const lg = smooth((0.76 - y) / 0.1) * smooth(Math.abs(z) / 0.08) * 0.7;
+        return [[I('hips'), (1 - up) * (1 - lg)], [I('torso'), up * (1 - nk) * (1 - sh)], [I('neck'), nk], [I(side(z) + 's'), sh], [I(side(z) + 'h'), lg]];
+      }, 0.7, 1);
+    const torsoM = skinned(torsoGeo, gi);
+    // maniche: dalla spalla al polso, larghe verso il fondo come nelle divise da Taiji
+    const armGeo = z0 => skinTube(0, z0, 1.37, 0.745, 36, 22,
+      profile([[1.37, 0.06], [1.33, 0.092], [1.22, 0.087], [1.05, 0.08], [0.99, 0.078], [0.86, 0.084], [0.77, 0.09], [0.745, 0.086]]),
+      (x, y) => {
+        const s = z0 > 0 ? 'l' : 'r', el = smooth((1.05 - y) / 0.1), tor = smooth((y - 1.27) / 0.08) * 0.4;
+        return [[I(s + 's'), (1 - el) * (1 - tor)], [I(s + 'e'), el], [I('torso'), tor * (1 - el)]];
+      });
+    const armsM = [skinned(armGeo(0.25), gi), skinned(armGeo(-0.25), gi)];
+    // pantaloni larghi, stretti alla caviglia
+    const legGeo = z0 => skinTube(0, z0, 0.86, 0.085, 40, 22,
+      profile([[0.86, 0.11], [0.72, 0.124], [0.55, 0.108], [0.43, 0.096], [0.3, 0.102], [0.17, 0.09], [0.11, 0.068], [0.085, 0.062]]),
+      (x, y) => {
+        const s = z0 > 0 ? 'l' : 'r', hp = smooth((y - 0.7) / 0.12), kn = smooth((0.46 - y) / 0.12);
+        return [[I('hips'), hp], [I(s + 'h'), (1 - hp) * (1 - kn)], [I(s + 'k'), kn * (1 - hp)]];
+      });
+    const legsM = [skinned(legGeo(0.105), pants), skinned(legGeo(-0.105), pants)];
+
+    // giacca cinese: colletto alla coreana, chiusura centrale e alamari neri
+    const collar = cyl(0.082, 0.094, 0.07, trim); collar.position.y = 0.585; B.torso.add(collar);
+    const front = r => profile([[1.43, 0.075], [1.37, 0.205], [1.30, 0.245], [1.2, 0.236], [1.05, 0.205], [0.93, 0.185]])(r) * 0.7;
+    const placket = mesh(new T.BoxGeometry(0.012, 0.5, 0.014), trim); placket.position.set(front(1.12) + 0.004, 0.28, 0); placket.rotation.z = 0.02; B.torso.add(placket);
+    for (let i = 0; i < (st.frogs || 4); i++) {
+      const y = 0.16 + i * 0.07, fx = front(0.84 + y) + 0.008;
+      const fr = cyl(0.008, 0.008, 0.07, trim, 8); fr.rotation.x = Math.PI / 2; fr.position.set(fx, y, 0); B.torso.add(fr);
+      const kn = ball(0.013, trim); kn.position.set(fx + 0.004, y, 0.022); B.torso.add(kn);
+    }
+    if (st.belt !== false) { const sash = cyl(0.19, 0.186, 0.06, belt); sash.scale.x = 0.74; sash.position.y = 0.0; B.torso.add(sash); }
+    // collo, testa con il volto della carta, capelli raccolti
+    const nk = cyl(0.056, 0.066, 0.13, skin); nk.position.y = 0.05; B.neck.add(nk);
+    const head = new T.Group(); head.scale.set(0.92, 1.08, 0.9); B.head.add(head);
+    const skull = new T.SphereGeometry(HEAD_R, 40, 30), sp = skull.attributes.position;
+    for (let i = 0; i < sp.count; i++) { // mento e mascella un po' più stretti, nuca più piena
+      let x = sp.getX(i), y = sp.getY(i), z = sp.getZ(i);
+      if (y < 0) { const k = -y / HEAD_R; z *= 1 - 0.16 * k; if (x < 0) x *= 1 - 0.2 * k; }
+      if (x < 0 && y > -0.05) x *= 1.06;
+      sp.setXYZ(i, x, y, z);
+    }
+    skull.computeVertexNormals();
+    head.add(mesh(skull, skin));
+    const fs = mesh(faceGeo(), new T.MeshStandardMaterial({ map: face.tex, emissiveMap: face.tex, emissive: '#ffffff', emissiveIntensity: 0.3, roughness: 0.55, transparent: true, depthWrite: false }));
+    fs.renderOrder = 2; head.add(fs);
+    head.add(mesh(new T.SphereGeometry(HEAD_R * 1.05, 36, 10, 0, Math.PI * 2, 0, Math.PI * 0.29), hairM));
+    head.add(mesh(new T.SphereGeometry(HEAD_R * 1.045, 28, 18, -Math.PI / 2, Math.PI, 0, Math.PI * 0.62), hairM));
+    if (st.bun) { const bun = ball(HEAD_R * 0.38, hairM); bun.scale.set(0.9, 0.8, 1); bun.position.set(-HEAD_R * 0.98, HEAD_R * 0.32, 0); head.add(bun); const tie = cyl(0.03, 0.03, 0.025, trim, 12); tie.rotation.z = Math.PI / 2; tie.position.set(-HEAD_R * 0.86, HEAD_R * 0.3, 0); head.add(tie); }
+    [1, -1].forEach(sd => { const ear = ball(HEAD_R * 0.2, skin); ear.scale.set(0.5, 1, 0.55); ear.position.set(0.03, -0.02, sd * HEAD_R * 0.97); head.add(ear); });
+    // polsini, mani (pugno), scarpe da kung fu
+    for (const s of ['l', 'r']) {
+      if (st.cuff) { const cuff = cyl(0.1, 0.1, 0.03, trim); cuff.position.y = -0.27; B[s + 'e'].add(cuff); }
+      const wr = cyl(0.038, 0.042, 0.07, skin, 12); wr.position.y = -0.275; B[s + 'e'].add(wr);
+      const fist = ball(0.066, skin); fist.scale.set(1, 1.2, 0.82); B[s + 'f'].add(fist);
+      const thumb = ball(0.024, skin); thumb.scale.set(1, 1.4, 1); thumb.position.set(0.05, 0.01, s === 'l' ? -0.02 : 0.02); B[s + 'f'].add(thumb);
+      const up = ball(0.07, shoe); up.scale.set(1.8, 0.85, 0.9); up.position.y = 0.012; B[s + 'ft'].add(up);
+      const so = mesh(new T.BoxGeometry(0.245, 0.02, 0.115), sole); so.position.y = -0.03; B[s + 'ft'].add(so);
+    }
+
+    g.traverse(o => { if (o.isMesh) o.castShadow = true; });
+    const shadow = new T.Mesh(new T.CircleGeometry(0.42, 24), new T.MeshBasicMaterial({ color: '#000', transparent: true, opacity: 0.3, depthWrite: false }));
+    shadow.rotation.x = -Math.PI / 2; shadow.position.y = 0.03; g.add(shadow);
+    const J = { hips: B.hips, torso: B.torso, neck: B.neck, head, face: fs, ls: B.ls, le: B.le, lf: B.lf, rs: B.rs, re: B.re, rf: B.rf, lh: B.lh, lk: B.lk, lft: B.lft, rh: B.rh, rk: B.rk, rft: B.rft };
+    const ch = { d, g, J, pose: pose('guard'), mats: [gi, trim, skin, belt, shoe, hairM], body: [torsoM], idle: true, t: Math.random() * 6, face: fs, facing: 0, real: true };
     ch.apply = () => applyPose(ch);
     applyPose(ch);
     return ch;
@@ -1336,10 +1511,10 @@
         await Promise.all([toPose(A, 'flex', 0.25), tween(0.7, t => { A.g.rotation.y = f0 + t * Math.PI * 4; A.g.position.y = Math.abs(Math.sin(t * Math.PI * 3)) * 0.25; }, ease.io)]);
         A.g.rotation.y = f0; A.g.position.y = 0;
       } else {
-        await toPose(A, wind, 0.3);
+        await toPose(A, M.wind || wind, 0.3);
         if (M.e && kind !== 'throw') pop(headPos(A).add(new T.Vector3(0, 0.55, 0)), emojiTex(M.e), 0.5, 0.9, 0.3);
         if (spec.flags && spec.flags.formula) pop(headPos(A).add(new T.Vector3(0, 0.95, 0)), textTex(String(spec.flags.formula).toUpperCase().split(' ').slice(0, 4).join(' ') + '!', '#ffd24a'), 0.34, 1.3, 0.1);
-        await toPose(A, hit, 0.14, ease.out);
+        await toPose(A, M.pose || hit, 0.14, ease.out);
       }
       const from = kind === 'shout' ? headPos(A) : handPos(A);
       sfx(M.fx === 'wave' || M.fx === 'hypno' || kind === 'shout' ? 'magic' : 'whoosh');
@@ -1386,7 +1561,7 @@
         pop(hp(), emojiTex(M.e), 0.6, 0.9);
         await tween(0.35, (t, raw) => { A.g.position.x = -0.55 - Math.sin(raw * Math.PI) * 0.4; }, ease.lin);
       } else {
-        const p = kind === 'meditate' ? 'meditate' : kind === 'stomp' ? 'stomp' : 'power';
+        const p = M.pose || (kind === 'meditate' ? 'meditate' : kind === 'stomp' ? 'stomp' : 'power');
         sfx(kind === 'meditate' ? 'heal' : 'buff');
         await toPose(A, p, 0.3);
         if (M.e) pop(hp(), emojiTex(M.e), 0.65, 1.1, 0.35);
@@ -1397,7 +1572,7 @@
         if (M.fx === 'marble') { A.mats.forEach(m => m.color.lerp(new T.Color('#d8d8d8'), 0.8)); A.face.material.color.set('#c8c8c8'); }
         if (M.fx === 'lightning') for (let k = 0; k < 5; k++) { const c = chestPos(A); lightning(c, c.clone().add(new T.Vector3((Math.random() - .5) * 2, Math.random() * 1.5, (Math.random() - .5) * 2)), M.c, 0.35); await wait(0.08); }
         if (M.fx === 'dice') for (let k = 0; k < 3; k++) { lob(chestPos(A), chestPos(A).add(new T.Vector3((k - 1) * 0.6, 0.4, 0.3)), '🎲', 0.5, 0.8); await wait(0.08); }
-        if (kind === 'flex' || kind === 'powerup' || kind === 'sumo') await toPose(A, 'flex', 0.25);
+        if ((kind === 'flex' || kind === 'powerup' || kind === 'sumo') && !M.pose) await toPose(A, 'flex', 0.25);
         await au;
         if (spec.self && (spec.self.heal || spec.self.buff)) await react(A, spec.self);
         // il resto della squadra (Calma Sovrastante sugli alleati)
@@ -1455,7 +1630,7 @@
 
   function setSpeed(k) { speed = k; }
   // solo per le prove (indirizzo con #test): lottatori in fila rivolti alla telecamera, da vicino
-  function lineup(list) {
+  function lineup(list, dist) {
     if (!init()) return null;
     overlay.hidden = false; document.body.classList.add('arena-open'); resize();
     while (root.children.length) root.remove(root.children[0]);
@@ -1465,7 +1640,7 @@
       ch.g.position.set((i - (list.length - 1) / 2) * 0.52, 0, 0);
       root.add(ch.g); return ch;
     });
-    camBase = new T.Vector3(0, 1.62, 4.1); camera.position.copy(camBase); camera.lookAt(0, 1.55, 0);
+    camBase = new T.Vector3(0, 1.62, dist || 4.1); camera.position.copy(camBase); camera.lookAt(0, dist ? 1.62 : 1.55, 0);
     all.forEach(c => face(c, camBase.x, camBase.z));
     updaters.push(dt => all.forEach(c => { c.t += dt; c.apply(); }));
     running = true; clock.getDelta(); loop();

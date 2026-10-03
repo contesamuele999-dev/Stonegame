@@ -1,5 +1,5 @@
 /* Service worker: salva il gioco sul telefono per aprirlo anche senza internet. */
-const CACHE = 'stonetao-v20';
+const CACHE = 'stonetao-v23';
 const FILES = [
   "./",
   "index.html",
@@ -79,7 +79,7 @@ self.addEventListener('activate', e => {
   e.waitUntil(caches.keys().then(keys => Promise.all(keys.filter(k => k !== CACHE).map(k => caches.delete(k)))).then(() => self.clients.claim()));
 });
 
-// Prima la rete (così gli aggiornamenti arrivano subito), la copia salvata se si è offline.
+// Prima la rete (cosÃ¬ gli aggiornamenti arrivano subito), la copia salvata se si Ã¨ offline.
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
