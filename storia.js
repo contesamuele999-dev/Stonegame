@@ -431,6 +431,7 @@
   const statAt = (id, lv) => { const c = S.CARD[id], k = 1 + 0.04 * (lv - 1); return { hp: Math.round(c.hp * k), atk: Math.round(c.atk * k), def: Math.round(c.def * k) }; };
   function seen(id) { if (!s.seen.includes(id)) s.seen.push(id); }
   function addCard(id, lv) {
+    if (!S.CARD[id] || S.CARD[id].secret) return; // le carte segrete restano fuori dalla storia
     const c = s.cards[id];
     if (c) c.n++;
     else s.cards[id] = { n: 1, lv: lv || 1, xp: 0 };
@@ -933,7 +934,7 @@
 
   // ------------------------------------------------------------ TESSERA: soldi, sigilli, album
   function tessera() {
-    const all = S.CARDS.filter(c => !c.secret || s.cards[c.id]);
+    const all = S.CARDS.filter(c => !c.secret);
     const own = all.filter(c => s.cards[c.id]).length;
     const h = Math.floor(s.time / 3600), m = Math.floor(s.time / 60) % 60;
     const lookUrl = (() => { const c = cv(16, 20); c.getContext('2d').drawImage(sheet(P.look).down[0], 0, 0); return c.toDataURL(); })();
@@ -1114,11 +1115,50 @@
     if (!s.scrolls) { await say(`Lo spirito di ${c.name} sta svanendo... Ti servirebbe una pergamena per reclutarlo! Le vendono in bottega.`); return; }
     if (await ask(`Usi una pergamena per reclutare ${c.name}? Ne hai ${s.scrolls}.`) !== 0) return;
     s.scrolls--; hud();
-    sfx('magic');
-    await say('Srotoli la pergamena... ✨ ... ✨ ... ✨');
     const p = { A: 0.8, I: 0.55, M: 0.35, L: 0.1 }[c.rank] || 0.5;
-    if (Math.random() < p) await gain(f.id, f.lv, `${c.name} si unisce a te!`);
-    else { sfx('debuff'); await say(`Oh no! Lo spirito di ${c.name} si libera e svanisce.`); }
+    const ok = Math.random() < p;
+    // quante volte la pergamena trema prima di sigillarsi (3) o di strapparsi (0-2: più è facile, più ci va vicino)
+    await capture(f.id, ok ? 3 : Math.min(2, Math.floor(Math.random() * 3 * p + Math.random() * 0.8)), ok);
+    if (ok) await gain(f.id, f.lv, `${c.name} si unisce a te!`);
+    else await say(`Oh no! Lo spirito di ${c.name} si è liberato ed è svanito.`);
+  }
+  // la scena della cattura: la pergamena vola, si apre e risucchia lo spirito, poi trema... e si sigilla o si strappa
+  async function capture(id, shakes, ok) {
+    const c = S.CARD[id];
+    const done = panel(`<div class="cap" role="img" aria-label="Cattura dello spirito di ${esc(c.name)}">
+      <div class="cap-sky"></div>
+      <div class="cap-spirit"><img src="${S.img(id + '.jpg')}" alt=""></div>
+      <div class="cap-flash"></div>
+      <div class="cap-scroll"><div class="cap-paper"><i>☯</i></div><b class="cap-rod l"></b><b class="cap-rod r"></b><b class="cap-ribbon"></b><b class="cap-seal">封</b></div>
+      <div class="cap-stars">${Array.from({ length: 10 }, (_, i) => `<i style="--a:${i * 36}deg">✦</i>`).join('')}</div>
+      <p class="cap-text" aria-live="polite">Lanci la pergamena!</p>
+    </div>`, () => {});
+    const box = el.panel.querySelector('.cap'), txt = box.querySelector('.cap-text');
+    const step = async (cls, ms, sound) => { box.classList.add(cls); if (sound) sfx(sound); await sleep(ms); };
+    await sleep(350);
+    await step('throw', 650, 'whoosh');                 // la pergamena vola verso lo spirito
+    box.classList.remove('throw');                      // arrivata: da qui in poi non deve rivolare
+    await step('open', 300, 'magic');                   // si srotola davanti allo spirito
+    await step('absorb', 650);                          // lampo: lo spirito entra nella pergamena
+    await step('drop', 450, 'bump');                    // si arrotola e cade a terra
+    txt.textContent = '...';
+    for (let i = 0; i < shakes; i++) {
+      box.classList.remove('wob'); void box.offsetWidth;
+      await step('wob', 560, 'tap');
+      txt.textContent += ' ...';
+      await sleep(320);
+    }
+    if (ok) {
+      await step('sealed', 900, 'item');
+      txt.textContent = `Preso! Lo spirito di ${c.name} è sigillato nella pergamena!`;
+      sfx('win');
+    } else {
+      await step('burst', 700, 'debuff');
+      txt.textContent = `La pergamena si strappa: lo spirito di ${c.name} è fuggito!`;
+    }
+    await sleep(1500);
+    closePanel();
+    await done;
   }
 
   // ------------------------------------------------------------ esaminare, parlare, raccogliere
@@ -1262,6 +1302,9 @@
     const saved = readSave();
     if (saved && M.maps[saved.map]) {
       s = saved;
+      // le carte segrete non fanno parte della storia (anche se un vecchio salvataggio le aveva)
+      for (const id of Object.keys(s.cards)) if (!S.CARD[id] || S.CARD[id].secret) delete s.cards[id];
+      s.team = s.team.filter(id => s.cards[id]);
       P.look = Object.assign({}, M.LOOKS.player0, s.look || {});
       enterMap(s.map, s.x, s.y, s.dir);
       hud();
@@ -1280,5 +1323,5 @@
   window.Storia = { open, close, hasSave: () => !!readSave() };
   // per i test automatici
   window.Storia._t = { TILES, FRONT, BACK, SIDE, SIDE_LEGS, LEGS, TREE, ROCK, TALL, LANTERN,
-    where: () => ({ map: MAP && MAP.id, x: P.x, y: P.y, dir: P.dir, s }), warp: (m, x, y) => run(() => warp(m, x, y, 'down')) };
+    where: () => ({ map: MAP && MAP.id, x: P.x, y: P.y, dir: P.dir, s }), warp: (m, x, y) => run(() => warp(m, x, y, 'down')), capture };
 })();

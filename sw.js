@@ -1,5 +1,5 @@
 /* Service worker: salva il gioco sul telefono per aprirlo anche senza internet. */
-const CACHE = 'stonetao-v23';
+const CACHE = 'stonetao-v24';
 const FILES = [
   "./",
   "index.html",

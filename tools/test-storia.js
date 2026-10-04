@@ -65,7 +65,7 @@ for (const [id, d] of Object.entries(M.maps)) {
       if (n.trainer.badge !== undefined && !M.BADGES[n.trainer.badge]) fail(id, `${n.id}: sigillo inesistente`);
     }
   });
-  if (d.wild) d.wild.pool.forEach(p => { if (!STT.CARD[p[0]] && !['sara', 'carla', 'flavio', 'federico', 'oksana'].includes(p[0])) fail(id, `spirito sconosciuto ${p[0]}`); });
+  if (d.wild) d.wild.pool.forEach(p => { if (!STT.CARD[p[0]]) fail(id, `spirito sconosciuto ${p[0]}`); });
   (d.exits || []).forEach(e => {
     for (let i = 0; i < (e.w || 1); i++) for (let j = 0; j < (e.h || 1); j++) {
       const x = e.x + i, y = e.y + j;

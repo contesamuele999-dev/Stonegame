@@ -32,7 +32,7 @@ Dal menu iniziale, "📖 Modalità Storia". Si crea il proprio personaggio (nome
 - **Spiriti selvatici**: nell'erba alta (e nelle grotte) saltano fuori gli spiriti delle carte. Si combatte o si scappa; chi vince può usare una **pergamena** per reclutarli (riesce più spesso con gli Allievi, meno con Istruttori e Maestri).
 - **Livelli delle carte**: ogni carta in squadra guadagna esperienza (anche perdendo, un terzo); ogni livello dà +4% a PV, ATK e DEF, fino al livello 10. **Potenziare** una carta (dal menu Carte) usa una copia doppia e qualche moneta: +1 livello subito.
 - **Comprare, vendere, scambiare**: in bottega pergamene e bustine (Allievi, Istruttori, Maestri: più sigilli hai, più alto il livello della carta che esce) e si vendono le copie doppie. Alcuni abitanti propongono scambi di carte.
-- **Squadra**: 4 carte e 10 Punti Dojo come nel gioco normale; le carte trovate nella storia si sbloccano anche nel resto del gioco. Le carte segrete, se sbloccate, possono comparire come spiriti rarissimi nel Montello.
+- **Squadra**: 4 carte e 10 Punti Dojo come nel gioco normale; le carte trovate nella storia si sbloccano anche nel resto del gioco. Le carte segrete restano fuori dalla storia.
 - Il viaggio si salva da solo (a ogni porta, sfida e acquisto) sul telefono. Mappe e trama stanno in `mondo.js`, il motore del mondo in `storia.js`; `node tools/test-storia.js` controlla che le mappe siano percorribili.
 
 ## Come aprirlo

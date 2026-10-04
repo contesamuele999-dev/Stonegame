@@ -539,8 +539,7 @@
           after: '...',
           onWin: W => W.gain('signorello', 6, 'Lorenzo Signorello si unisce a te!') } },
     ],
-    wild: { on: 'c', rate: 0.05, pool: [['christian', 3, 5], ['celeste', 3, 5], ['adriano', 3, 5], ['remigio', 4, 5], ['alessandro', 3, 5], ['lorenzo', 4, 5, 4], ['strahinja', 5, 5, 2],
-      ['sara', 5, 5, 1], ['carla', 5, 5, 1], ['flavio', 5, 5, 1], ['federico', 5, 5, 1], ['oksana', 5, 5, 1]] },
+    wild: { on: 'c', rate: 0.05, pool: [['christian', 3, 5], ['celeste', 3, 5], ['adriano', 3, 5], ['remigio', 4, 5], ['alessandro', 3, 5], ['lorenzo', 4, 5, 4], ['strahinja', 5, 5, 2]] },
     exits: [{ x: 23, y: 3, to: 'priula', tx: 1, ty: 6 }, { x: 13, y: 19, to: 'percorso2', tx: 7, ty: 1 }],
   };
 
