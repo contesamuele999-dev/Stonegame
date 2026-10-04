@@ -3,7 +3,7 @@
  * dalle regole del database (supabase/schema.sql), non dalla segretezza della chiave.
  * API: Cloud.init() · signedIn() · signIn(email, pw) · signUp(email, pw) · recover(email) · setPassword(pw) · logout()
  *      profile() · createProfile(nome) · rename(nome) · record(vinta, modalita, livello, carte)
- *      leaderboard() · collection() · addToCollection(ids) · levelOf(xp) · titleOf(livello) · xpFor(livello)
+ *      leaderboard() · collection() · addToCollection(ids) · loadStory() · saveStory(dati) · levelOf(xp) · titleOf(livello) · xpFor(livello)
  */
 (function () {
   'use strict';
@@ -47,7 +47,7 @@
 
   async function raw(path, opt) {
     const h = Object.assign({ apikey: KEY, 'Content-Type': 'application/json' }, opt.headers || {});
-    const r = await fetch(BASE + path, { method: opt.method || 'GET', headers: h, body: opt.body === undefined ? undefined : JSON.stringify(opt.body) });
+    const r = await fetch(BASE + path, { method: opt.method || 'GET', headers: h, body: opt.body === undefined ? undefined : JSON.stringify(opt.body), keepalive: !!opt.keepalive });
     const txt = await r.text();
     let d = null; try { d = txt ? JSON.parse(txt) : null; } catch (e) { d = txt; }
     if (!r.ok) { const err = new Error(friendly(d, r.status)); err.status = r.status; throw err; }
@@ -136,6 +136,9 @@
     if (!ids.length) return;
     await api('/rest/v1/collezione', { method: 'POST', body: ids.map(carta => ({ giocatore: me(), carta })), headers: { Prefer: 'resolution=ignore-duplicates,return=minimal' } });
   }
+  // viaggio della Modalità Storia (supabase/aggiornamento-3.sql); keepalive: parte anche se l'app si sta chiudendo
+  async function loadStory() { const r = await api(`/rest/v1/storia?giocatore=eq.${me()}&select=dati`); return r[0] ? r[0].dati : null; }
+  const saveStory = (dati, keepalive) => api('/rest/v1/storia', { method: 'POST', keepalive, body: { giocatore: me(), dati, aggiornata: new Date().toISOString() }, headers: { Prefer: 'resolution=merge-duplicates,return=minimal' } });
 
   // ------------------------------------------------------------ livelli
   // livello L si raggiunge con 25 × (L−1)² punti: 25, 100, 225, 400…
@@ -148,6 +151,7 @@
     init, signedIn: () => !!(ses && ses.user), email: () => (ses && ses.user ? ses.user.email : ''),
     weeklyBoard, claimMission, medals, addMedals,
     signIn, signUp, recover, setPassword, logout, profile, createProfile, rename, record, leaderboard, collection, addToCollection,
+    loadStory, saveStory,
     levelOf, xpFor, titleOf,
   };
 })();

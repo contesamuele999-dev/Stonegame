@@ -841,12 +841,16 @@
       await Cloud.addToCollection(merged.filter(id => !remote.includes(id)));
     } catch (e) { /* riprovo la prossima volta */ }
   }
+  // viaggio della Modalità Storia: se quello online è più avanti lo riporta sul telefono
+  function syncStory() {
+    if (window.Storia && Storia.sync) Storia.sync().then(got => { if (got && A.screen === 'home') render(); });
+  }
   async function accountLoad() {
     const c = A.acc || (A.acc = {});
     if (cloudOn() && Cloud.signedIn()) {
       try {
         c.prof = await Cloud.profile(); c.loaded = true;
-        if (c.prof) { store('profilo', c.prof); syncCollection(); syncMedals(); }
+        if (c.prof) { store('profilo', c.prof); syncCollection(); syncMedals(); syncStory(); }
         if (c.prof && c.afterLogin) { c.afterLogin = false; toastQuick(`Bentornato, ${c.prof.nome}!`); go('home'); return; }
       } catch (e) { c.msg = e.message; c.loaded = true; }
     }
@@ -2197,7 +2201,7 @@
       if (r.recovery) { A.acc = { mode: 'newpass' }; go('account'); }
       else if (r.signedIn) { toastQuick('Email confermata: sei dentro!'); A.acc = { afterLogin: true }; go('account'); }
       else if (r.error) toastQuick(r.error);
-      else if (Cloud.signedIn()) Cloud.profile().then(p => { if (p) { store('profilo', p); syncCollection(); if (A.screen === 'home') render(); } }).catch(() => { /* offline */ });
+      else if (Cloud.signedIn()) Cloud.profile().then(p => { if (p) { store('profilo', p); syncCollection(); syncStory(); if (A.screen === 'home') render(); } }).catch(() => { /* offline */ });
       // l'accesso è la prima cosa che si vede, finché non si entra o si sceglie di giocare senza account
       let guestNow = false; try { guestNow = !!sessionStorage.getItem('stt_ospite'); } catch (err) { /* niente */ }
       if (!Cloud.signedIn() && !guestNow && !replayLink && A.screen === 'home' && !$layer.innerHTML) { A.acc = Object.assign(A.acc || {}, { start: true }); go('account'); }

@@ -424,8 +424,65 @@
   function save() {
     if (!s || !MAP) return;
     if (!P.mv) { s.map = MAP.id; s.x = P.x; s.y = P.y; s.dir = P.dir; }
+    s.saved = Date.now();
     try { localStorage.setItem(SAVE, JSON.stringify(s)); } catch (e) { /* memoria piena o non disponibile */ }
+    cloudLater();
   }
+  // copia del viaggio sull'account (cloud.js): se il telefono cancella i dati del sito, la storia si ritrova
+  const cloudOk = () => !!(window.Cloud && Cloud.signedIn() && Cloud.loadStory);
+  let cloudChecked = false, cloudDirty = false, cloudTimer = 0, syncing = null;
+  function cloudLater() {
+    if (!cloudOk() || !cloudChecked) return;
+    cloudDirty = true;
+    clearTimeout(cloudTimer);
+    cloudTimer = setTimeout(cloudPush, 5000);
+  }
+  function cloudPush(leaving) {
+    clearTimeout(cloudTimer);
+    const v = readSave();
+    if (!v || !cloudOk() || !cloudChecked) return;
+    cloudDirty = false;
+    Cloud.saveStory(v, leaving).catch(() => { cloudDirty = true; });
+  }
+  // quale dei due viaggi tenere: lo stesso viaggio → il più recente; viaggi diversi → quello giocato di più,
+  // a meno che uno sia nato da "Ricomincia la storia da capo" sull'altro
+  function cloudWins(local, remote) {
+    if (!remote || remote.v !== 1 || !M.maps[remote.map]) return false;
+    if (!local) return true;
+    if (local.id && remote.id && local.id !== remote.id) {
+      if (local.replaces === remote.id) return false;
+      if (remote.replaces === local.id) return true;
+      return (remote.time || 0) > (local.time || 0);
+    }
+    return (remote.saved || 0) > (local.saved || 0);
+  }
+  // all'avvio e dopo l'accesso: prende il viaggio dall'account se è quello giusto, altrimenti carica quello del telefono.
+  // Restituisce true se ha preso quello dell'account.
+  function sync() {
+    if (!cloudOk()) return Promise.resolve(false);
+    return syncing || (syncing = (async () => {
+      let got = false;
+      try {
+        const remote = await Cloud.loadStory(), local = readSave();
+        if (!cloudWins(local, remote)) {
+          cloudChecked = true;
+          if (local && JSON.stringify(local) !== JSON.stringify(remote)) cloudPush();
+        } else if (!(el && !el.root.hidden)) { // a viaggio aperto non lo cambio sotto i piedi (e non copro quello online)
+          localStorage.setItem(SAVE, JSON.stringify(remote));
+          got = cloudChecked = true;
+        }
+      } catch (e) { /* offline o tabella non ancora creata: si riprova la prossima volta */ }
+      syncing = null;
+      return got;
+    })());
+  }
+  // l'app va in secondo piano o si chiude: salvo subito, anche la posizione
+  function leaving() {
+    if (s && el && !el.root.hidden) save();
+    if (cloudDirty) cloudPush(true);
+  }
+  document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') leaving(); });
+  window.addEventListener('pagehide', leaving);
   const teamCost = ids => ids.reduce((t, id) => t + (S.CARD[id] ? S.CARD[id].cost : 0), 0);
   const xpNeed = lv => 40 + 30 * lv;
   const statAt = (id, lv) => { const c = S.CARD[id], k = 1 + 0.04 * (lv - 1); return { hp: Math.round(c.hp * k), atk: Math.round(c.atk * k), def: Math.round(c.def * k) }; };
@@ -588,6 +645,7 @@
 
   // il giocatore ha finito un passo: porte, uscite, eventi, allenatori, spiriti nell'erba
   function arrived() {
+    save(); // anche camminando, così non si perde la strada fatta
     const d = MAP.def;
     const door = MAP.bld.find(b => b.dx === P.x && b.dy === P.y);
     if (door) { s.back = { map: MAP.id, x: P.x, y: P.y + 1, room: door.room }; sfx('door'); run(() => warp(door.to, M.maps[door.to].entry[0], M.maps[door.to].entry[1], 'up')); return; }
@@ -947,7 +1005,7 @@
       <div class="st-acts"><button class="st-btn" data-st="look">Cambia aspetto</button><button class="st-btn" data-st="reset">Ricomincia la storia da capo</button></div>`, async a => {
       if (a === 'close') closePanel();
       if (a === 'look') await nested(() => customize('Il tuo personaggio')).then(() => { closePanel(); });
-      if (a === 'reset') { closePanel(); run(async () => { if (await ask('Vuoi davvero ricominciare? Il viaggio salvato verrà cancellato.', ['No', 'Sì, ricomincia']) === 1) { try { localStorage.removeItem(SAVE); } catch (e) { /* niente */ } await newGame(); } }); }
+      if (a === 'reset') { closePanel(); run(async () => { if (await ask('Vuoi davvero ricominciare? Il viaggio salvato verrà cancellato.', ['No', 'Sì, ricomincia']) === 1) { try { localStorage.removeItem(SAVE); } catch (e) { /* niente */ } await newGame(s.id); } }); }
     });
   }
 
@@ -1244,8 +1302,10 @@
   }
 
   // ------------------------------------------------------------ inizio, nuova partita
-  async function newGame() {
+  async function newGame(replaces) {
     s = fresh();
+    s.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+    if (replaces) s.replaces = replaces;
     P.look = M.LOOKS.player0;
     el.fade.className = 'st-fade on';
     enterMap('casa_mia', 5, 3, 'down');
@@ -1298,6 +1358,10 @@
     el.root.hidden = false;
     document.body.classList.add('st-open');
     if (window.Sound) Sound.unlock();
+    // con l'account: prima guardo se c'è un viaggio salvato online (senza aspettare troppo se la rete è lenta)
+    if (cloudOk() && !cloudChecked) { el.fade.className = 'st-fade on'; await Promise.race([sync(), sleep(5000)]); }
+    // chiede al browser di non cancellare i dati del sito quando lo spazio scarseggia
+    try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {}); } catch (e) { /* niente */ }
     startLoop();
     const saved = readSave();
     if (saved && M.maps[saved.map]) {
@@ -1320,7 +1384,7 @@
     S.UI.home();
   }
 
-  window.Storia = { open, close, hasSave: () => !!readSave() };
+  window.Storia = { open, close, sync, hasSave: () => !!readSave() };
   // per i test automatici
   window.Storia._t = { TILES, FRONT, BACK, SIDE, SIDE_LEGS, LEGS, TREE, ROCK, TALL, LANTERN,
     where: () => ({ map: MAP && MAP.id, x: P.x, y: P.y, dir: P.dir, s }), warp: (m, x, y) => run(() => warp(m, x, y, 'down')), capture };
