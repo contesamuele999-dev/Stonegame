@@ -57,6 +57,8 @@ Nelle impostazioni di Supabase:
 
 Missioni, medaglie e classifica della settimana si attivano incollando anche `supabase/aggiornamento-2.sql` (una volta, dopo `schema.sql`). Finché non c'è, il gioco funziona lo stesso, ma chi ha l'account non può riscuotere le missioni, le medaglie restano solo sul telefono e la classifica mostra solo quella di sempre.
 
+La Modalità Storia si salva sul telefono a ogni passo, a ogni porta e quando l'app va in secondo piano. Per chi ha l'account si salva anche online incollando `supabase/aggiornamento-3.sql` (una volta, dopo `schema.sql`): così il viaggio si ritrova anche se il telefono cancella i dati del sito (succede su iPhone dopo qualche giorno senza aprirlo, nei browser dentro le app e in navigazione privata) o si cambia telefono. Finché non c'è, la storia resta solo sul telefono.
+
 ### Progressi
 
 - **Livelli**: si guadagnano punti a ogni sfida (contro il computer, torneo, tutorial, online; non in 2 sullo stesso telefono). Con l'account i punti stanno online, senza account restano sul telefono.
