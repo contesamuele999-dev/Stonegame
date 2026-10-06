@@ -8,6 +8,8 @@ const S = require(path.join(__dirname, '..', 'engine.js'));
 // --segrete: include le carte del pacchetto segreto (solo in locale, cartella segrete/)
 // (passa ai processi paralleli come variabile d'ambiente: gli argomenti non li ricevono)
 if (process.argv.includes('--segrete')) process.env.STT_SEGRETE = '1';
+// --c2: combattimento 2 (fatica, combo, cambio, Qi)
+if (process.argv.includes('--c2')) process.env.STT_C2 = '1';
 if (process.env.STT_SEGRETE) S.addCards(require(path.join(__dirname, '..', 'segrete', 'carte.js'))(S.H).cards);
 
 function mulberry(seed) { return () => { let t = (seed = (seed + 0x6D2B79F5) | 0); t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; }; }
@@ -18,7 +20,7 @@ function play(seed, level) {
   // palestra a caso; le armi arrivano in partita (a chi perde una carta)
   const pick = a => a[Math.floor(rng() * a.length)];
   const terrain = pick([null].concat(S.TERRAINS.map(t => t.id)));
-  const g = S.createGame({ seed, silent: true, first: seed % 2, terrain, effects: true, armory: true, players: [{ name: 'A', cards: t0 }, { name: 'B', cards: t1 }] });
+  const g = S.createGame({ seed, silent: true, first: seed % 2, terrain, effects: true, armory: true, combat2: !!process.env.STT_C2, players: [{ name: 'A', cards: t0 }, { name: 'B', cards: t1 }] });
   let n = 0;
   const used = {};
   let firstKo = null;
@@ -26,7 +28,7 @@ function play(seed, level) {
     if (firstKo === null) firstKo = g.players[0].ko.length ? 0 : g.players[1].ko.length ? 1 : null;
     const a = S.chooseAction(g, level);
     if (!a) break;
-    if (a.effect || a.arm) { const k = a.effect ? 'fx:' + a.effect : 'arm:' + a.arm; used[k] = (used[k] || 0) + 1; S.doAction(g, a); n++; continue; }
+    if (a.effect || a.arm || a.qi) { const k = a.effect ? 'fx:' + a.effect : a.arm ? 'arm:' + a.arm : 'qi'; used[k] = (used[k] || 0) + 1; S.doAction(g, a); n++; continue; }
     const f = S.byUid(g, a.actor);
     const key = S.cardOf(f).id + ':' + a.move;
     used[key] = (used[key] || 0) + 1;
@@ -70,6 +72,8 @@ function report(rs, ms) {
   }
   const rows = S.CARDS.map(c => ({ id: c.id, cost: c.cost, games: st[c.id].g, win: st[c.id].g ? st[c.id].w / st[c.id].g : 0 }))
     .sort((a, b) => b.win - a.win);
+  const swaps = Object.keys(used).filter(k => k.endsWith(':-2')).reduce((s, k) => s + used[k], 0);
+  if (process.env.STT_C2) console.log(`per partita: Qi ${((used.qi || 0) / rs.length).toFixed(2)} · Cambi ${(swaps / rs.length).toFixed(2)}`);
   console.log(`partite ${rs.length} in ${(ms / 1000).toFixed(1)}s | turni medi ${(turns / rs.length).toFixed(1)} | vince chi inizia ${(100 * firstWins / rs.length).toFixed(1)}% | senza esito ${draws}`);
   for (const r of rows) {
     const u = [-1, 0, 1].map(i => used[r.id + ':' + i] || 0);

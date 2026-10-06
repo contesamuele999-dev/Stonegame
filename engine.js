@@ -13,6 +13,11 @@
   const BUDGET = 10;         // Punti Dojo per squadra
   const CONFUSE_CHANCE = 0.35;
   const FIRST_TURN_ACTIONS = 2; // chi inizia, al primo turno, agisce con due sole carte
+  // combattimento 2 (solo partite con opts.combat2: le vecchie e i replay restano identici)
+  const FATIGUE_ROUND = 8;   // dal round 8 la fatica: +10% di danni a round, cumulativo
+  const COMBO = 1.15;        // secondo colpo sullo stesso bersaglio nello stesso turno, da un'altra carta
+  const QI_RATE = 0.3;       // Qi guadagnato per ogni PV perso dalla squadra
+  const QI_MAX = 100;
 
   const RANKS = { A: 'Allievo', I: 'Istruttore', M: 'Maestro', L: 'Leggenda' };
   // Maestri e Leggende contano entrambi come "Maestri" per mosse e sinergie
@@ -591,6 +596,44 @@
 
   const BASIC = { name: 'Attacco', target: 'enemy', cd: 0, basic: true, hit: {}, desc: 'Attacco base: danni = ATK × 50 / (50 + DEF avversaria).' };
 
+  // Cambio con la riserva: usa l'azione della carta, e chi entra non agisce in questo turno
+  const SWAP = { name: 'Cambio', target: 'none', cd: 0, nocopy: true, needsReserve: true, swap: true,
+    desc: 'Torna in riserva e la riserva entra al suo posto. Usa l\'azione della carta; chi entra agisce dal turno dopo.',
+    use(g, u) {
+      const pl = g.players[u.owner], r = pl.reserve.shift(), i = pl.field.indexOf(u);
+      pl.field[i] = r; pl.reserve.push(u); r.acted = true;
+      log(g, `🔄 ${nm(u)} torna in panchina, entra ${nm(r)}!`); ev(g, { type: 'enter', uid: r.uid });
+    } };
+  const SWAP_I = -2;
+
+  // Qi di squadra: si carica perdendo PV; pieno, libera il Colpo del Tempio (non usa l'azione di una carta)
+  const QI_MOVE = { name: 'Colpo del Tempio', e: '🔥', desc: 'Tutta la tua squadra in campo recupera 20 PV e ogni avversario in campo subisce 25 danni che ignorano la difesa.' };
+  function qiReady(g) {
+    const pl = g.players[g.turn];
+    return !!g.combat2 && g.winner === null && g.turnNo > 1 && pl.qi >= QI_MAX;
+  }
+  function useQi(g) {
+    if (!qiReady(g)) return false;
+    const p = g.turn;
+    g.players[p].qi = 0;
+    log(g, `🔥 ${g.players[p].name} libera il Colpo del Tempio!`);
+    ev(g, { type: 'qi', player: p });
+    for (const f of team(g, p)) heal(g, f, 20);
+    for (const t of enemies(g, p).slice()) { const n = damage(g, t, 25, null); log(g, `${nm(t)} subisce l'onda del Qi: −${n} PV`); }
+    checkWin(g);
+    if (g.winner === null && !canAct(g)) endTurn(g);
+    return true;
+  }
+  // moltiplicatore di fatica del round in corso (1 = niente fatica)
+  function fatigue(g) {
+    const round = Math.ceil(g.turnNo / 2);
+    return g.combat2 && round >= FATIGUE_ROUND ? 1 + 0.1 * (round - FATIGUE_ROUND + 1) : 1;
+  }
+  // combo: un'altra carta della stessa squadra ha già colpito questo bersaglio nel turno
+  function comboOn(g, u, t) {
+    return !!g.combat2 && u.owner === g.turn && t.owner !== u.owner && g.combo[t.uid] !== undefined && g.combo[t.uid] !== u.uid;
+  }
+
   const NEGATIVE = new Set(['stun', 'block', 'confuse', 'dot', 'defZero', 'swap']);
   function isNegative(s) {
     if (NEGATIVE.has(s.type)) return true;
@@ -704,6 +747,7 @@
   function damage(g, t, n, src) {
     n = Math.max(1, Math.round(n));
     t.hp -= n;
+    if (g.combat2) { const pl = g.players[t.owner]; pl.qi = Math.min(QI_MAX, pl.qi + n * QI_RATE); }
     ev(g, { type: 'dmg', uid: t.uid, amount: n });
     if (t.hp <= 0) knockOut(g, t, src);
     return n;
@@ -766,6 +810,9 @@
     let dmg = atk * K / (K + def) * (0.9 + rand(g) * 0.2) + (opts.flat || 0) + (opts.basic && w.flat || 0);
     for (const s of u.st) if (s.type === 'dmgOut') dmg *= s.value;
     for (const s of t.st) if (s.type === 'dmgIn') dmg *= s.value;
+    dmg *= fatigue(g);
+    if (comboOn(g, u, t)) { dmg *= COMBO; log(g, `🔗 Combo su ${nm(t)}!`); ev(g, { type: 'status', uid: t.uid, text: 'COMBO' }); }
+    if (g.combat2 && u.owner === g.turn && t.owner !== u.owner) g.combo[t.uid] = u.uid;
     const rf = get(t, 'reflect');
     if (rf && !opts.pierce) {
       log(g, `☯️ ${nm(t)} restituisce il colpo con il doppio della forza!`);
@@ -828,6 +875,7 @@
       }),
       gymEvents: opts.gymEvents !== false,
       armory: !!opts.armory,
+      combat2: !!opts.combat2, combo: {},
       terrain: TERRAIN[opts.terrain] ? opts.terrain : null,
       turn: opts.first === undefined ? 0 : opts.first,
       turnNo: 1, actions: 0, winner: null, log: [], events: [], lastSpecial: null, silent: !!opts.silent, passes: 0,
@@ -835,6 +883,7 @@
     // carte effetto: si pescano solo se la partita le prevede (le partite vecchie restano identiche)
     g.players.forEach(pl => {
       pl.usedFx = [];
+      if (opts.combat2) pl.qi = 0;
       if (opts.armory) { pl.arms = []; pl.armsUsed = []; }
       if (!opts.effects) return;
       const pool = EFFECTS.map(x => x.id);
@@ -850,8 +899,14 @@
     const p = g.players[g.turn];
     g.actions = 0;
     g.effectThisTurn = false;
+    g.combo = {};
     for (const f of p.field.concat(p.reserve)) f.acted = false;
     ev(g, { type: 'turn', player: g.turn });
+    const fat = fatigue(g);
+    if (fat > 1 && g.turnNo % 2 === 1) {
+      log(g, `😮‍💨 Fatica: i colpi fanno il ${Math.round((fat - 1) * 100)}% di danni in più.`);
+      ev(g, { type: 'fatigue', pct: Math.round((fat - 1) * 100) });
+    }
     // gli eventi si alternano: uno scatta nel turno di chi gioca per secondo, il successivo in quello di chi inizia
     if (g.gymEvents) {
       const every = (TERRAIN[g.terrain] && TERRAIN[g.terrain].eventEvery) || EVENT_EVERY;
@@ -936,6 +991,11 @@
       else if (needsTarget(m) && !targetsFor(g, f, m).length) { ok = false; why = 'Nessun bersaglio'; }
       out.push({ i, move: m, ok, why });
     });
+    if (g.combat2) {
+      const ok = !done && !stunned && g.turnNo > 1 && g.players[f.owner].reserve.length > 0;
+      out.push({ i: SWAP_I, move: SWAP, ok,
+        why: done ? 'Ha già agito' : stunned ? 'Stordimento' : g.turnNo === 1 ? 'Primo turno: solo attacchi' : ok ? '' : 'Nessuna riserva' });
+    }
     return out;
   }
 
@@ -1004,6 +1064,7 @@
       else for (const t of effectTargets(g, g.turn, x)) acts.push({ effect: x.id, target: t.uid });
     }
     for (const id of armOptions(g)) for (const t of armTargets(g, g.turn)) acts.push({ arm: id, target: t.uid });
+    if (qiReady(g)) acts.push({ qi: true });
     return acts;
   }
 
@@ -1011,6 +1072,7 @@
     if (g.winner !== null) return false;
     if (a.effect) return playEffect(g, a);
     if (a.arm) return equipWeapon(g, a);
+    if (a.qi) return useQi(g);
     const u = byUid(g, a.actor);
     if (!u || u.owner !== g.turn || u.hp <= 0) return false;
     const opt = actorOptions(g, u).find(o => o.i === a.move);
@@ -1025,7 +1087,7 @@
       exec = refMove(a.pick);
       label = `${m.name} → ${exec.name}`;
     }
-    if (!m.basic) log(g, `✨ ${nm(u)} usa ${label}!`);
+    if (!m.basic && !m.swap) log(g, `✨ ${nm(u)} usa ${label}!`);
 
     // confusione: può colpirsi da solo invece di agire (solo azioni offensive)
     const offensive = ['enemy', 'enemies', 'unfaced', 'enemyWeak'].includes(exec.target) || exec.basic || exec.offensive;
@@ -1075,7 +1137,7 @@
     let d = atk * K / (K + def) + (w.flat || 0);
     for (const s of u.st) if (s.type === 'dmgOut') d *= s.value;
     for (const s of t.st) if (s.type === 'dmgIn') d *= s.value;
-    return d;
+    return d * fatigue(g) * (comboOn(g, u, t) ? COMBO : 1);
   }
 
   // Anteprima dei danni di una mossa su un bersaglio: [minimo, massimo] oppure null se la mossa non colpisce direttamente.
@@ -1094,22 +1156,32 @@
     let base = atk * K / (K + def), k = 1;
     for (const s of u.st) if (s.type === 'dmgOut') k *= s.value;
     for (const s of t.st) if (s.type === 'dmgIn') k *= s.value;
+    k *= fatigue(g) * (comboOn(g, u, t) ? COMBO : 1);
     const lo = Math.max(1, Math.round((base * 0.9 + flat) * k)) * hits;
     const hi = Math.max(1, Math.round((base * 1.1 + flat) * k)) * hits;
     return [lo, hi];
   }
 
+  // Nel seguito simulato ognuno usa l'attacco base o una mossa speciale che colpisce (la più forte pronta):
+  // così le ricariche, i blocchi delle tecniche e le minacce avversarie pesano davvero.
   function rolloutStep(c) {
+    if (qiReady(c)) { useQi(c); return; }
     let best = null, bestS = -Infinity;
     for (const u of team(c, c.turn)) {
-      const o = actorOptions(c, u)[0];
-      if (!o.ok) continue;
-      for (const t of targetsFor(c, u, BASIC)) {
-        const d = expectedHit(c, u, t);
-        let sc = Math.min(d, t.hp) + (d >= t.hp ? 60 : 0);
-        const ct = get(t, 'counter'); if (ct) sc -= u.hp * ct.value * 1.2;
-        if (has(t, 'reflect')) sc -= 150;
-        if (sc > bestS) { bestS = sc; best = { actor: u.uid, move: -1, target: t.uid }; }
+      for (const o of actorOptions(c, u)) {
+        const m = o.move;
+        if (!o.ok || !m.hit || m.formula || !['enemy', 'unfaced', 'enemyWeak'].includes(m.target)) continue;
+        for (const t of targetsFor(c, u, m)) {
+          let d;
+          if (m.basic) d = expectedHit(c, u, t);
+          else { const r = previewDamage(c, u, m, t); d = r ? (r[0] + r[1]) / 2 : 0; }
+          let sc = Math.min(d, t.hp) + (d >= t.hp ? 60 : 0) + (m.basic ? 0 : 6);
+          if (!m.pierce) {
+            const ct = get(t, 'counter'); if (ct) sc -= u.hp * ct.value * 1.2;
+            if (has(t, 'reflect')) sc -= 150;
+          }
+          if (sc > bestS) { bestS = sc; best = { actor: u.uid, move: o.i, target: t.uid }; }
+        }
       }
     }
     if (best) doAction(c, best); else endTurn(c);
@@ -1121,10 +1193,13 @@
     for (let p = 0; p < 2; p++) {
       const sign = p === me ? 1 : -1;
       const pl = g.players[p];
+      if (pl.qi) v += sign * pl.qi * 0.5;
       for (const f of pl.field.concat(pl.reserve)) {
         if (f.hp <= 0) continue;
         v += sign * (f.hp + 35 + effAtk(g, f, 0.3) * 0.5 + Math.max(0, effDef(g, f, 0.3)) * 0.3);
         for (const s of f.st) {
+          // un bonus di ATK permanente rende per tutto il resto della partita, ben oltre l'orizzonte della simulazione
+          if (s.perm && s.type === 'atkAdd') v += sign * s.value * 1.5;
           if (s.type === 'dot') v -= sign * s.value * Math.min(s.dur, 3);
           if (s.type === 'stun') v -= sign * 12;
           if (s.type === 'confuse') v -= sign * 8;
@@ -1218,7 +1293,7 @@
     K, TEAM_SIZE, FIELD_SIZE, BUDGET, RANKS, CARDS, CARD, BASIC,
     createGame, legalActions, doAction, chooseAction, actorOptions, targetsFor, copyOptions, bottleMove, refMove,
     needsTarget, effAtk, effDef, team, enemies, field, byUid, cardOf, movesOf, isStunned, isNegative,
-    teamCost, randomTeam, clone, canAct, passTurn, expectedHit,
+    teamCost, randomTeam, clone, canAct, passTurn, expectedHit, SWAP, SWAP_I, QI_MOVE, QI_MAX, qiReady, fatigue, FATIGUE_ROUND,
     SYNERGIES, synergiesFor, GYM_EVENTS, EVENT_EVERY, previewDamage, isMaster,
     TERRAINS, TERRAIN, WEAPONS, WEAPON, H, addCards, IMG, img, EFFECTS, EFFECT, effectOptions, effectTargets, armOptions, armTargets, RULES,
   };

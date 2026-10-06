@@ -996,10 +996,10 @@
     let pv = '';
     if (opts.preview) {
       const [lo, hi] = opts.preview;
-      pv = `<span class="pv num ${lo >= f.hp ? 'ko' : ''}">${lo === 0 && hi === 0 ? 'Bloccato' : lo >= f.hp ? 'K.O.!' : `−${lo}–${hi}`}</span>`;
+      pv = `<span class="pv num ${hi >= f.hp ? 'ko' : ''}">${lo === 0 && hi === 0 ? 'Bloccato' : lo >= f.hp ? 'K.O.!' : hi >= f.hp ? `K.O.? −${lo}–${hi}` : `−${lo}–${hi}`}</span>`;
     }
     return `<button class="${classes.join(' ')}" data-act="tile" data-v="${f.uid}" aria-label="${esc(f.name)}, ${f.hp} PV su ${f.maxHp}">
-      <span class="face" style="${face(f.card)}"><span class="rank ${f.rank}">${RANK_SHORT[f.rank]}${f.lv ? ` · Lv${f.lv}` : ''}</span>${f.weapon ? `<span class="wpn" title="${esc(S.WEAPON[f.weapon].name)}">⚔️</span>` : ''}${pv}</span>
+      <span class="face" style="${face(f.card)}"><span class="rank ${f.rank}">${RANK_SHORT[f.rank]}${f.lv ? ` · Lv${f.lv}` : ''}</span>${f.weapon ? `<span class="wpn" title="${esc(S.WEAPON[f.weapon].name)}">⚔️</span>` : ''}${cdsHtml(f)}${pv}</span>
       <span class="body">
         <span class="nm">${esc(f.name)}</span>
         <span class="hp"><i class="${cls}" style="width:${(pct * 100).toFixed(1)}%"></i></span>
@@ -1007,6 +1007,15 @@
         <span class="chips">${chipsHtml(chipList(g, f, true))}</span>
       </span>
     </button>`;
+  }
+
+  function cdsHtml(f) {
+    const dots = S.movesOf(f).map((m, i) => {
+      if (m.passive) return '';
+      const gone = (m.once && f.used[i]) || (m.maxUses && (f.used[i] || 0) >= m.maxUses);
+      return gone ? '<i class="gone">–</i>' : f.cds[i] > 0 ? `<i>${f.cds[i]}</i>` : '<i class="ok">✦</i>';
+    }).join('');
+    return dots ? `<span class="cds num" aria-hidden="true">${dots}</span>` : '';
   }
 
   function rowHtml(g, p) {
@@ -1033,14 +1042,18 @@
     const res = pl.reserve.length ? `Riserva: ${pl.reserve.map(f => esc(f.name.split(' ')[0])).join(', ')}` : 'Nessuna riserva';
     const syn = pl.syn && pl.syn.length ? pl.syn.map(id => S.SYNERGIES.find(x => x.id === id).name).map(esc).join(', ') : '';
     const fx = (pl.hand ? ` · 🃏 ${pl.hand.length - pl.usedFx.length}` : '') + (pl.arms && pl.arms.length > pl.armsUsed.length ? ` · ⚔️ ${pl.arms.length - pl.armsUsed.length}` : '');
-    return `<div class="bar"><div class="side-name ${g.turn === p && g.winner === null ? 'active' : ''}"><i class="turn-dot"></i><span>${esc(pl.name)}</span></div><div class="res-info">${res} · K.O. ${pl.ko.length}${fx}<span class="syn-tag">${syn}</span></div></div>`;
+    const qi = pl.qi === undefined ? '' : `<span class="qi ${pl.qi >= S.QI_MAX ? 'full' : ''}" title="Qi ${Math.floor(pl.qi)}%"><i style="width:${Math.min(100, pl.qi)}%"></i><b>🔥 Qi</b></span>`;
+    return `<div class="bar"><div class="side-name ${g.turn === p && g.winner === null ? 'active' : ''}"><i class="turn-dot"></i><span>${esc(pl.name)}</span></div><div class="res-info">${res} · K.O. ${pl.ko.length}${fx}${qi}<span class="syn-tag">${syn}</span></div></div>`;
   }
   // le carte effetto in mano a chi tiene il telefono
   function handHtml(g, p) {
     const pl = g.players[p];
     const arms = (pl.arms || []).filter(id => !pl.armsUsed.includes(id));
-    if (!pl.hand && !arms.length) return '';
+    const qiOn = pl.qi >= S.QI_MAX;
+    if (!pl.hand && !arms.length && !qiOn) return '';
     const mine = isLocalTurn() && g.turn === p && !A.busy;
+    const qi = qiOn ? `<button class="fx-card qi-card" data-act="qi" ${mine && S.qiReady(g) ? '' : 'disabled'} aria-label="${esc(S.QI_MOVE.name)}: ${esc(S.QI_MOVE.desc)}">
+        <span class="fx-e">${S.QI_MOVE.e}</span><span class="fx-t"><b>${esc(S.QI_MOVE.name)}</b><small>${esc(S.QI_MOVE.desc)}</small></span></button>` : '';
     const usable = mine ? S.effectOptions(g).map(x => x.id) : [];
     const armable = mine ? S.armOptions(g) : [];
     return `<div class="hand" aria-label="Carte effetto e armi">${(pl.hand || []).map(id => {
@@ -1051,7 +1064,7 @@
       const w = S.WEAPON[id], on = A.sel && A.sel.arm === id;
       return `<button class="fx-card arm ${on ? 'on' : ''}" data-act="arm" data-v="${id}" ${armable.includes(id) ? '' : 'disabled'} aria-label="Arma ${esc(w.name)}: ${esc(w.desc)}">
         <span class="fx-e">⚔️</span><span class="fx-t"><b>${esc(w.name)}</b><small>${esc(w.desc)}</small></span></button>`;
-    }).join('')}</div>`;
+    }).join('')}${qi}</div>`;
   }
 
   // il consiglio c'è nel proprio turno, ma non online (sarebbe un aiuto contro un'altra persona)
@@ -1059,6 +1072,7 @@
   function hintText(g, a) {
     if (a.effect) { const t = a.target ? S.byUid(g, a.target) : null; return `Gioca ${S.EFFECT[a.effect].name}${t ? ` su ${t.name}` : ''}`; }
     if (a.arm) return `Dai ${S.WEAPON[a.arm].name} a ${S.byUid(g, a.target).name}`;
+    if (a.qi) return `Libera il ${S.QI_MOVE.name}`;
     const u = S.byUid(g, a.actor), opt = S.actorOptions(g, u).find(o => o.i === a.move);
     const m = opt ? opt.move : S.BASIC, t = a.target ? S.byUid(g, a.target) : null;
     const label = a.pick ? `${m.name} → ${S.refMove(a.pick).name}` : m.name;
@@ -1087,7 +1101,7 @@
     }
     const canEnd = isLocalTurn() && !A.busy;
     return `<div class="battle">
-      <div class="bar"><button class="back" data-act="quit">← Esci</button><div class="eyebrow num turn-lbl">Turno ${Math.ceil(g.turnNo / 2)}${A.mode === 'torneo' ? ` · Torneo ${torneo().stage + 1}/5` : ''}</div>${speedHtml()}</div>
+      <div class="bar"><button class="back" data-act="quit">← Esci</button><div class="eyebrow num turn-lbl">Turno ${Math.ceil(g.turnNo / 2)}${S.fatigue(g) > 1 ? ` · 😮‍💨 +${Math.round((S.fatigue(g) - 1) * 100)}%` : ''}${A.mode === 'torneo' ? ` · Torneo ${torneo().stage + 1}/5` : ''}</div>${speedHtml()}</div>
       ${sideBar(g, opp)}
       ${rowHtml(g, opp)}
       <div class="mid">
@@ -1263,7 +1277,7 @@
 
   async function perform(a, local) {
     const g = A.game;
-    const d = a.actor && use3D() ? describe(g, a) : null;
+    const d = a.actor && a.move !== S.SWAP_I && use3D() ? describe(g, a) : null;
     const turnBefore = g.turn;
     const mover = a.pass ? -1 : a.actor ? (S.byUid(g, a.actor) || {}).owner : g.turn;
     applyAct(a);
@@ -1350,13 +1364,15 @@
         const n = count[e.uid] = (count[e.uid] || 0) + 1;
         if (e.type === 'dmg') { floatOn(e.uid, `−${e.amount}`, 'dmg', n - 1); sfx(e.amount >= 45 ? 'bighit' : 'hit', e.amount); }
         if (e.type === 'heal') { floatOn(e.uid, `+${e.amount}`, 'heal', n - 1); sfx('heal'); }
-        if (e.type === 'status') { floatOn(e.uid, e.text, 'st', n - 1); sfx(e.text === 'SCHIVATA' ? 'dodge' : e.text === 'CONFUSO' ? 'confuse' : e.text === 'IMMUNE' ? 'shield' : 'stun'); }
+        if (e.type === 'status') { floatOn(e.uid, e.text, 'st', n - 1); sfx(e.text === 'SCHIVATA' ? 'dodge' : e.text === 'CONFUSO' ? 'confuse' : e.text === 'IMMUNE' ? 'shield' : e.text === 'COMBO' ? 'bighit' : 'stun'); }
         fx = true;
         await sleep(pace(160));
       } else if (e.type === 'ko') { mark(e.uid, 'ko'); sfx('ko'); if (window.Sound) Sound.buzz([90, 50, 160]); fx = true; }
       else if (e.type === 'gymevent') { if (fx) { await sleep(pace(500)); fx = false; } await showToast(e.name, e.desc); }
       else if (e.type === 'arm') await showToast(`⚔️ ${S.WEAPON[e.id].name}`, S.WEAPON[e.id].desc, `Potenziamento · ${A.game.players[e.player].name}`);
       else if (e.type === 'equip') { floatOn(e.uid, `⚔️ ${S.WEAPON[e.id].name}`, 'st'); sfx('shield'); fx = true; }
+      else if (e.type === 'qi') { if (window.Sound) Sound.buzz([60, 40, 60, 40, 200]); await showToast(`${S.QI_MOVE.e} ${S.QI_MOVE.name}`, S.QI_MOVE.desc, `Qi pieno · ${A.game.players[e.player].name}`); }
+      else if (e.type === 'fatigue' && e.pct === 10) await showToast('😮‍💨 Fatica', 'Da questo round ogni colpo fa il 10% di danni in più, e così ogni round che passa.', `Round ${S.FATIGUE_ROUND}`);
       else if (e.type === 'effect') { const x = S.EFFECT[e.id]; await showToast(`${x.e} ${x.name}`, x.desc, `🃏 Carta effetto · ${A.game.players[e.player].name}`); }
     }
     if (fx) await sleep(pace(650));
@@ -1514,6 +1530,7 @@
   function actionBanner(g, a) {
     if (a.effect) return `${g.players[g.turn].name} gioca ${S.EFFECT[a.effect].name}`;
     if (a.arm) return `${g.players[g.turn].name} dà ${S.WEAPON[a.arm].name} a ${S.byUid(g, a.target).name}`;
+    if (a.qi) return `${g.players[g.turn].name}: ${S.QI_MOVE.name}!`;
     const u = S.byUid(g, a.actor);
     if (!u) return '';
     const opt = S.actorOptions(g, u).find(o => o.i === a.move);
@@ -1600,6 +1617,7 @@
       gymEvents: settings.events,
       effects: settings.effectCards,
       armory: true, // armi come potenziamento a chi perde una carta
+      combat2: true, // fatica, combo, cambio con la riserva, Qi di squadra
       terrain: terrain === undefined ? pickTerrain(A.terrain) : (S.TERRAIN[terrain] ? terrain : pickTerrain('random')),
       players,
     };
@@ -2061,6 +2079,7 @@
         A.banner = `${x.name}: tocca il bersaglio`;
         render(); break;
       }
+      case 'qi': if (isLocalTurn() && !A.busy && S.qiReady(g)) act({ qi: true }); break;
       case 'arm': {
         if (!isLocalTurn() || A.busy || !S.armOptions(g).includes(v)) break;
         A.hint = null;

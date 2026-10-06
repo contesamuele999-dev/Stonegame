@@ -382,6 +382,15 @@
   .terrain-card p { margin: 3px 0 0; font-size: 13.5px; color: var(--paper-dim); }
   .terrain-chip { justify-self: center; min-height: 32px; padding: 4px 12px; border-radius: 16px; border: 1px solid var(--gold); background: #1f1810cc; color: var(--gold); font-family: var(--label); font-weight: 600; font-size: 13.5px; letter-spacing: .03em; cursor: pointer; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .wpn { position: absolute; right: 4px; top: 4px; width: 24px; height: 24px; border-radius: 12px; background: #000b; display: grid; place-items: center; font-size: 13px; }
+  .cds { position: absolute; left: 5px; bottom: 5px; display: flex; gap: 3px; }
+  .cds i { font-style: normal; min-width: 16px; height: 16px; padding: 0 3px; border-radius: 8px; background: #000b; color: var(--paper-dim); font-size: 10.5px; line-height: 16px; text-align: center; }
+  .cds i.ok { color: var(--gold); }
+  .cds i.gone { opacity: .5; }
+  .qi { position: relative; display: inline-block; vertical-align: middle; width: 54px; height: 14px; margin-left: 6px; border-radius: 7px; background: #000a; border: 1px solid #ffffff22; overflow: hidden; }
+  .qi i { position: absolute; inset: 0 auto 0 0; background: linear-gradient(90deg, #c2410c, #f59e0b); transition: width .4s; }
+  .qi b { position: relative; display: block; font-size: 9.5px; line-height: 14px; text-align: center; color: var(--paper); }
+  .qi.full { border-color: var(--gold); box-shadow: 0 0 6px #f59e0b; }
+  .fx-card.qi-card { border-color: #f59e0b; background: linear-gradient(135deg, #3a1a08, #1a0f08); }
   .wline { margin: 0; font-size: 14px; color: var(--paper-dim); }
   .wline b { color: var(--gold); font-family: var(--label); font-size: 16px; }
   .coll-list { display: grid; gap: 8px; padding-bottom: 12px; }

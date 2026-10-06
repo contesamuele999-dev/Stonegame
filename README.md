@@ -83,6 +83,16 @@ La Modalità Storia si salva sul telefono a ogni passo, a ogni porta e quando l'
 - Gli effetti durano i turni indicati. Uno stesso effetto non si somma: si rinnova.
 - Il grado conta: diverse mosse fanno effetto doppio sugli **Istruttori** o sui **Maestri**, come scritto sulle carte.
 
+**Cambio.** Dal secondo turno una carta in campo può tornare in riserva al posto della sua azione: entra la riserva, che agisce dal turno dopo. Serve a salvare una carta quasi K.O.
+
+**Combo.** Se una tua carta colpisce un avversario già colpito in questo turno da un'altra tua carta, il colpo fa +15% di danni: conviene concentrarsi su un bersaglio.
+
+**Qi di squadra.** Ogni squadra ha una barra di Qi che si carica perdendo PV (0,3 punti per PV perso). Piena, nel tuo turno si libera il 🔥 *Colpo del Tempio*: tutta la tua squadra in campo recupera 20 PV e ogni avversario in campo subisce 25 danni che ignorano la difesa. Non usa l'azione di una carta. Aiuta chi sta perdendo a rimontare.
+
+**Fatica.** Dal round 8 ogni colpo fa il 10% di danni in più, e così ogni round che passa (+20% al 9, +30% al 10...): le sfide non si trascinano.
+
+Sulle carte in campo i simboli in basso a sinistra mostrano le mosse speciali: ✦ pronta, il numero sono i turni di ricarica, – già usata. Nell'anteprima dei danni "K.O.?" vuol dire che il colpo può mandare K.O. con un buon tiro.
+
 **Sinergie.** Alcune combinazioni di gradi danno un bonus alla squadra:
 - *Linea dei Maestri* (almeno 2 Maestri): i Maestri hanno +15 PV.
 - *Istruttori affiatati* (almeno 2 Istruttori): gli Istruttori hanno +8 ATK.
