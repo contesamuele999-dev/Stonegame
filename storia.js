@@ -483,9 +483,14 @@
   }
   document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') leaving(); });
   window.addEventListener('pagehide', leaving);
-  const teamCost = ids => ids.reduce((t, id) => t + (S.CARD[id] ? S.CARD[id].cost : 0), 0);
+  // evoluzione: o.ev è lo stadio raggiunto, o.f la forma scelta per combattere (ogni stadio +1 Punto Dojo)
+  const formOf = id => { const o = s.cards[id]; return o && o.ev ? Math.min(o.f === undefined ? o.ev : o.f, o.ev) : 0; };
+  const lvCap = o => MAXLV + 5 * (o.ev || 0); // ogni stadio alza il livello massimo di 5
+  const EVO_NEED = [null, { qi: 3, money: 1000 }, { qi: 6, money: 3000 }, { qi: 10, money: 8000 }];
+  const stars = n => '★'.repeat(n || 0);
+  const teamCost = ids => ids.reduce((t, id) => t + (S.CARD[id] ? S.CARD[id].cost + formOf(id) : 0), 0);
   const xpNeed = lv => 40 + 30 * lv;
-  const statAt = (id, lv) => { const c = S.CARD[id], k = 1 + 0.04 * (lv - 1); return { hp: Math.round(c.hp * k), atk: Math.round(c.atk * k), def: Math.round(c.def * k) }; };
+  const statAt = (id, lv, ev) => { const c = S.CARD[id], k = (1 + 0.04 * (lv - 1)) * (1 + S.EVO[ev || 0].k); return { hp: Math.round(c.hp * k), atk: Math.round(c.atk * k), def: Math.round(c.def * k) }; };
   function seen(id) { if (!s.seen.includes(id)) s.seen.push(id); }
   function addCard(id, lv) {
     if (!S.CARD[id] || S.CARD[id].secret) return; // le carte segrete restano fuori dalla storia
@@ -942,51 +947,91 @@
       const cost = teamCost(s.team);
       return `<div class="st-head"><h3>Le tue carte</h3><button class="st-btn" data-st="close" data-close>Chiudi</button></div>
         <p class="st-note">Squadra: fino a ${S.TEAM_SIZE} carte e ${S.BUDGET} Punti Dojo. Le prime 3 combattono, la quarta è la riserva.</p>
-        <div class="st-team">${[0, 1, 2, 3].map(i => { const id = s.team[i]; return id ? `<button class="st-slot" data-st="card" data-v="${id}">${face(id)}<b>${esc(S.CARD[id].name.split(' ')[0])}</b><small>${i === 3 ? 'Riserva' : 'Lv ' + s.cards[id].lv}</small></button>` : '<div class="st-slot empty">—</div>'; }).join('')}</div>
+        <div class="st-team">${[0, 1, 2, 3].map(i => { const id = s.team[i]; return id ? `<button class="st-slot" data-st="card" data-v="${id}">${face(id)}<b>${esc(S.CARD[id].name.split(' ')[0])}</b><small>${i === 3 ? 'Riserva' : 'Lv ' + s.cards[id].lv}${formOf(id) ? ' ' + stars(formOf(id)) : ''}</small></button>` : '<div class="st-slot empty">—</div>'; }).join('')}</div>
         <div class="st-budget">Punti Dojo <b class="${cost > S.BUDGET ? 'over' : ''}">${cost}/${S.BUDGET}</b></div>
         <div class="st-list">${ids.map(id => rowHtml(id)).join('') || '<p class="st-note">Nessuna carta.</p>'}</div>`;
     };
     const rowHtml = id => {
       const c = S.CARD[id], o = s.cards[id];
       return `<button class="st-row ${s.team.includes(id) ? 'in' : ''}" data-st="card" data-v="${id}">${face(id)}
-        <span class="st-rm"><b>${esc(c.name)}</b><small>${RANKN[c.rank]} · costo ${c.cost}${o.n > 1 ? ` · ×${o.n}` : ''}</small>
-        <span class="st-xp"><i style="width:${o.lv >= MAXLV ? 100 : Math.round(o.xp / xpNeed(o.lv) * 100)}%"></i></span></span>
+        <span class="st-rm"><b>${esc(c.name)}${o.ev ? ` <i class="st-star">${stars(o.ev)}</i>` : ''}</b><small>${RANKN[c.rank]} · costo ${c.cost + formOf(id)}${o.n > 1 ? ` · ×${o.n}` : ''}</small>
+        <span class="st-xp"><i style="width:${o.lv >= lvCap(o) ? 100 : Math.round(o.xp / xpNeed(o.lv) * 100)}%"></i></span></span>
         <span class="st-lv">Lv ${o.lv}${s.team.includes(id) ? '<em>in squadra</em>' : ''}</span></button>`;
     };
+    // quello che manca per il prossimo stadio di evoluzione
+    const evoMissing = (o, need) => [o.lv < lvCap(o) && `livello ${lvCap(o)}`, o.n < 2 && 'una copia doppia',
+      (s.qi || 0) < need.qi && `${need.qi - (s.qi || 0)} Frammenti del Qi`, s.money < need.money && `${need.money - s.money} ₵`].filter(Boolean);
     const detailHtml = id => {
-      const c = S.CARD[id], o = s.cards[id], st = statAt(id, o.lv), inT = s.team.includes(id);
-      const canAdd = !inT && s.team.length < S.TEAM_SIZE && teamCost(s.team) + c.cost <= S.BUDGET;
-      const upCost = 100 * o.lv, canUp = o.n >= 2 && o.lv < MAXLV && s.money >= upCost;
+      const c = S.CARD[id], o = s.cards[id], fm = formOf(id), st = statAt(id, o.lv, fm), inT = s.team.includes(id), cap = lvCap(o);
+      const canAdd = !inT && s.team.length < S.TEAM_SIZE && teamCost(s.team.concat(id)) <= S.BUDGET;
+      const upCost = 100 * o.lv, canUp = o.n >= 2 && o.lv < cap && s.money >= upCost;
+      const next = (o.ev || 0) + 1, need = EVO_NEED[next], miss = need ? evoMissing(o, need) : [];
       return `<div class="st-head"><button class="st-btn" data-st="back" data-close>← Carte</button><span class="st-eyebrow">Lv ${o.lv}${o.n > 1 ? ` · ${o.n} copie` : ''}</span></div>
-        <div class="st-detail"><img src="${S.img(id + '.jpg')}" alt="Carta di ${esc(c.name)}">
-        <div><h3>${esc(c.name)}</h3><p>${RANKN[c.rank]} · costo ${c.cost} Punti Dojo</p>
+        <div class="st-detail"><img src="${S.img(id + '.jpg')}" alt="Carta di ${esc(c.name)}" class="${fm ? 'evo' : ''}" style="--c:${EVO_COL[fm]}">
+        <div><h3>${esc(c.name)}${fm ? ` <i class="st-star">${stars(fm)}</i>` : ''}</h3><p>${RANKN[c.rank]}${fm ? ` · ${esc(S.EVO[fm].name)}` : ''} · costo ${c.cost + fm} Punti Dojo</p>
         <div class="st-stats num"><span>PV <b>${st.hp}</b></span><span>ATK <b>${st.atk}</b></span><span>DEF <b>${st.def}</b></span></div>
-        <div class="st-xp big"><i style="width:${o.lv >= MAXLV ? 100 : Math.round(o.xp / xpNeed(o.lv) * 100)}%"></i></div>
-        <small class="st-note">${o.lv >= MAXLV ? 'Livello massimo' : `${o.xp}/${xpNeed(o.lv)} punti per il livello ${o.lv + 1}`}</small></div></div>
+        <div class="st-xp big"><i style="width:${o.lv >= cap ? 100 : Math.round(o.xp / xpNeed(o.lv) * 100)}%"></i></div>
+        <small class="st-note">${o.lv >= cap ? `Livello massimo (${cap})` : `${o.xp}/${xpNeed(o.lv)} punti per il livello ${o.lv + 1} · massimo ${cap}`}</small></div></div>
+        ${o.ev ? `<div class="st-eyebrow">Forma in sfida · ogni stadio costa 1 Punto Dojo in più</div><div class="st-tabs">${Array.from({ length: o.ev + 1 }, (_, f) => `<button class="st-btn ${fm === f ? 'pri' : ''}" data-st="form" data-v="${id}" data-f="${f}" aria-pressed="${fm === f}">${f ? stars(f) : 'Base'}</button>`).join('')}</div>` : ''}
         ${c.moves.map(m => `<div class="st-move"><b>${esc(m.name)}</b><p>${esc(m.desc)}</p></div>`).join('')}
         <div class="st-acts">
           ${inT ? `<button class="st-btn" data-st="out" data-v="${id}">Togli dalla squadra</button>${s.team.indexOf(id) !== s.team.length - 1 ? `<button class="st-btn" data-st="res" data-v="${id}">Metti come riserva</button>` : ''}`
             : `<button class="st-btn pri" data-st="in" data-v="${id}" ${canAdd ? '' : 'disabled'}>Metti in squadra</button>`}
-          ${o.lv < MAXLV ? `<button class="st-btn" data-st="up" data-v="${id}" ${canUp ? '' : 'disabled'}>Potenzia: +1 livello<small>usa una copia doppia e ${upCost} ₵</small></button>` : ''}
+          ${o.lv < cap ? `<button class="st-btn" data-st="up" data-v="${id}" ${canUp ? '' : 'disabled'}>Potenzia: +1 livello<small>usa una copia doppia e ${upCost} ₵</small></button>` : ''}
+          ${need && o.lv >= MAXLV ? `<button class="st-btn ${miss.length ? '' : 'pri'}" data-st="evo" data-v="${id}" ${miss.length ? 'disabled' : ''}>⚡ Evolvi: ${stars(next)} ${esc(S.EVO[next].name)}<small>Lv ${cap}, una copia doppia, ${need.qi} Frammenti del Qi e ${need.money} ₵</small></button>` : ''}
           ${shopSell && o.n >= 2 ? `<button class="st-btn" data-st="sell" data-v="${id}">Vendi una copia · +${sellPrice(id)} ₵</button>` : ''}
         </div>
+        ${need && o.lv >= MAXLV && miss.length ? `<p class="st-note">Per evolvere ti mancano: ${miss.join(', ')}. I Frammenti del Qi si vincono all'Arena del Tempio.</p>` : ''}
         ${!inT && !canAdd ? `<p class="st-note">${s.team.length >= S.TEAM_SIZE ? 'La squadra è piena: togli prima una carta.' : 'Non bastano i Punti Dojo: togli una carta più costosa.'}</p>` : ''}`;
     };
     cardSel = null;
     const upd = () => { el.panel.innerHTML = render(); };
-    await panel(render(), (a, t) => {
+    await panel(render(), async (a, t) => {
       const id = t.dataset.v;
       if (a === 'close') { closePanel(); return; }
       if (a === 'card') cardSel = id;
       if (a === 'back') cardSel = null;
-      if (a === 'in' && s.team.length < S.TEAM_SIZE && teamCost(s.team) + S.CARD[id].cost <= S.BUDGET) s.team.push(id);
+      if (a === 'in' && s.team.length < S.TEAM_SIZE && teamCost(s.team.concat(id)) <= S.BUDGET) s.team.push(id);
       if (a === 'out') { if (s.team.length <= 1) { S.UI.toastQuick('Ti serve almeno una carta in squadra.'); return; } s.team = s.team.filter(x => x !== id); }
       if (a === 'res') { s.team = s.team.filter(x => x !== id).concat(id); }
-      if (a === 'up') { const o = s.cards[id], cost = 100 * o.lv; if (o.n >= 2 && o.lv < MAXLV && s.money >= cost) { o.n--; o.lv++; o.xp = 0; s.money -= cost; sfx('buff'); } }
+      if (a === 'up') { const o = s.cards[id], cost = 100 * o.lv; if (o.n >= 2 && o.lv < lvCap(o) && s.money >= cost) { o.n--; o.lv++; o.xp = 0; s.money -= cost; sfx('buff'); } }
       if (a === 'sell') { const o = s.cards[id]; if (o && o.n >= 2) { o.n--; s.money += sellPrice(id); sfx('item'); } }
+      if (a === 'form') {
+        const o = s.cards[id], old = o.f;
+        o.f = +t.dataset.f;
+        if (s.team.includes(id) && teamCost(s.team) > S.BUDGET) { o.f = old; S.UI.toastQuick('Non bastano i Punti Dojo per questa forma: togli una carta più costosa.'); return; }
+      }
+      if (a === 'evo') {
+        const o = s.cards[id], e = (o.ev || 0) + 1, need = EVO_NEED[e];
+        if (!need || evoMissing(o, need).length) return;
+        const old = formOf(id);
+        o.n--; s.qi -= need.qi; s.money -= need.money; o.ev = e; o.f = e;
+        if (s.team.includes(id) && teamCost(s.team) > S.BUDGET) o.f = old; // non ci sta nella squadra: resta nella forma di prima
+        save(); hud();
+        if (S.UI.unlockEvolution) S.UI.unlockEvolution(id, e); // la forma si sblocca anche nel resto del gioco
+        await nested(() => evolveScene(id, e));
+        if (o.f < e) S.UI.toastQuick(`Per combattere in forma ${stars(e)} servono più Punti Dojo: scegli la forma dal dettaglio.`);
+      }
       save(); hud(); upd();
       el.panel.scrollTop = 0;
     });
+  }
+  // la trasformazione: aura che si carica, lampo, stelle
+  const EVO_COL = ['#d4ae62', '#45b4ff', '#ffd23f', '#5ef0ff'];
+  async function evolveScene(id, e) {
+    const c = S.CARD[id];
+    const done = panel(`<div class="cap evo-sc" style="--c:${EVO_COL[e]}" role="img" aria-label="${esc(c.name)} si evolve">
+      <div class="evo-card"><img src="${S.img(id + '.jpg')}" alt=""></div><div class="cap-flash"></div>
+      <div class="cap-stars">${Array.from({ length: 12 }, (_, i) => `<i style="--a:${i * 30}deg">✦</i>`).join('')}</div>
+      <b class="evo-stars">${stars(e)}</b><p class="cap-text" aria-live="polite">${esc(c.name)} sta raccogliendo il Qi...</p></div>`, () => {});
+    const box = el.panel.querySelector('.evo-sc'), txt = box.querySelector('.cap-text');
+    sfx('magic'); await sleep(400);
+    box.classList.add('charge'); sfx('buff'); await sleep(900); sfx('buff'); await sleep(700);
+    box.classList.remove('charge'); box.classList.add('burst'); sfx('win');
+    txt.textContent = `${c.name} raggiunge la forma ${S.EVO[e].name}!`;
+    await sleep(2400);
+    closePanel();
+    await done;
   }
   const sellPrice = id => ({ A: 80, I: 200, M: 400, L: 1000 })[S.CARD[id].rank];
 
@@ -997,7 +1042,7 @@
     const h = Math.floor(s.time / 3600), m = Math.floor(s.time / 60) % 60;
     const lookUrl = (() => { const c = cv(16, 20); c.getContext('2d').drawImage(sheet(P.look).down[0], 0, 0); return c.toDataURL(); })();
     return panel(`<div class="st-head"><h3>Tessera</h3><button class="st-btn" data-st="close" data-close>Chiudi</button></div>
-      <div class="st-card-id"><img src="${lookUrl}" alt="" class="st-me"><div><b>${esc(s.name)}</b><p>₵ ${s.money} · 📜 ${s.scrolls} pergamene</p><p>Tempo di gioco ${h}:${String(m).padStart(2, '0')}</p>${s.arena && s.arena.best ? `<p>Arena: record al piano ${s.arena.best}</p>` : ''}</div></div>
+      <div class="st-card-id"><img src="${lookUrl}" alt="" class="st-me"><div><b>${esc(s.name)}</b><p>₵ ${s.money} · 📜 ${s.scrolls} pergamene${s.qi ? ` · 💠 ${s.qi} Frammenti del Qi` : ''}</p><p>Tempo di gioco ${h}:${String(m).padStart(2, '0')}</p>${s.arena && s.arena.best ? `<p>Arena: record al piano ${s.arena.best}</p>` : ''}</div></div>
       <div class="st-eyebrow">Sigilli</div>
       <div class="st-badges">${M.BADGES.map((b, i) => `<div class="${s.badges.includes(i) ? 'on' : ''}"><i style="--c:${b.c}"></i><b>${esc(b.name)}</b><small>${s.badges.includes(i) ? esc(b.where) : '???'}</small></div>`).join('')}</div>
       <div class="st-eyebrow">Album · ${own}/${all.length} carte</div>
@@ -1073,7 +1118,7 @@
       el.root.hidden = true; document.body.classList.remove('st-open'); stopLoop();
       S.UI.storyBattle({
         players: [
-          { name: s.name, cards: s.team.slice(), lv: s.team.map(id => s.cards[id].lv) },
+          { name: s.name, cards: s.team.slice(), lv: s.team.map(id => s.cards[id].lv), ev: s.team.map(formOf) },
           { name: o.name, cards: o.cards.slice(), lv, cpu: o.cpu || 'normale' },
         ],
         terrain: o.terrain, music: o.music, kind: o.kind,
@@ -1092,10 +1137,10 @@
     const ups = [];
     for (const id of s.team) {
       const c = s.cards[id];
-      if (!c || c.lv >= MAXLV) continue;
+      if (!c || c.lv >= lvCap(c)) continue;
       c.xp += n;
-      while (c.lv < MAXLV && c.xp >= xpNeed(c.lv)) { c.xp -= xpNeed(c.lv); c.lv++; ups.push([id, c.lv]); }
-      if (c.lv >= MAXLV) c.xp = 0;
+      while (c.lv < lvCap(c) && c.xp >= xpNeed(c.lv)) { c.xp -= xpNeed(c.lv); c.lv++; ups.push([id, c.lv]); }
+      if (c.lv >= lvCap(c)) c.xp = 0;
     }
     await say(`La squadra guadagna ${n} punti esperienza.`);
     for (const [id, lv] of ups) { sfx('buff'); await say(`${S.CARD[id].name} sale al livello ${lv}!`); }
@@ -1276,6 +1321,7 @@
     set: (k, v) => { s.flags[k] = v === undefined ? 1 : v; },
     badges: () => s.badges.length,
     money: n => { s.money += n; hud(); },
+    qi: n => { s.qi = (s.qi || 0) + n; hud(); },
     scrolls: n => { s.scrolls += n; hud(); },
     has: id => !!s.cards[id],
     npc: id => npcs.find(n => n.def.id === id),

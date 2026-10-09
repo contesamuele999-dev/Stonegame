@@ -5,6 +5,17 @@
 window.NOVITA = [
   {
     data: '2026-10-09',
+    titolo: 'Evoluzione delle carte',
+    testo: [
+      'Le carte possono evolvere, come i grandi guerrieri: ★ Risveglio, ★★ Fiamma del Drago e ★★★ Ascesa del Tempio.',
+      'Ogni stadio dà più PV, ATK e DEF e un\'aura più potente nell\'arena 3D, ma costa 1 Punto Dojo in più: così le sfide restano alla pari.',
+      'Nel gioco normale si sblocca con 25, 50 e 100 vittorie con la carta in squadra. Quando fai la squadra tocca la stella sulla carta per scegliere la forma.',
+      'Nella Modalità Storia una carta al livello massimo evolve con i Frammenti del Qi, che si vincono all\'Arena del Tempio, e il suo livello massimo sale fino a 25.',
+      'Nuova medaglia: Risveglio.',
+    ],
+  },
+  {
+    data: '2026-10-09',
     titolo: 'Arena del Tempio',
     testo: [
       'Nella Modalità Storia, a Lancenigo, apre l\'Arena del Tempio: una torre di sfide senza fine. Si entra con almeno un sigillo.',

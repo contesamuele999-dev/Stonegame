@@ -69,5 +69,15 @@ for (let s = 0; s < 30; s++) {
   if (c.winner !== null) done++;
 }
 assert.strictEqual(done, 30, 'partite senza esito');
+
+// evoluzione: stadio 2 = PV/ATK/DEF × (1 + EVO[2].k) e 2 Punti Dojo in più; senza "ev" tutto come prima
+const evo = S.createGame({ seed: 7, first: 0, gymEvents: false, synergies: false, players: [Object.assign({}, players[0], { ev: [2, 0, 0, 0] }), players[1]] });
+const base = S.createGame({ seed: 7, first: 0, gymEvents: false, synergies: false, players });
+const e0 = evo.players[0].field[0], b0 = base.players[0].field[0];
+assert.strictEqual(e0.ev, 2);
+assert.strictEqual(e0.maxHp, Math.round(b0.maxHp * (1 + S.EVO[2].k)));
+assert.strictEqual(e0.baseAtk, Math.round(b0.baseAtk * (1 + S.EVO[2].k)));
+assert.strictEqual(evo.players[0].field[1].maxHp, base.players[0].field[1].maxHp);
+assert.strictEqual(S.teamCost(players[0].cards, [2, 0, 0, 1]), S.teamCost(players[0].cards) + 3);
 assert.ok(qi > 0, 'il computer non usa mai il Qi');
 console.log(`ok · in 30 partite il computer ha usato il Qi ${qi} volte e il Cambio ${swaps}`);

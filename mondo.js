@@ -911,8 +911,9 @@
       a.best = Math.max(a.best, n);
       if (f.boss) {
         const rank = n >= 30 ? 'L' : n >= 15 ? 'M' : 'I', pool = STT.CARDS.filter(c => c.rank === rank && !c.secret);
-        W.scrolls(3); W.sfx('item');
-        await W.say(`Hai battuto il campione del piano ${n}! Ricevi 3 pergamene.`);
+        const qi = 1 + Math.floor(n / 15);
+        W.scrolls(3); W.qi(qi); W.sfx('item');
+        await W.say(`Hai battuto il campione del piano ${n}! Ricevi 3 pergamene e ${qi > 1 ? `${qi} Frammenti` : 'un Frammento'} del Qi.`);
         const id = oneOf(pool, Math.random).id;
         await W.gain(id, Math.min(10, foeLv(n)), `E in premio una carta: ${nameOf(id)}!`);
       }
@@ -957,15 +958,16 @@
     if (!win) return;
     a.day = day;
     const money = 300 + 150 * s.badges.length;
-    W.money(money); W.scrolls(2); W.sfx('item');
-    await W.say(`Premio del giorno: ${money} monete e 2 pergamene!`);
+    W.money(money); W.scrolls(2); W.qi(1); W.sfx('item');
+    await W.say(`Premio del giorno: ${money} monete, 2 pergamene e un Frammento del Qi!`);
   }
   async function arenaTalk(W, who) {
     const s = W.s, a = arenaOf(s);
     if (!s.badges.length) return W.say(['Benvenuto nell\'Arena del Tempio! Qui si sale una torre di sfide senza fine.', 'Ma la torre si apre solo a chi ha almeno un sigillo. Torna dopo la Palestrina delle medie!'], who);
     const help = [
       'A ogni piano ti aspetta uno sfidante più forte: monete ed esperienza a ogni vittoria.',
-      'Ogni 5 piani c\'è un campione: batterlo vale 3 pergamene e una carta rara.',
+      'Ogni 5 piani c\'è un campione: batterlo vale 3 pergamene, una carta rara e i Frammenti del Qi.',
+      'Con i Frammenti una carta al livello massimo può evolvere, come i grandi guerrieri: dal MENU, in Carte. Più forte, livello massimo più alto, ma costa un Punto Dojo in più.',
       'Ogni 10 piani raggiungi un traguardo: se perdi riparti dall\'ultimo, e le monete restano tue.',
       'Ogni giorno c\'è anche una sfida speciale, con una regola diversa e un premio in più.',
       'E con l\'account, ogni vittoria qui vale punti esperienza per il tuo livello.',
@@ -995,7 +997,7 @@
     npc: [
       { id: 'custode', x: 6, y: 3, look: 'custode', name: 'Custode dell\'Arena', talk: arenaTalk },
       { id: 'tifosa', x: 10, y: 7, dir: 'left', look: 'allieva', name: 'Tifosa',
-        say: ['Ogni 5 piani c\'è un campione: Tommaso, Federica, perfino il Maestro Samuele!', 'E dicono che più in alto aspettino le Leggende...'] },
+        say: ['Ogni 5 piani c\'è un campione: Tommaso, Federica, perfino il Maestro Samuele!', 'Ho visto una carta evolvere con i Frammenti del Qi: capelli dritti, aura dorata... da brividi!'] },
       { id: 'spettatore', x: 2, y: 7, dir: 'right', look: 'gente', name: 'Spettatore',
         say: s => (s.arena && s.arena.best ? [`Ti ho visto arrivare al piano ${s.arena.best}! Io mi fermo sempre al terzo...`] : ['Dicono che la torre non finisca mai. Nessuno è mai arrivato in cima!']) },
     ],

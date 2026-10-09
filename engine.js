@@ -863,6 +863,8 @@
         const fs = p.cards.map(id => makeFighter(id, i));
         // modalità storia: livello di ogni carta, +4% a PV, ATK e DEF per livello oltre il primo
         if (p.lv) fs.forEach((f, j) => { const k = 1 + 0.04 * ((p.lv[j] || 1) - 1); f.lv = p.lv[j] || 1; f.hp = f.maxHp = Math.round(f.maxHp * k); f.baseAtk = Math.round(f.baseAtk * k); f.baseDef = Math.round(f.baseDef * k); });
+        // evoluzione: stadio 1-3 di ogni carta
+        if (p.ev) fs.forEach((f, j) => { const e = Math.max(0, Math.min(EVO.length - 1, p.ev[j] | 0)); if (!e) return; const k = 1 + EVO[e].k; f.ev = e; f.hp = f.maxHp = Math.round(f.maxHp * k); f.baseAtk = Math.round(f.baseAtk * k); f.baseDef = Math.round(f.baseDef * k); });
         const syn = opts.synergies === false ? [] : synergiesFor(p.cards);
         fs.forEach(f => syn.forEach(x => x.apply(f)));
         const ter = TERRAIN[opts.terrain];
@@ -1242,7 +1244,18 @@
   }
 
   // ---------------------------------------------------------------- SQUADRE
-  function teamCost(ids) { return ids.reduce((s, id) => s + CARD[id].cost, 0); }
+  // evs: stadio di evoluzione di ogni carta (facoltativo); ogni stadio costa 1 Punto Dojo in più
+  function teamCost(ids, evs) { return ids.reduce((s, id, i) => s + CARD[id].cost + ((evs && evs[i]) || 0), 0); }
+
+  // ---------------------------------------------------------------- EVOLUZIONE (stile Super Saiyan)
+  // Tre stadi oltre la carta base: PV, ATK e DEF in più, aura più forte e +1 Punto Dojo di costo per stadio,
+  // così una carta evoluta non sbilancia le sfide (valori provati con tools/evoluzione.js).
+  const EVO = [
+    { name: 'Base', k: 0 },
+    { name: 'Risveglio', k: 0.16 },
+    { name: 'Fiamma del Drago', k: 0.28 },
+    { name: 'Ascesa del Tempio', k: 0.42 },
+  ];
 
   // pool: elenco facoltativo di carte tra cui scegliere (per esempio solo quelle sbloccate)
   function randomTeam(rng, minCost, only) {
@@ -1293,7 +1306,7 @@
     K, TEAM_SIZE, FIELD_SIZE, BUDGET, RANKS, CARDS, CARD, BASIC,
     createGame, legalActions, doAction, chooseAction, actorOptions, targetsFor, copyOptions, bottleMove, refMove,
     needsTarget, effAtk, effDef, team, enemies, field, byUid, cardOf, movesOf, isStunned, isNegative,
-    teamCost, randomTeam, clone, canAct, passTurn, expectedHit, SWAP, SWAP_I, QI_MOVE, QI_MAX, qiReady, fatigue, FATIGUE_ROUND,
+    teamCost, randomTeam, EVO, clone, canAct, passTurn, expectedHit, SWAP, SWAP_I, QI_MOVE, QI_MAX, qiReady, fatigue, FATIGUE_ROUND,
     SYNERGIES, synergiesFor, GYM_EVENTS, EVENT_EVERY, previewDamage, isMaster,
     TERRAINS, TERRAIN, WEAPONS, WEAPON, H, addCards, IMG, img, EFFECTS, EFFECT, effectOptions, effectTargets, armOptions, armTargets, RULES,
   };

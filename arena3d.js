@@ -1230,7 +1230,11 @@
     I: { c: '#45b4ff', s: 0.95, o: 0.38, sparks: 1, bolts: 0, hair: true },
     M: { c: '#ffd23f', s: 1.05, o: 0.46, sparks: 1.5, bolts: 0.9, hair: true },
     L: { c: '#b57bff', c2: '#ffd23f', s: 1.22, o: 0.55, sparks: 2.5, bolts: 2.4, hair: true },
+    X: { c: '#5ef0ff', c2: '#ffffff', s: 1.34, o: 0.62, sparks: 3.2, bolts: 3.4, hair: true }, // Ascesa del Tempio
   };
+  // carte evolute: l'aura sale di un gradino per stadio; al terzo stadio (o oltre la Leggenda) quella dell'Ascesa
+  const KI_UP = ['A', 'I', 'M', 'L', 'X'];
+  const auraOf = d => (d.ev ? KI_UP[d.ev >= 3 ? 4 : Math.min(4, KI_UP.indexOf(d.rank) + d.ev)] : d.rank);
   // lingue di fuoco bianche (il colore lo dà il materiale), ripetute tre volte intorno al corpo
   function flameTex(seed) {
     const k = 'flame' + seed;
@@ -1314,8 +1318,8 @@
     if (full) {
       ring(new T.Vector3(ch.g.position.x, 0.05, ch.g.position.z), K.c, 2.3 * K.s, 0.55, true);
       sfx('buff');
-      if (rank === 'M' || rank === 'L') shake(rank === 'L' ? 0.12 : 0.07, 0.3);
-      if (rank === 'L') screenFlash(K.c, 0.3);
+      if (rank === 'M' || rank === 'L' || rank === 'X') shake(rank === 'M' ? 0.07 : 0.12, 0.3);
+      if (rank === 'L' || rank === 'X') screenFlash(K.c, 0.3);
     }
     return { stop() { want = 0; } };
   }
@@ -1468,8 +1472,8 @@
     overlay.classList.remove('show'); void overlay.offsetWidth; overlay.classList.add('show');
     await Promise.all(all.map((c, i) => summon(c, i * 0.04)));
     // aure di energia: chi agisce si carica, Maestri e Leggende coinvolti restano accesi
-    A.ki = ki(A, spec.attacker.rank, 1);
-    tgs.forEach(t => { if (t.ch.d.rank === 'M' || t.ch.d.rank === 'L') t.ch.ki = ki(t.ch, t.ch.d.rank, 0.35); });
+    A.ki = ki(A, auraOf(spec.attacker), 1);
+    tgs.forEach(t => { const au = auraOf(t.ch.d); if (au === 'M' || au === 'L' || au === 'X') t.ch.ki = ki(t.ch, au, 0.35); });
     await wait(spec.move === 'Attacco' ? 0.15 : 0.3);
     // le mosse speciali attivano la carta di chi le usa
     if (spec.move !== 'Attacco' && !(spec.flags && spec.flags.confused)) await activate(A, M.c);

@@ -330,26 +330,28 @@
   }
   function renderBuild() {
     const team = A.teams[A.builder];
-    const cost = S.teamCost(team);
+    const cost = costOf(team);
     const pool = unlocked();
     const pips = Array.from({ length: S.BUDGET }, (_, i) => `<i class="${i < cost ? (cost > S.BUDGET ? 'over' : 'on') : ''}"></i>`).join('');
     const slots = [0, 1, 2, 3].map(i => {
       const id = team[i];
       const who = i < 3 ? `Campo ${i + 1}` : 'Riserva';
       if (!id) return `<button class="slot ${i === 3 ? 'res' : ''}" aria-label="${who} vuoto" disabled><span class="who">${who}</span></button>`;
-      return `<button class="slot ${i === 3 ? 'res' : ''}" data-act="unpick" data-v="${i}" aria-label="Togli ${esc(S.CARD[id].name)}"><span class="who">${who}</span><span class="face" style="${face(id)}"></span><span class="nm">${esc(S.CARD[id].name)}</span></button>`;
+      return `<button class="slot ${i === 3 ? 'res' : ''}" data-act="unpick" data-v="${i}" aria-label="Togli ${esc(S.CARD[id].name)}"><span class="who">${who}</span><span class="face" style="${face(id)}"></span><span class="nm">${esc(S.CARD[id].name)}${evoOf(id) ? ` ${stars(evoOf(id))}` : ''}</span></button>`;
     }).join('');
     const filters = [['all', 'Tutti'], ['M', 'Maestri'], ['I', 'Istruttori'], ['A', 'Allievi']];
     const cards = shown().filter(c => A.filter === 'all' || c.rank === A.filter).map(c => {
       const locked = !pool.includes(c.id);
       const chosen = team.includes(c.id);
-      const nope = !chosen && (locked || team.length >= S.TEAM_SIZE || cost + c.cost > S.BUDGET);
-      return `<div class="pick ${chosen ? 'chosen' : ''} ${nope ? 'nope' : ''} ${locked ? 'locked' : ''} ${variantOf(c.id)}" role="button" tabindex="0" data-act="pick" data-v="${c.id}" aria-label="${esc(c.name)}, costo ${c.cost}${locked ? ', da sbloccare' : ''}">
+      const ev = locked ? 0 : evoOf(c.id), k = 1 + S.EVO[ev].k, max = locked ? 0 : evoMax(c.id);
+      const nope = !chosen && (locked || team.length >= S.TEAM_SIZE || cost + c.cost + ev > S.BUDGET);
+      return `<div class="pick ${chosen ? 'chosen' : ''} ${nope ? 'nope' : ''} ${locked ? 'locked' : ''} ${variantOf(c.id)} ${ev ? 'evo' : ''}" role="button" tabindex="0" data-act="pick" data-v="${c.id}" aria-label="${esc(c.name)}, costo ${c.cost + ev}${ev ? `, ${S.EVO[ev].name}` : ''}${locked ? ', da sbloccare' : ''}">
         <span class="face" style="${face(c.id)}"></span>
         <span class="rank ${c.rank}">${RANK_SHORT[c.rank]}</span>
-        <span class="cost num">${c.cost}</span>
+        <span class="cost num">${c.cost + ev}</span>
+        ${max ? `<span class="evo-dot ${ev ? '' : 'off'}" role="button" data-act="evo" data-v="${c.id}" aria-label="Forma di ${esc(c.name)}: ${S.EVO[ev].name}. Tocca per cambiarla">${ev ? stars(ev) : '☆'}</span>` : ''}
         ${locked ? '<span class="lock">🔒</span>' : ''}
-        <span class="meta"><span class="nm">${esc(c.name)}</span><span class="st num">PV ${c.hp} · ATK ${c.atk} · DEF ${c.def}</span></span>
+        <span class="meta"><span class="nm">${esc(c.name)}</span><span class="st num">PV ${Math.round(c.hp * k)} · ATK ${Math.round(c.atk * k)} · DEF ${Math.round(c.def * k)}</span></span>
         <span class="info-dot" data-act="card" data-v="${c.id}" aria-label="Dettagli ${esc(c.name)}">i</span>
       </div>`;
     }).join('');
@@ -362,6 +364,7 @@
       <details class="syn-box"><summary>Sinergie di squadra (${S.synergiesFor(team).length} attive)</summary>${synergyList(team)}</details>
       <div class="filters" role="group" aria-label="Filtra per grado">${filters.map(([v, l]) => `<button data-act="filter" data-v="${v}" aria-pressed="${A.filter === v}">${l}</button>`).join('')}</div>
       ${pool.length < shown().length ? `<p class="hint" style="text-align:left">🔒 ${shown().length - pool.length} carte da sbloccare: ogni vittoria ne sblocca una.</p>` : ''}
+      ${pool.some(id => evoMax(id)) ? '<p class="hint" style="text-align:left">⚡ Tocca la stella di una carta per scegliere la sua forma evoluta: ogni stadio dà più PV, ATK e DEF e costa 1 Punto Dojo in più.</p>' : ''}
       <div class="pool">${cards}</div>
     </div>
     <div class="dock"><div class="row">
@@ -380,6 +383,7 @@
       <div class="sheet-head"><div><h3>${esc(c.name)}${locked ? ' 🔒' : ''}</h3><p>${esc(c.title || RANK_SHORT[c.rank])} · costo ${c.cost} Punti Dojo${st ? ` · vinte ${st.w} su ${st.p}` : ''}</p></div></div>
       ${locked ? `<p class="hint" style="text-align:left">${c.rank === 'L' ? 'Leggenda: si sblocca vincendo il torneo.' : 'Carta da sbloccare: vinci una partita per ottenerne una nuova.'}</p>` : ''}
       <div class="statline num"><span>PV <b>${c.hp}</b></span><span>ATK ${diff('atk')}<b>${c.atk}</b></span><span>DEF ${diff('def')}<b>${c.def}</b></span></div>
+      ${locked ? '' : evoLine(id)}
       ${c.moves.map(m => `<div class="move special"><div class="mh"><span class="mn">${esc(m.name)}</span><span class="why">${esc(moveMeta(m))}</span></div><div class="md">${esc(m.desc)}</div></div>`).join('')}
       <div class="card-full"><img src="${S.img(id + '.jpg')}" alt="Carta originale di ${esc(c.name)}"></div>
       <p class="hint">Carta originale. In gioco valgono i valori scritti sopra (i numeri barrati sono quelli stampati).</p>
@@ -561,6 +565,25 @@
   const variantOf = id => { const w = load('vittorie_carte', {})[id] || 0; return w >= 15 ? 'olo' : w >= 5 ? 'oro' : ''; };
   const VARIANT_NAME = { oro: 'dorata', olo: 'olografica' };
 
+  // evoluzione (stile Super Saiyan): si sblocca con 25, 50 e 100 vittorie con la carta in squadra, o evolvendola
+  // nella Modalità Storia. La forma per giocare si sceglie nella squadra: ogni stadio costa 1 Punto Dojo in più.
+  const EVO_WINS = [0, 25, 50, 100];
+  const evoMax = id => (settings.allUnlocked ? S.EVO.length - 1
+    : Math.max(EVO_WINS.reduce((st, n, i) => ((load('vittorie_carte', {})[id] || 0) >= n ? i : st), 0), load('evoluzioni', {})[id] || 0));
+  const evoOf = id => Math.min(load('forme', {})[id] || 0, evoMax(id));
+  const evsOf = t => t.map(evoOf);
+  const costOf = t => S.teamCost(t, evsOf(t));
+  const stars = n => '★'.repeat(n || 0);
+  const evPart = t => (evsOf(t).some(Boolean) ? { ev: evsOf(t) } : {}); // solo se serve: i setup senza evoluzione restano quelli di sempre
+  function evoLine(id) {
+    const m = evoMax(id), w = load('vittorie_carte', {})[id] || 0, next = EVO_WINS[m + 1];
+    return `<p class="hint" style="text-align:left">⚡ Evoluzione: ${m ? `${stars(m)} ${esc(S.EVO[m].name)} (+${Math.round(S.EVO[m].k * 100)}% PV, ATK e DEF, +${m} Punti Dojo)` : 'non ancora sbloccata'}${next ? ` · stadio successivo con ${next} vittorie (ne hai ${w}) o nella Modalità Storia` : ''}.</p>`;
+  }
+  function unlockEvolution(id, st) {
+    const e = load('evoluzioni', {});
+    if ((e[id] || 0) < st) { e[id] = st; store('evoluzioni', e); award('risveglio'); }
+  }
+
   // medaglie
   const MEDALS = [
     { id: 'prima', e: '🥇', name: 'Prima vittoria', desc: 'Vinci una sfida.' },
@@ -577,6 +600,7 @@
     { id: 'armi', e: '⚔️', name: "Maestro d'armi", desc: 'Impugna in partita tutte e 8 le armi.' },
     { id: 'effetti', e: '🃏', name: 'Asso nella manica', desc: 'Usa 10 carte effetto.' },
     { id: 'oro', e: '✨', name: "Carta d'oro", desc: 'Rendi dorata una carta (5 vittorie con lei).' },
+    { id: 'risveglio', e: '⚡', name: 'Risveglio', desc: 'Fai evolvere una carta (25 vittorie con lei, o nella Modalità Storia).' },
     { id: 'collezione', e: '📚', name: 'Collezionista', desc: 'Sblocca tutte le carte.' },
     { id: 'fedele', e: '📅', name: 'Fedele al Tempio', desc: 'Gioca in 7 giorni diversi.' },
     { id: 'segreto', e: '🗝️', name: 'Custode del segreto', desc: 'Scopri le carte segrete.', hidden: true },
@@ -703,9 +727,11 @@
       prog.wins++;
       if (s.terrain && !prog.terrains.includes(s.terrain)) prog.terrains.push(s.terrain);
       // carte dorate e olografiche
-      const vc = load('vittorie_carte', {}), upgraded = [];
+      const vc = load('vittorie_carte', {}), upgraded = [], evBefore = s.cards.map(evoMax);
       s.cards.forEach(id => { const before = variantOf(id); vc[id] = (vc[id] || 0) + 1; store('vittorie_carte', vc); const now = variantOf(id); if (now !== before) upgraded.push([id, now]); });
       if (upgraded.length) { give('oro'); html += `<div class="unlock"><div class="eyebrow">Carte speciali!</div><p>${upgraded.map(([id, v]) => `${esc(S.CARD[id].name)} ora è ${VARIANT_NAME[v]}`).join(' · ')}</p></div>`; }
+      const evolved = s.cards.filter((id, i) => evoMax(id) > evBefore[i]);
+      if (evolved.length) { give('risveglio'); html += `<div class="unlock"><div class="eyebrow">⚡ Evoluzione!</div><p>${evolved.map(id => `${esc(S.CARD[id].name)} può diventare ${stars(evoMax(id))} ${esc(S.EVO[evoMax(id)].name)}`).join(' · ')}</p><p>La forma si sceglie quando fai la squadra.</p></div>`; }
       if (prog.wins >= 1) give('prima');
       if (prog.wins >= 10) give('dieci');
       if (prog.wins >= 50) give('cinquanta');
@@ -1034,7 +1060,7 @@
       pv = `<span class="pv num ${hi >= f.hp ? 'ko' : ''}">${lo === 0 && hi === 0 ? 'Bloccato' : lo >= f.hp ? 'K.O.!' : hi >= f.hp ? `K.O.? −${lo}–${hi}` : `−${lo}–${hi}`}</span>`;
     }
     return `<button class="${classes.join(' ')}" data-act="tile" data-v="${f.uid}" aria-label="${esc(f.name)}, ${f.hp} PV su ${f.maxHp}">
-      <span class="face" style="${face(f.card)}"><span class="rank ${f.rank}">${RANK_SHORT[f.rank]}${f.lv ? ` · Lv${f.lv}` : ''}</span>${f.weapon ? `<span class="wpn" title="${esc(S.WEAPON[f.weapon].name)}">⚔️</span>` : ''}${cdsHtml(f)}${pv}</span>
+      <span class="face" style="${face(f.card)}"><span class="rank ${f.rank}">${RANK_SHORT[f.rank]}${f.lv ? ` · Lv${f.lv}` : ''}${f.ev ? ` ${stars(f.ev)}` : ''}</span>${f.weapon ? `<span class="wpn" title="${esc(S.WEAPON[f.weapon].name)}">⚔️</span>` : ''}${cdsHtml(f)}${pv}</span>
       <span class="body">
         <span class="nm">${esc(f.name)}</span>
         <span class="hp"><i class="${cls}" style="width:${(pct * 100).toFixed(1)}%"></i></span>
@@ -1198,7 +1224,7 @@
     }).join('');
     openLayer(`<div class="sheet-wrap" data-act="close"><div class="sheet" role="dialog" aria-label="${esc(f.name)}" data-stop>
       <div class="sheet-head"><span class="face" style="${face(f.card)}"></span><div><h3>${esc(f.name)}</h3>
-        <p class="num">${RANK_SHORT[f.rank]} · PV ${f.hp}/${f.maxHp} · ATK ${Math.round(S.effAtk(g, f))} · DEF ${Math.round(S.effDef(g, f))}${f.form ? ` · come ${esc(c.name)}` : ''}</p></div></div>
+        <p class="num">${RANK_SHORT[f.rank]}${f.ev ? ` · ${stars(f.ev)} ${esc(S.EVO[f.ev].name)}` : ''} · PV ${f.hp}/${f.maxHp} · ATK ${Math.round(S.effAtk(g, f))} · DEF ${Math.round(S.effDef(g, f))}${f.form ? ` · come ${esc(c.name)}` : ''}</p></div></div>
       ${f.weapon ? `<p class="wline">⚔️ <b>${esc(S.WEAPON[f.weapon].name)}</b> · ${esc(S.WEAPON[f.weapon].desc)}</p>` : ''}
       ${chips.length ? `<div class="chips">${chipsHtml(chips)}</div>` : ''}
       ${list}
@@ -1267,7 +1293,7 @@
     const opt = S.actorOptions(g, u).find(o => o.i === a.move);
     const m = opt ? opt.move : S.BASIC;
     const exec = (m.target === 'copy' || m.target === 'bottle') ? S.refMove(a.pick || g.lastSpecial) : m;
-    const info = uid => { const f = S.byUid(g, uid); return { uid, card: f.card, name: f.name, rank: f.rank, owner: f.owner, weapon: f.weapon || null, variant: f.owner === mySide() ? variantOf(f.card) : '' }; };
+    const info = uid => { const f = S.byUid(g, uid); return { uid, card: f.card, name: f.name, rank: f.rank, ev: f.ev || 0, owner: f.owner, weapon: f.weapon || null, variant: f.owner === mySide() ? variantOf(f.card) : '' }; };
     let tg = [];
     if (a.target) tg = [a.target];
     else if (exec.target === 'enemies') tg = S.enemies(g, u.owner).map(f => f.uid);
@@ -1662,8 +1688,8 @@
     const cpu = A.mode === 'cpu';
     if (cpu && !sameTeams) A.teams[1] = S.randomTeam(null, S.BUDGET - 1, shown().map(c => c.id));
     const setup = newSetup([
-      { name: A.names[0] || 'Giocatore 1', cards: A.teams[0] },
-      { name: cpu ? 'Computer' : (A.names[1] || 'Giocatore 2'), cards: A.teams[1], cpu: cpu ? A.level : null },
+      Object.assign({ name: A.names[0] || 'Giocatore 1', cards: A.teams[0] }, evPart(A.teams[0])),
+      Object.assign({ name: cpu ? 'Computer' : (A.names[1] || 'Giocatore 2'), cards: A.teams[1], cpu: cpu ? A.level : null }, cpu ? {} : evPart(A.teams[1])),
     ], first, sameTeams && A.setup ? A.setup.terrain : undefined);
     A.first = setup.first;
     launch(setup, { view: cpu ? 0 : setup.first });
@@ -1673,7 +1699,7 @@
   function startTorneo() {
     const t = torneo(), o = TORNEO[t.stage];
     const setup = newSetup([
-      { name: A.names[0] || 'Giocatore 1', cards: A.teams[0] },
+      Object.assign({ name: A.names[0] || 'Giocatore 1', cards: A.teams[0] }, evPart(A.teams[0])),
       { name: o.name, cards: o.cards, cpu: o.level, boost: o.boost },
     ], undefined, o.terrain);
     A.first = setup.first;
@@ -1780,12 +1806,13 @@
         o.phase = 'lobby';
         A.mode = 'online'; A.builder = 0; A.filter = 'all';
         A.teams = [load('team0', []).filter(id => unlocked().includes(id)), []];
-        if (S.teamCost(A.teams[0]) > S.BUDGET || A.teams[0].length !== S.TEAM_SIZE) A.teams[0] = [];
+        if (costOf(A.teams[0]) > S.BUDGET || A.teams[0].length !== S.TEAM_SIZE) A.teams[0] = [];
         go('build');
         toastQuick(`Collegato con ${o.oppName}! Scegli la tua squadra.`);
       }
     } else if (m.t === 'team') {
-      o.oppTeam = sanitizeTeam(m.cards);
+      o.oppEv = Array.isArray(m.ev) && m.ev.length === S.TEAM_SIZE ? m.ev.map(x => Math.max(0, Math.min(S.EVO.length - 1, x | 0))) : [0, 0, 0, 0];
+      o.oppTeam = sanitizeTeam(m.cards, o.oppEv);
       maybeStartOnline();
     } else if (m.t === 'start') {
       if (Net.role !== 'guest' || !m.setup) return;
@@ -1807,19 +1834,20 @@
     }
   }
 
-  function sanitizeTeam(cards) {
+  function sanitizeTeam(cards, ev) {
     if (!Array.isArray(cards)) return null;
     const t = cards.filter(id => typeof id === 'string' && S.CARD[id]);
-    if (t.length !== S.TEAM_SIZE || new Set(t).size !== S.TEAM_SIZE || S.teamCost(t) > S.BUDGET) return null;
+    if (t.length !== S.TEAM_SIZE || new Set(t).size !== S.TEAM_SIZE || S.teamCost(t, ev) > S.BUDGET) return null;
     return t;
   }
 
   function maybeStartOnline() {
     const o = A.on;
     if (Net.role !== 'host' || !o.myTeam || !o.oppTeam) return;
+    const evIf = ev => (ev && ev.some(Boolean) ? { ev } : {});
     const setup = newSetup([
-      { name: A.names[0] || 'Giocatore 1', cards: o.myTeam },
-      { name: o.oppName || 'Giocatore 2', cards: o.oppTeam },
+      Object.assign({ name: A.names[0] || 'Giocatore 1', cards: o.myTeam }, evIf(o.myEv)),
+      Object.assign({ name: o.oppName || 'Giocatore 2', cards: o.oppTeam }, evIf(o.oppEv)),
     ]);
     Net.send({ t: 'start', setup, key: secretFor(setup.players.flatMap(p => p.cards)) });
     startOnline(setup);
@@ -1901,7 +1929,7 @@
     const o = A.on;
     if (!o.oppRematch || !o.myRematch) return;
     if (Net.role === 'host') {
-      const setup = newSetup(A.setup.players.map(p => ({ name: p.name, cards: p.cards })));
+      const setup = newSetup(A.setup.players.map(p => Object.assign({ name: p.name, cards: p.cards }, p.ev ? { ev: p.ev } : {})));
       Net.send({ t: 'start', setup, key: secretFor(setup.players.flatMap(p => p.cards)) });
       startOnline(setup);
     }
@@ -1965,7 +1993,7 @@
         saveNames();
         A.builder = 0; A.filter = 'all';
         A.teams = [load('team0', []), A.mode === 'pvp' ? load('team1', []) : []];
-        A.teams = A.teams.map(t => (t.every(id => unlocked().includes(id)) && S.teamCost(t) <= S.BUDGET) ? t : []);
+        A.teams = A.teams.map(t => (t.every(id => unlocked().includes(id)) && costOf(t) <= S.BUDGET) ? t : []);
         go('build'); break;
       case 'build-back':
         if (A.liveMatch && A.builder === 0) { A.liveMatch = null; go('live'); }
@@ -2058,11 +2086,23 @@
         const t = A.teams[A.builder];
         const i = t.indexOf(v);
         if (i >= 0) t.splice(i, 1);
-        else if (t.length < S.TEAM_SIZE && S.teamCost(t) + S.CARD[v].cost <= S.BUDGET) t.push(v);
+        else if (t.length < S.TEAM_SIZE && costOf(t) + S.CARD[v].cost + evoOf(v) <= S.BUDGET) t.push(v);
+        render(); break;
+      }
+      case 'evo': { // forma successiva (base, ★, ★★, ★★★), se nella squadra ci stanno i Punti Dojo
+        const f = load('forme', {}), t = A.teams[A.builder] || [];
+        f[v] = (evoOf(v) + 1) % (evoMax(v) + 1);
+        store('forme', f);
+        if (t.includes(v) && costOf(t) > S.BUDGET) { f[v] = 0; store('forme', f); toastQuick('Non bastano i Punti Dojo per questa forma.'); }
+        else if (f[v]) sfx('buff');
         render(); break;
       }
       case 'unpick': A.teams[A.builder].splice(+v, 1); render(); break;
-      case 'random-team': A.teams[A.builder] = S.randomTeam(null, S.BUDGET - 1, unlocked()); render(); break;
+      case 'random-team': { // le forme scelte contano: si pesca finché la squadra ci sta nei Punti Dojo
+        let t = null;
+        for (let i = 0; i < 50 && (!t || costOf(t) > S.BUDGET); i++) t = S.randomTeam(null, S.BUDGET - 1, unlocked());
+        A.teams[A.builder] = t; render(); break;
+      }
       case 'confirm-team':
         store('team' + A.builder, A.teams[A.builder]);
         if (A.mode === 'pvp' && A.builder === 0) {
@@ -2071,7 +2111,8 @@
         } else if (A.mode === 'torneo') startTorneo();
         else if (A.mode === 'online') {
           A.on.myTeam = A.teams[0].slice();
-          Net.send({ t: 'team', cards: A.on.myTeam, key: secretFor(A.on.myTeam) });
+          A.on.myEv = evsOf(A.on.myTeam);
+          Net.send({ t: 'team', cards: A.on.myTeam, ev: A.on.myEv, key: secretFor(A.on.myTeam) });
           openLayer(`<div class="overlay" role="dialog"><div class="eyebrow">Squadra pronta</div><h2>In attesa di ${esc(A.on.oppName || 'avversario')}</h2><p>La partita parte quando anche l'altra squadra è pronta.</p><button class="btn ghost" data-act="close">Cambia squadra</button></div>`);
           maybeStartOnline();
         } else startGame();
@@ -2172,7 +2213,7 @@
         saveNames();
         A.mode = 'torneo'; A.builder = 0; A.filter = 'all';
         A.teams = [load('team0', []).filter(id => unlocked().includes(id)), []];
-        if (A.teams[0].length !== S.TEAM_SIZE || S.teamCost(A.teams[0]) > S.BUDGET) A.teams[0] = [];
+        if (A.teams[0].length !== S.TEAM_SIZE || costOf(A.teams[0]) > S.BUDGET) A.teams[0] = [];
         go('build'); break;
       case 'torneo-next': A.game = null; closeLayer(); if (torneo().stage === 0) go('torneo'); else { A.mode = 'torneo'; go('build'); } break;
       case 'torneo-reset': confirmBox('Ricominciare il torneo?', 'Riparti dal primo incontro. I titoli vinti restano.', 'torneo-reset-yes', 'Ricomincia'); break;
@@ -2244,7 +2285,7 @@
     const add = ids.filter(id => S.CARD[id] && !have.includes(id) && !S.CARD[id].secret);
     if (add.length) store('unlocked', have.concat(add));
   }
-  S.UI = { storyBattle, unlockCards, toastQuick, sfx, home: () => { A.screen = 'home'; render(); } };
+  S.UI = { storyBattle, unlockCards, unlockEvolution, toastQuick, sfx, home: () => { A.screen = 'home'; render(); } };
 
   // solo per i test automatici (indirizzo che termina con #test)
   if (location.hash === '#test') window.__sttTest = { A, S, packReplay };
