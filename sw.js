@@ -1,5 +1,5 @@
 /* Service worker: salva il gioco sul telefono per aprirlo anche senza internet. */
-const CACHE = 'stonetao-v27';
+const CACHE = 'stonetao-v28';
 const FILES = [
   "./",
   "index.html",
@@ -11,7 +11,6 @@ const FILES = [
   "storia.js",
   "novita.js",
   "audio.js",
-  "Stone Game Song.mp3",
   "net.js",
   "vendor/three.min.js",
   "vendor/peerjs.min.js",
@@ -85,6 +84,8 @@ self.addEventListener('activate', e => {
 self.addEventListener('fetch', e => {
   const url = new URL(e.request.url);
   if (e.request.method !== 'GET' || url.origin !== location.origin) return;
+  // l'audio arriva a pezzi (Range): lo lascio al browser, i telefoni non lo suonano se passa da qui
+  if (e.request.headers.has('range') || e.request.destination === 'audio') return;
   e.respondWith(
     fetch(e.request).then(res => {
       if (res.ok) { const copy = res.clone(); caches.open(CACHE).then(c => c.put(e.request, copy)); }

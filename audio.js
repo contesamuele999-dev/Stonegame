@@ -36,6 +36,7 @@
     if (!init()) return;
     if (ctx.state === 'suspended') ctx.resume();
     if (opt.music && !musicOn) startMusic();
+    syncSong(); // i telefoni fanno partire l'mp3 solo dentro un tocco: ogni tocco riprova
   }
 
   // ------------------------------------------------------------ mattoncini
