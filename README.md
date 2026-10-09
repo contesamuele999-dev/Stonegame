@@ -20,6 +20,7 @@ Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal tele
 - **Velocità di gioco** regolabile in ogni momento (lenta, normale, veloce): pensata anche per chi ha bisogno di più tempo per leggere.
 - **Modalità Storia**: un viaggio a piedi in stile gioco di ruolo portatile, con città, percorsi, grotte e palestre (vedi sotto).
 - **Promemoria di accesso**: chi gioca senza account vede in home (e a fine partita) un invito ad accedere o registrarsi, che serve per le statistiche di gioco e per entrare in classifica. "Più tardi" lo nasconde fino alla prossima visita.
+- **Novità**: dopo ogni aggiornamento, alla prima apertura compare un avviso con le novità (resta finché non si tocca "Ho capito"); tutte le novità si rileggono dal menu, in "📰 Novità". Chi gioca per la prima volta non lo vede. Le novità stanno in `novita.js`: a ogni aggiornamento si aggiunge una voce in cima alla lista.
 
 ## Modalità Storia
 
@@ -33,7 +34,8 @@ Dal menu iniziale, "📖 Modalità Storia". Si crea il proprio personaggio (nome
 - **Livelli delle carte**: ogni carta in squadra guadagna esperienza (anche perdendo, un terzo); ogni livello dà +4% a PV, ATK e DEF, fino al livello 10. **Potenziare** una carta (dal menu Carte) usa una copia doppia e qualche moneta: +1 livello subito.
 - **Comprare, vendere, scambiare**: in bottega pergamene e bustine (Allievi, Istruttori, Maestri: più sigilli hai, più alto il livello della carta che esce) e si vendono le copie doppie. Alcuni abitanti propongono scambi di carte.
 - **Squadra**: 4 carte e 10 Punti Dojo come nel gioco normale; le carte trovate nella storia si sbloccano anche nel resto del gioco. Le carte segrete restano fuori dalla storia.
-- Il viaggio si salva da solo (a ogni porta, sfida e acquisto) sul telefono. Mappe e trama stanno in `mondo.js`, il motore del mondo in `storia.js`; `node tools/test-storia.js` controlla che le mappe siano percorribili.
+- **Arena del Tempio** (Lancenigo, a destra della Stone Temple Tao): una torre di sfide senza fine, aperta dal primo sigillo. Al piano N una squadra a caso di livello 1 + N/2 (anche oltre il 10), sempre la stessa per lo stesso viaggio e piano; il computer passa da facile a normale (dal piano 6) e difficile (dal 16); la palestra cambia a ogni piano. Ogni 5 piani un campione (Tommaso, Federica, Liming Yue, Chen Delang, Samuele, le Leggende, poi da capo più forti): vale 3 pergamene e una carta (Istruttore, Maestro dal piano 15, Leggenda dal 30). Ogni 10 piani un traguardo: chi perde riparte dall'ultimo, senza perdere monete. La **sfida del giorno** ha una regola diversa ogni giorno, uguale per tutti (solo Allievi, tre Maestri nella Piazza del Taiji, squadra da 7 Punti Dojo...), avversari di un livello sopra la tua squadra e un premio in più una volta al giorno. Il record sta nella Tessera.
+- Il viaggio si salva da solo (a ogni porta, sfida e acquisto) sul telefono. Mappe e trama stanno in `mondo.js` (anche l'Arena), il motore del mondo in `storia.js`; `node tools/test-storia.js` controlla che le mappe siano percorribili e che le squadre dell'Arena siano valide.
 
 ## Come aprirlo
 
@@ -59,9 +61,11 @@ Missioni, medaglie e classifica della settimana si attivano incollando anche `su
 
 La Modalità Storia si salva sul telefono a ogni passo, a ogni porta e quando l'app va in secondo piano. Per chi ha l'account si salva anche online incollando `supabase/aggiornamento-3.sql` (una volta, dopo `schema.sql`): così il viaggio si ritrova anche se il telefono cancella i dati del sito (succede su iPhone dopo qualche giorno senza aprirlo, nei browser dentro le app e in navigazione privata) o si cambia telefono. Finché non c'è, la storia resta solo sul telefono.
 
+Le sfide della Modalità Storia e dell'Arena del Tempio valgono punti dell'account incollando `supabase/aggiornamento-4.sql` (una volta, dopo `schema.sql`): la storia vale come il computer al livello dell'avversario, l'Arena come il torneo (40 punti a vittoria). Finché non c'è, per chi ha l'account queste sfide non danno punti (senza account i punti sul telefono arrivano lo stesso).
+
 ### Progressi
 
-- **Livelli**: si guadagnano punti a ogni sfida (contro il computer, torneo, tutorial, online; non in 2 sullo stesso telefono). Con l'account i punti stanno online, senza account restano sul telefono.
+- **Livelli**: si guadagnano punti a ogni sfida (contro il computer, torneo, tutorial, online, Modalità Storia e Arena; non in 2 sullo stesso telefono). Con l'account i punti stanno online, senza account restano sul telefono.
 - **Premi di livello**: le palestre di Lancenigo e Ponte della Priula ci sono da subito; quella di Liming Yue si sblocca al livello 4 e la piazza di Chenjiagou all'8. "Sblocca tutte le carte" nelle impostazioni sblocca anche queste. Le armi invece si ricevono in partita.
 - **Carte speciali**: una carta diventa **dorata** dopo 5 vittorie con lei in squadra e **olografica** dopo 15 (bordo e riflessi nella collezione, in partita e sul tatami 3D).
 - **Missioni**: 3 al giorno (30 punti) e 2 a settimana (120 punti), uguali per tutti; il premio si riscuote dalla schermata Missioni. Con l'account lo assegna il database, una volta sola per missione.

@@ -997,7 +997,7 @@
     const h = Math.floor(s.time / 3600), m = Math.floor(s.time / 60) % 60;
     const lookUrl = (() => { const c = cv(16, 20); c.getContext('2d').drawImage(sheet(P.look).down[0], 0, 0); return c.toDataURL(); })();
     return panel(`<div class="st-head"><h3>Tessera</h3><button class="st-btn" data-st="close" data-close>Chiudi</button></div>
-      <div class="st-card-id"><img src="${lookUrl}" alt="" class="st-me"><div><b>${esc(s.name)}</b><p>₵ ${s.money} · 📜 ${s.scrolls} pergamene</p><p>Tempo di gioco ${h}:${String(m).padStart(2, '0')}</p></div></div>
+      <div class="st-card-id"><img src="${lookUrl}" alt="" class="st-me"><div><b>${esc(s.name)}</b><p>₵ ${s.money} · 📜 ${s.scrolls} pergamene</p><p>Tempo di gioco ${h}:${String(m).padStart(2, '0')}</p>${s.arena && s.arena.best ? `<p>Arena: record al piano ${s.arena.best}</p>` : ''}</div></div>
       <div class="st-eyebrow">Sigilli</div>
       <div class="st-badges">${M.BADGES.map((b, i) => `<div class="${s.badges.includes(i) ? 'on' : ''}"><i style="--c:${b.c}"></i><b>${esc(b.name)}</b><small>${s.badges.includes(i) ? esc(b.where) : '???'}</small></div>`).join('')}</div>
       <div class="st-eyebrow">Album · ${own}/${all.length} carte</div>
@@ -1076,7 +1076,7 @@
           { name: s.name, cards: s.team.slice(), lv: s.team.map(id => s.cards[id].lv) },
           { name: o.name, cards: o.cards.slice(), lv, cpu: o.cpu || 'normale' },
         ],
-        terrain: o.terrain, music: o.music,
+        terrain: o.terrain, music: o.music, kind: o.kind,
         onEnd: win => {
           el.root.hidden = false; document.body.classList.add('st-open');
           setTrack(win ? 'vittoria' : MAP.def.music || 'mondo'); startLoop(); // la fanfara accompagna premi e livelli
@@ -1116,7 +1116,7 @@
     await say(tr.intro, who);
     const cards = typeof tr.cards === 'function' ? tr.cards(s) : tr.cards;
     sfx('encounter'); await flash();
-    const win = await battle({ name: fmt(who.name), cards, lv: tr.lv, cpu: tr.cpu, terrain: tr.terrain || MAP.def.terrain, music });
+    const win = await battle({ name: fmt(who.name), cards, lv: tr.lv, cpu: tr.cpu, terrain: tr.terrain || MAP.def.terrain, music, kind: tr.kind });
     await unflash();
     const lvs = [].concat(tr.lv), lvAvg = avg(lvs);
     if (win) {
@@ -1271,7 +1271,7 @@
   // ------------------------------------------------------------ l'API per gli script delle mappe (mondo.js)
   const W = {
     get s() { return s; },
-    say, ask, sleep, gain, battle, shop: list => shop(list), fly, trade, warp, sfx, pickCard,
+    say, ask, sleep, gain, battle, shop: list => shop(list), fly, trade, warp, sfx, pickCard, rng,
     flag: k => !!s.flags[k],
     set: (k, v) => { s.flags[k] = v === undefined ? 1 : v; },
     badges: () => s.badges.length,
@@ -1387,5 +1387,5 @@
   window.Storia = { open, close, sync, hasSave: () => !!readSave() };
   // per i test automatici
   window.Storia._t = { TILES, FRONT, BACK, SIDE, SIDE_LEGS, LEGS, TREE, ROCK, TALL, LANTERN,
-    where: () => ({ map: MAP && MAP.id, x: P.x, y: P.y, dir: P.dir, s }), warp: (m, x, y) => run(() => warp(m, x, y, 'down')), capture };
+    where: () => ({ map: MAP && MAP.id, x: P.x, y: P.y, dir: P.dir, s }), warp: (m, x, y) => run(() => warp(m, x, y, 'down')), capture, rng };
 })();

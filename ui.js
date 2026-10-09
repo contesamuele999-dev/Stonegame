@@ -221,9 +221,10 @@
     const fn = {
       home: renderHome, setup: renderSetup, build: renderBuild, battle: renderBattle, collection: renderCollection,
       rules: renderRules, ranking: renderRanking, settings: renderSettings, torneo: renderTorneo, online: renderOnline, live: renderLive, missioni: renderMissioni, medaglie: renderMedaglie,
-      account: renderAccount, storia: () => '',
+      account: renderAccount, storia: () => '', novita: renderNovita,
     }[A.screen];
     $app.innerHTML = fn();
+    if (A.screen === 'home') newsPopup();
     // in partita, sullo sfondo, la palestra in cui si combatte
     const ter = A.screen === 'battle' && A.game && A.game.terrain;
     document.body.style.setProperty('--terrain', ter ? `url(${terrainBg(ter)})` : 'none');
@@ -273,6 +274,7 @@
           <button class="btn ${readyMissions() ? 'primary' : ''}" data-act="go" data-v="missioni">🎯 Missioni<small>${readyMissions() ? `${readyMissions()} premi da riscuotere` : `livello ${myLevel()}`}</small></button>
           <button class="btn" data-act="go" data-v="medaglie">🏅 Medaglie<small>${MEDALS.filter(x => myMedals()[x.id]).length}/${MEDALS.length}</small></button>
         </div>
+        ${NEWS.length ? `<button class="btn ghost" data-act="go" data-v="novita">📰 Novità<small>${esc(NEWS[0].titolo)}</small></button>` : ''}
         <div class="menu-2">
           <button class="btn ghost" data-act="go" data-v="rules">Regole</button>
           <button class="btn ghost" data-act="go" data-v="settings">Impostazioni</button>
@@ -526,7 +528,9 @@
   // ------------------------------------------------------------ PROGRESSI: livelli, premi, carte speciali, medaglie, missioni
   // Con l'account i punti stanno online; senza, sul telefono (stessa tabella dei punti).
   const XP_WIN = { facile: 20, normale: 30, difficile: 45 };
-  const xpFor = (mode, level, win) => (!win ? 10 : mode === 'online' ? 50 : mode === 'torneo' ? 40 : mode === 'tutorial' ? 10 : XP_WIN[level] || 20);
+  const xpFor = (mode, level, win) => (!win ? 10 : mode === 'online' ? 50 : mode === 'torneo' || mode === 'arena' ? 40 : mode === 'tutorial' ? 10 : XP_WIN[level] || 20);
+  // nella Modalità Storia la sfida può essere della storia o dell'Arena del Tempio
+  const modeOf = () => (A.mode === 'storia' ? A.storyKind || 'storia' : A.mode);
   const lv = xp => Math.floor(Math.sqrt(Math.max(0, xp) / 25)) + 1;
   const lvXp = l => 25 * (l - 1) * (l - 1);
   const signedIn = () => cloudOn() && Cloud.signedIn();
@@ -675,7 +679,7 @@
   function matchSummary(g) {
     const side = mySide(), pl = g.players[side], st = A.stats || {};
     return {
-      win: g.winner === side, mode: A.mode, level: g.players[1 - side].cpu || null,
+      win: g.winner === side, mode: modeOf(), level: g.players[1 - side].cpu || null,
       allievi: pl.cards.filter(id => S.CARD[id] && S.CARD[id].rank === 'A').length,
       legend: pl.cards.some(id => S.CARD[id] && S.CARD[id].rank === 'L'),
       arms: st.arms || [], terrain: g.terrain,
@@ -723,6 +727,37 @@
     return html;
   }
 
+  // ------------------------------------------------------------ NOVITÀ (novita.js): avviso dopo ogni aggiornamento e schermata
+  const NEWS = window.NOVITA || [];
+  const newsKey = n => n.data + ' ' + n.titolo;
+  let newsReady = !window.Cloud; // con gli account aspetto di sapere se prima va mostrato l'accesso
+  function unseenNews() {
+    const seen = load('novita_vista', null);
+    if (seen === null && !load('tutorial', false) && !load('prog', null) && !load('storia', null)) { // chi gioca per la prima volta non ha bisogno delle novità
+      if (NEWS.length) store('novita_vista', newsKey(NEWS[0]));
+      return [];
+    }
+    const i = NEWS.findIndex(n => newsKey(n) === seen);
+    return NEWS.slice(0, i < 0 ? 3 : i);
+  }
+  const newsHtml = n => `<div class="acc-card news"><div class="eyebrow">${new Date(n.data + 'T12:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
+    <h3>${esc(n.titolo)}</h3><ul>${n.testo.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>`;
+  function newsPopup() {
+    if (!newsReady || A.screen !== 'home' || $layer.innerHTML) return;
+    const list = unseenNews();
+    if (!list.length) return;
+    openLayer(`<div class="overlay news-pop" role="dialog" aria-label="Novità">
+      <div class="eyebrow">📰 Novità nel gioco</div>
+      <div class="news-list">${list.map(newsHtml).join('')}</div>
+      <button class="btn primary" data-act="news-ok">Ho capito</button>
+    </div>`);
+  }
+  const newsSeen = () => { if (NEWS.length) store('novita_vista', newsKey(NEWS[0])); };
+  function renderNovita() {
+    return `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">Novità</div></div>
+    <div class="setup"><h2>Novità</h2>${NEWS.map(newsHtml).join('') || '<p class="hint">Ancora niente da raccontare.</p>'}</div>`;
+  }
+
   // ------------------------------------------------------------ MISSIONI E MEDAGLIE (schermate)
   function levelCard() {
     const xp = myXp(), l = lv(xp), from = lvXp(l), to = lvXp(l + 1);
@@ -749,7 +784,7 @@
       ${levelCard()}
       <h3 class="sec">Oggi</h3>${ms.filter(m => m.xp === 30).map(missionRow).join('')}
       <h3 class="sec">Questa settimana</h3>${ms.filter(m => m.xp === 120).map(missionRow).join('')}
-      <p class="hint" style="text-align:left">Valgono le sfide contro il computer, il torneo, il tutorial e le sfide online (non quelle in 2 sullo stesso telefono). Ogni giorno e ogni lunedì arrivano missioni nuove.</p>
+      <p class="hint" style="text-align:left">Valgono le sfide contro il computer, il torneo, il tutorial, le sfide online, la Modalità Storia e l'Arena (non quelle in 2 sullo stesso telefono). Ogni giorno e ogni lunedì arrivano missioni nuove.</p>
       <h3 class="sec">Premi di livello</h3>
       <div class="rewards">${REWARDS.map(r => `<div class="${myLevel() >= r.lv || settings.allUnlocked ? 'got' : ''}"><b class="num">Liv. ${r.lv}</b><span>${esc(rewardName(r))}</span></div>`).join('')}</div>
       <p class="hint" style="text-align:left">Le palestre di Lancenigo e Ponte della Priula ci sono da subito; le armi si ricevono in partita. Le carte diventano dorate dopo 5 vittorie con loro in squadra e olografiche dopo 15.</p>
@@ -1414,7 +1449,7 @@
     const cloudGame = cloudOn() && Cloud.signedIn() && A.mode !== 'pvp';
     if (cloudGame) {
       const meP = A.mode === 'online' ? A.me : 0;
-      Cloud.record(g.winner === meP, A.mode, g.players[1 - meP].cpu || null, g.players[meP].cards.filter(id => !S.CARD[id].secret))
+      Cloud.record(g.winner === meP, modeOf(), g.players[1 - meP].cpu || null, g.players[meP].cards.filter(id => !S.CARD[id].secret))
         .then(xp => {
           const p = load('profilo', null);
           if (p) { p.xp += xp; if (g.winner === meP) p.vittorie++; else p.sconfitte++; store('profilo', p); }
@@ -1910,7 +1945,8 @@
     const g = A.game;
     if (el.tagName === 'BUTTON' || el.getAttribute('role') === 'button') sfx('tap');
     switch (kind) {
-      case 'go': if (v === 'online') A.on = A.on || { phase: 'menu' }; go(v); break;
+      case 'go': if (v === 'online') A.on = A.on || { phase: 'menu' }; if (v === 'novita') newsSeen(); go(v); break;
+      case 'news-ok': newsSeen(); closeLayer(); break;
       case 'mode': A.mode = v; go('setup'); break;
       case 'storia': if (window.Storia) { A.screen = 'storia'; render(); Storia.open(); } break;
       case 'level': A.level = v; store('level', v); saveNames(); render(); break;
@@ -2189,7 +2225,7 @@
   // ------------------------------------------------------------ MODALITÀ STORIA (storia.js): battaglie e carte
   // o = { players, terrain, music, onEnd(vinta: true/false, null se si scappa) }
   function storyBattle(o) {
-    A.mode = 'storia'; A.storyEnd = o.onEnd; A.storyTrack = o.music;
+    A.mode = 'storia'; A.storyEnd = o.onEnd; A.storyTrack = o.music; A.storyKind = o.kind || 'storia';
     const setup = newSetup(o.players);
     setup.terrain = S.TERRAIN[o.terrain] ? o.terrain : null;
     A.first = setup.first;
@@ -2224,7 +2260,7 @@
       // l'accesso è la prima cosa che si vede, finché non si entra o si sceglie di giocare senza account
       let guestNow = false; try { guestNow = !!sessionStorage.getItem('stt_ospite'); } catch (err) { /* niente */ }
       if (!Cloud.signedIn() && !guestNow && !replayLink && A.screen === 'home' && !$layer.innerHTML) { A.acc = Object.assign(A.acc || {}, { start: true }); go('account'); }
-    });
+    }).catch(() => { /* offline */ }).finally(() => { newsReady = true; newsPopup(); });
   }
   const savedKey = load('chiave', null);
   // carte segrete già sbloccate: le riapro (con due nuovi tentativi se la rete fa i capricci)

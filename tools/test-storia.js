@@ -112,5 +112,18 @@ for (const [id, d] of Object.entries(M.maps)) {
 for (const f of M.FLY) { const m = M.maps[f.map]; if (!m || SOLID.has(m.tiles[f.y][f.x])) fail('voli', `arrivo non valido ${f.map}`); }
 Object.values(M.ITEMS).forEach(it => { if (it.pool && !STT.CARDS.some(c => c.rank === it.pool)) fail('bottega', `nessuna carta di grado ${it.pool}`); });
 
+// Arena del Tempio: squadre valide e sempre uguali per lo stesso viaggio e piano
+const AR = M.arena, aS = { id: 'prova', flags: { starter: 'grazia' }, team: ['grazia', 'nicole'], cards: { grazia: { lv: 4 }, nicole: { lv: 2 } } };
+const okTeam = cards => cards && cards.length >= 3 && new Set(cards).size === cards.length && cards.every(c => STT.CARD[c] && !STT.CARD[c].secret);
+for (let n = 1; n <= 60; n++) {
+  const f = AR.foe(aS, n, T.rng(n));
+  if (JSON.stringify(f) !== JSON.stringify(AR.foe(aS, n, T.rng(n)))) fail('arena', `piano ${n} non ripetibile`);
+  if (!okTeam(f.cards)) fail('arena', `piano ${n}: squadra non valida ${f.cards}`);
+  else if (!f.boss && STT.teamCost(f.cards) > STT.BUDGET) fail('arena', `piano ${n}: troppi Punti Dojo`);
+  if (!f.intro || !f.win || !f.lv || !f.cpu) fail('arena', `piano ${n}: dati mancanti`);
+  if (f.terrain && !STT.TERRAIN[f.terrain]) fail('arena', `piano ${n}: palestra sconosciuta ${f.terrain}`);
+}
+AR.DAILY.forEach((r, i) => { if (!okTeam(AR.dailyFoe(aS, r, T.rng(i)).cards)) fail('arena', `sfida del giorno ${r.name}: squadra non valida`); });
+
 if (errors) { console.log(`\n${errors} problemi.`); process.exit(1); }
 console.log(`Mappe a posto: ${Object.keys(M.maps).length} mappe controllate.`);

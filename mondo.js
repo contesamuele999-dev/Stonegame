@@ -47,6 +47,7 @@
     speleo: { h: '#5a3020', c: '#c8a040', d: '#e8631c', p: '#5a4a3a', style: 'short' },
     guardia: { h: '#2a2020', c: '#3a4a6a', p: '#2a2a3a', style: 'short' },
     pescatore: { h: '#8a8a8a', c: '#3aa060', p: '#5a4a3a', style: 'short' },
+    custode: { h: '#d8d8d0', c: '#8a2420', d: '#e0b040', b: '#e0b040', p: '#222228', style: 'bun' },
   };
 
   const BADGES = [
@@ -217,32 +218,34 @@
   maps.lancenigo = {
     name: 'Lancenigo', check: [11, 9],
     tiles: [
-      'TTTTTTTTTT::TTTTTTTTTT',
-      'TTTTTTTTTT::TTTTTTTTTT',
-      'TT.*......::.......*TT',
-      'TT.~~~~...::........TT',
-      'TT.~~~~...::........TT',
-      'TT.~~~~...::........TT',
-      'TT..*.....::........TT',
-      'TT........::........TT',
-      'TT==================TT',
-      'TT..*.....==......*.TT',
-      'TT........==........TT',
-      'TT........==........TT',
-      'TT........==........TT',
-      'TT........==........TT',
-      'TT........==........TT',
-      'TT==================TT',
-      'TT*.f..f......f..f.*TT',
-      'TTTTTTTTTTTTTTTTTTTTTT',
+      'TTTTTTTTTT::TTTTTTTTTTTTTTTTTTT',
+      'TTTTTTTTTT::TTTTTTTTTTTTTTTTTTT',
+      'TT.*......::.......*..*....*.TT',
+      'TT.~~~~...::.................TT',
+      'TT.~~~~...::.................TT',
+      'TT.~~~~...::.................TT',
+      'TT..*.....::.................TT',
+      'TT........::.................TT',
+      'TT===========================TT',
+      'TT..*.....==......*...K...K..TT',
+      'TT........==.................TT',
+      'TT........==............*....TT',
+      'TT........==.................TT',
+      'TT........==..........T...T..TT',
+      'TT........==.................TT',
+      'TT===========================TT',
+      'TT*.f..f......f..f.*..f..f.*.TT',
+      'TTTTTTTTTTTTTTTTTTTTTTTTTTTTTTT',
     ],
     bld: [
       { x: 13, y: 3, w: 7, h: 5, k: 'dojo', door: 3, to: 'dojo' },
       { x: 3, y: 10, w: 5, h: 4, k: 'casa', door: 2, to: 'casa_mia', roof: '#d8503c' },
       { x: 13, y: 10, w: 5, h: 4, k: 'casa', door: 2, to: 'casa', roof: '#3a8ad8' },
+      { x: 22, y: 3, w: 7, h: 5, k: 'palestra', door: 3, to: 'arena', roof: '#8a2420' },
     ],
     signs: [
       { x: 9, y: 3, text: 'LANCENIGO · Qui ha sede la Stone Temple Tao. A nord, il Percorso 1 porta a Ponte della Priula.' },
+      { x: 21, y: 7, text: 'ARENA DEL TEMPIO · Una torre di sfide senza fine. Aperta a chi ha almeno un sigillo.' },
       { x: 12, y: 7, text: 'STONE TEMPLE TAO · Scuola di Tradizionali Arti Orientali. Taijiquan stile Chen.' },
     ],
     npc: [
@@ -855,5 +858,148 @@
     ],
   };
 
-  window.MONDO = { RIVAL, LOOKS, BADGES, ITEMS, FLY, LOOK_AT, INTRO, INTRO_END, maps };
+  // ------------------------------------------------------------ ARENA DEL TEMPIO: una torre di sfide senza fine
+  // Piano N: una squadra a caso (sempre la stessa per lo stesso viaggio e piano) di livello 1 + N/2, anche oltre il 10.
+  // Ogni 5 piani un campione; ogni 10 un traguardo: chi perde riparte dall'ultimo, senza perdere monete.
+  const STT = window.STT;
+  const arenaOf = s => s.arena || (s.arena = { floor: 1, best: 0, day: '' });
+  const seedOf = t => { let h = 7; for (const c of String(t)) h = (h * 31 + c.charCodeAt(0)) | 0; return h; };
+  const today = () => new Date().toLocaleDateString('sv'); // AAAA-MM-GG all'ora del telefono
+  const foeLv = n => 1 + Math.floor(n / 2);
+  const arenaPool = () => STT.CARDS.filter(c => !c.secret && c.rank !== 'L').map(c => c.id);
+  const oneOf = (a, rnd) => a[Math.floor(rnd() * a.length)];
+  const SFIDANTI = ['Marco', 'Sofia', 'Paolo', 'Elena', 'Davide', 'Irene', 'Gino', 'Martina', 'Luca', 'Chiara', 'Bruno', 'Giulia'];
+  const SFIDA_INTRO = ['Piano {p}: da qui non si passa!', 'Ti ho visto salire. Ora ti fermo io!', 'Mi alleno in questa torre da mesi. Pronto?', 'Un altro che vuole arrivare in cima...', 'Le mie carte sono cariche di Qi!'];
+  const SFIDA_WIN = ['Sei forte davvero. Sali pure.', 'Va bene, il piano è tuo.', 'Torno ad allenarmi...', 'Che sfida! In bocca al lupo per il prossimo piano.'];
+  const ARENA_BOSS = [
+    { name: RIVAL, cards: s => [rivalCard(s), 'lorenzo', 'strahinja', 'annalisa'], music: 'rivale',
+      intro: ['{n}! Anch\'io mi alleno nella torre.', 'Questa volta vinco io!'], win: 'Ancora tu... Va bene, sali pure. Ci rivediamo più in alto!' },
+    { name: 'Federica', face: 'federica', cards: ['federica', 'annastella', 'remigio', 'annalisa'], terrain: 'priula',
+      intro: 'Nella torre gli Allievi diventano grandi. Vediamo quanto sei cresciuto!', win: 'Complimenti! Le mie allieve parleranno di te.' },
+    { name: 'Maestro Liming Yue', cards: ['niccolo', 'strahinja', 'federica', 'nicole'], terrain: 'liming',
+      intro: 'Disciplina e pazienza. Mostrami se le hai ancora.', win: 'Ottima disciplina. Prosegui.' },
+    { name: 'Chen Delang', face: 'chen', cards: ['chen', 'chicca', 'katya'], terrain: 'chenjiagou',
+      intro: 'Anch\'io salgo questa torre, ogni tanto. Spallata del Prodigio!', win: 'Il tuo Taiji cresce a ogni piano.' },
+    { name: 'Maestro Samuele', face: 'samuele', cards: ['samuele', 'andrea', 'chicca'], terrain: 'lancenigo',
+      intro: 'Pensavi di esserti liberato di me? Gomiti di Ferro!', win: 'Sono fiero di te. Continua a salire.' },
+    { name: 'Le Leggende', face: 'wangting', cards: ['wangting', 'zhenglei', 'andrea'], terrain: 'chenjiagou', music: 'leggenda',
+      intro: ['Gli spiriti delle Leggende ti aspettavano.', 'Creazione Marziale! Ciuffata Cosmica!'], win: 'Il Taiji vive in te. Sali ancora.' },
+  ];
+  // l'avversario del piano n (rnd: generatore con il seme del viaggio e del piano)
+  function arenaFoe(s, n, rnd) {
+    if (n % 5 === 0) {
+      const b = ARENA_BOSS[(n / 5 - 1) % ARENA_BOSS.length];
+      return Object.assign({}, b, { cards: typeof b.cards === 'function' ? b.cards(s) : b.cards, lv: foeLv(n) + 2, cpu: n <= 5 ? 'normale' : 'difficile', boss: true });
+    }
+    const team = STT.randomTeam(rnd, STT.BUDGET - 1, arenaPool());
+    return { name: oneOf(SFIDANTI, rnd), cards: n < 4 ? team.slice(0, 3) : team, lv: foeLv(n), cpu: n <= 5 ? 'facile' : n <= 15 ? 'normale' : 'difficile',
+      terrain: STT.TERRAINS[(n - 1) % STT.TERRAINS.length].id,
+      intro: oneOf(SFIDA_INTRO, rnd).replace('{p}', n), win: oneOf(SFIDA_WIN, rnd) };
+  }
+  async function climb(W, who) {
+    const s = W.s, a = arenaOf(s);
+    for (;;) {
+      const n = a.floor, f = arenaFoe(s, n, W.rng(seedOf(s.id || s.name) + n * 7919));
+      await W.say(f.boss ? `Piano ${n}! Il campione di questo piano è ${f.name}.` : `Piano ${n}: ti sfida ${f.name}!`, who);
+      const win = await W.challenge(Object.assign({}, f, { music: f.music || (f.boss ? 'capopalestra' : 'allenatore'), kind: 'arena',
+        lose: 'Torna quando vuoi: la torre non scappa!', onLose: async () => {} }), { name: f.name, face: f.face });
+      if (!win) {
+        a.floor = Math.floor((n - 1) / 10) * 10 + 1;
+        return W.say(`Si riparte dal piano ${a.floor}. Le monete restano tue: allenati e riprova!`, who);
+      }
+      a.floor = n + 1;
+      a.best = Math.max(a.best, n);
+      if (f.boss) {
+        const rank = n >= 30 ? 'L' : n >= 15 ? 'M' : 'I', pool = STT.CARDS.filter(c => c.rank === rank && !c.secret);
+        W.scrolls(3); W.sfx('item');
+        await W.say(`Hai battuto il campione del piano ${n}! Ricevi 3 pergamene.`);
+        const id = oneOf(pool, Math.random).id;
+        await W.gain(id, Math.min(10, foeLv(n)), `E in premio una carta: ${nameOf(id)}!`);
+      }
+      if (n % 10 === 0) await W.say(`Traguardo del piano ${n}! Da ora, se perdi, riparti dal piano ${n + 1}.`, who);
+      if (await W.ask(`Sali al piano ${n + 1}?`, ['Sali', 'Basta per ora'], who) !== 0) return W.say('Riposati bene. La torre ti aspetta.', who);
+    }
+  }
+
+  // la sfida del giorno: una regola speciale, uguale per tutti, scelta dalla data
+  const ARENA_DAILY = [
+    { name: 'Giorno degli Allievi', rule: 'Solo Allievi in squadra, contro una squadra di Allievi.', ok: c => c.rank === 'A', foe: c => c.rank === 'A' },
+    { name: 'Notte dei Maestri', rule: 'Contro tre Maestri, nella Piazza del Taiji.', foe: c => c.rank === 'M', n: 3, terrain: 'chenjiagou' },
+    { name: 'Disciplina inglese', rule: 'Nella palestra del Maestro Liming Yue: le mosse speciali si ricaricano prima.', terrain: 'liming' },
+    { name: 'Senza Maestri', rule: 'In squadra solo Allievi e Istruttori.', ok: c => c.rank === 'A' || c.rank === 'I' },
+    { name: 'Ombra della Leggenda', rule: 'Una Leggenda guida la squadra avversaria.', legend: true },
+    { name: 'Squadra leggera', rule: 'La tua squadra costa al massimo 7 Punti Dojo.', budget: 7 },
+  ];
+  const dailyRule = day => ARENA_DAILY[Math.abs(seedOf(day)) % ARENA_DAILY.length];
+  // avversari uguali per tutti (seme del giorno), livello di poco sopra la tua squadra
+  function dailyFoe(s, rule, rnd) {
+    const lv = Math.round(s.team.reduce((t, id) => t + s.cards[id].lv, 0) / s.team.length) + 1;
+    let cards = [];
+    if (rule.foe) {
+      const pool = STT.CARDS.filter(c => !c.secret && rule.foe(c)).map(c => c.id);
+      while (cards.length < (rule.n || 4)) cards.push(pool.splice(Math.floor(rnd() * pool.length), 1)[0]);
+    } else {
+      cards = STT.randomTeam(rnd, STT.BUDGET - 1, arenaPool());
+      if (rule.legend) cards = [rnd() < 0.5 ? 'wangting' : 'zhenglei'].concat(cards.slice(0, 2));
+    }
+    return { cards, lv };
+  }
+  async function daily(W, who) {
+    const s = W.s, a = arenaOf(s), day = today(), rule = dailyRule(day);
+    if (a.day === day) return W.say('La sfida di oggi l\'hai già vinta. Torna domani: ci sarà una regola nuova!', who);
+    await W.say([`Sfida del giorno: ${rule.name}.`, rule.rule], who);
+    const team = s.team.map(id => STT.CARD[id]);
+    if ((rule.ok && !team.every(rule.ok)) || (rule.budget && STT.teamCost(s.team) > rule.budget)) return W.say('La tua squadra non rispetta la regola di oggi. Cambiala dal MENU, in Carte, e torna da me.', who);
+    if (await W.ask('Accetti la sfida?', ['Sì', 'No'], who) !== 0) return;
+    const f = dailyFoe(s, rule, W.rng(seedOf(day)));
+    const win = await W.challenge({ name: 'Sfidante del giorno', cards: f.cards, lv: f.lv, cpu: 'difficile', terrain: rule.terrain, music: 'rivale', kind: 'arena',
+      intro: 'Oggi la regola la decido io!', win: 'Complimenti, la sfida di oggi è tua!', lose: 'Riprova quando vuoi: la sfida vale tutto il giorno.', onLose: async () => {} });
+    if (!win) return;
+    a.day = day;
+    const money = 300 + 150 * s.badges.length;
+    W.money(money); W.scrolls(2); W.sfx('item');
+    await W.say(`Premio del giorno: ${money} monete e 2 pergamene!`);
+  }
+  async function arenaTalk(W, who) {
+    const s = W.s, a = arenaOf(s);
+    if (!s.badges.length) return W.say(['Benvenuto nell\'Arena del Tempio! Qui si sale una torre di sfide senza fine.', 'Ma la torre si apre solo a chi ha almeno un sigillo. Torna dopo la Palestrina delle medie!'], who);
+    const help = [
+      'A ogni piano ti aspetta uno sfidante più forte: monete ed esperienza a ogni vittoria.',
+      'Ogni 5 piani c\'è un campione: batterlo vale 3 pergamene e una carta rara.',
+      'Ogni 10 piani raggiungi un traguardo: se perdi riparti dall\'ultimo, e le monete restano tue.',
+      'Ogni giorno c\'è anche una sfida speciale, con una regola diversa e un premio in più.',
+      'E con l\'account, ogni vittoria qui vale punti esperienza per il tuo livello.',
+    ];
+    if (!W.flag('arena')) { W.set('arena'); await W.say(['Un sigillo! Allora la torre è aperta anche per te.'].concat(help), who); }
+    const c = await W.ask(`Sei al piano ${a.floor}${a.best ? ` (record: piano ${a.best})` : ''}. Cosa facciamo?`, ['Sali la torre', 'Sfida del giorno', 'Come funziona?', 'Niente'], who);
+    if (c === 0) return climb(W, who);
+    if (c === 1) return daily(W, who);
+    if (c === 2) return W.say(help, who);
+  }
+
+  maps.arena = {
+    name: 'Arena del Tempio', inside: true, entry: [6, 8], terrain: 'lancenigo', music: 'tempio',
+    tiles: [
+      'GGGGGGGGGGGGG',
+      'GGGGGGGGGGGGG',
+      'gLmmmmmmmmmLg',
+      'gmmmmmmmmmmmg',
+      'gmmmmmmmmmmmg',
+      'gmmmmmmmmmmmg',
+      'gLmmmmmmmmmLg',
+      'ggggggggggggg',
+      'pgggggggggggp',
+      'ggggggegggggg',
+    ],
+    exits: [{ x: 6, y: 9, to: '@back' }],
+    npc: [
+      { id: 'custode', x: 6, y: 3, look: 'custode', name: 'Custode dell\'Arena', talk: arenaTalk },
+      { id: 'tifosa', x: 10, y: 7, dir: 'left', look: 'allieva', name: 'Tifosa',
+        say: ['Ogni 5 piani c\'è un campione: Tommaso, Federica, perfino il Maestro Samuele!', 'E dicono che più in alto aspettino le Leggende...'] },
+      { id: 'spettatore', x: 2, y: 7, dir: 'right', look: 'gente', name: 'Spettatore',
+        say: s => (s.arena && s.arena.best ? [`Ti ho visto arrivare al piano ${s.arena.best}! Io mi fermo sempre al terzo...`] : ['Dicono che la torre non finisca mai. Nessuno è mai arrivato in cima!']) },
+    ],
+  };
+
+  window.MONDO = { RIVAL, LOOKS, BADGES, ITEMS, FLY, LOOK_AT, INTRO, INTRO_END, maps, arena: { foe: arenaFoe, dailyFoe, dailyRule, DAILY: ARENA_DAILY } };
 })();
