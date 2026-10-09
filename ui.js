@@ -210,11 +210,11 @@
 
   // ------------------------------------------------------------ router
   function go(screen) { A.screen = screen; closeLayer(); render(); window.scrollTo(0, 0); if (screen === 'account') accountLoad(); music(); }
-  // musica: una per ogni tipo di sfida, quella calma del tempio nei menu (nella storia sceglie storia.js)
+  // musica: una per ogni tipo di sfida, la canzone nella lobby, quella calma del tempio negli altri menu (nella storia sceglie storia.js)
   const TRACK = { cpu: 'allenatore', pvp: 'rivale', online: 'rivale', tutorial: 'selvatico', replay: 'allenatore' };
   function music(name) {
     if (!window.Sound || !Sound.setTrack || A.screen === 'storia') return;
-    Sound.setTrack(name || (A.screen !== 'battle' ? 'tempio' : A.mode === 'storia' ? A.storyTrack || 'allenatore'
+    Sound.setTrack(name || (A.screen === 'home' ? 'lobby' : A.screen !== 'battle' ? 'tempio' : A.mode === 'storia' ? A.storyTrack || 'allenatore'
       : A.mode === 'torneo' ? (torneo().stage >= TORNEO.length - 1 ? 'capopalestra' : 'allenatore') : TRACK[A.mode] || 'allenatore'));
   }
   function render() {

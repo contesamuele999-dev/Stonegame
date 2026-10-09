@@ -1,5 +1,5 @@
 /* STONE TEMPLE TAO — suoni, musica e vibrazione
- * Tutto è sintetizzato al volo con Web Audio: nessun file audio, nessuna musica protetta da diritti.
+ * Tutto è sintetizzato al volo con Web Audio, tranne la canzone della lobby (Stone Game Song.mp3).
  * API: Sound.unlock() · Sound.play(nome, forza) · Sound.setSfx(bool) · Sound.setMusic(bool)
  *      Sound.setVibration(bool) · Sound.buzz(pattern) · Sound.prodigy() · Sound.setTrack(nome)
  */
@@ -25,6 +25,7 @@
       document.addEventListener('visibilitychange', () => {
         if (!ctx) return;
         if (document.hidden) ctx.suspend(); else ctx.resume();
+        syncSong();
       });
       return true;
     } catch (e) { ctx = null; return false; }
@@ -157,15 +158,17 @@
     nextNote = ctx.currentTime + 0.1; step = 0;
     musicBus.gain.setTargetAtTime(0.22, ctx.currentTime, 0.5);
     musicTimer = setInterval(schedule, 40);
+    syncSong();
   }
   function stopMusic() {
     musicOn = false;
     if (musicTimer) clearInterval(musicTimer);
     musicTimer = null;
     if (ctx) musicBus.gain.setTargetAtTime(0.0001, ctx.currentTime, 0.3);
+    syncSong();
   }
   const BEAT = 60 / 84 / 2; // crome a 84 bpm
-  let phrase = [], track = 'tempio';
+  let phrase = [], track = 'lobby'; // il gioco si apre nel menu principale
   const newPhrase = (len, lo, hi, rest) => { let n = lo + 3 + Math.floor(Math.random() * 3); return Array.from({ length: len }, () => { n += Math.floor(Math.random() * 5) - 2; n = Math.max(lo, Math.min(hi, n)); return Math.random() < rest ? null : n; }); };
   const MAJ = [0, 2, 4, 7, 9]; // pentatonica maggiore, per la musica del viaggio
   const noteM = (base, n) => base * Math.pow(2, (MAJ[((n % 5) + 5) % 5] + 12 * Math.floor(n / 5)) / 12);
@@ -273,16 +276,26 @@
     vittoria: chip({ bpm: 140, intro: false, chords: 'c f g c', drums: { k: 'x.......x.......', s: '....x.......x...', h: 'x...x...x...x...' }, lead: `
       c5 - e5 - g5 - c6 - - - g5 - e5 - g5 - | a5 - - - f5 - a5 - c6 - - - a5 - - - | b5 - - - g5 - d5 - g5 - a5 - b5 - d6 - | c6 - - - - - - - g5 - e5 - c5 - - -` }),
   });
+  // la lobby suona la canzone vera, da file: parte e si ferma insieme alla musica, riprende da dove era rimasta
+  TRACKS.lobby = { beat: 0.5, step() {} };
+  let song = null;
+  function syncSong() {
+    const want = musicOn && track === 'lobby' && !document.hidden;
+    if (want && !song) { song = new Audio('Stone%20Game%20Song.mp3'); song.loop = true; song.volume = 0.6; }
+    if (!song) return;
+    if (want) song.play().catch(() => { /* il browser aspetta un tocco */ }); else song.pause();
+  }
   function schedule() {
     if (!ctx || ctx.state !== 'running') return;
     const tr = TRACKS[track];
     while (nextNote < ctx.currentTime + 0.25) { tr.step(nextNote, step); nextNote += tr.beat; step++; }
   }
-  // cambia la musica di sottofondo: 'tempio' (in partita), 'mondo' o 'grotta' (modalità storia)
+  // cambia la musica di sottofondo: 'lobby' (menu principale), 'tempio' (in partita), 'mondo' o 'grotta' (modalità storia)
   function setTrack(name) {
     if (!TRACKS[name] || name === track) return;
     track = name; step = 0; phrase = [];
     if (ctx) nextNote = ctx.currentTime + 0.15;
+    syncSong();
   }
 
   // ------------------------------------------------------------ vibrazione

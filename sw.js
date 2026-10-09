@@ -1,5 +1,5 @@
 /* Service worker: salva il gioco sul telefono per aprirlo anche senza internet. */
-const CACHE = 'stonetao-v26';
+const CACHE = 'stonetao-v27';
 const FILES = [
   "./",
   "index.html",
@@ -11,6 +11,7 @@ const FILES = [
   "storia.js",
   "novita.js",
   "audio.js",
+  "Stone Game Song.mp3",
   "net.js",
   "vendor/three.min.js",
   "vendor/peerjs.min.js",
