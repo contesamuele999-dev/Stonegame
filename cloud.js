@@ -4,6 +4,7 @@
  * API: Cloud.init() · signedIn() · signIn(email, pw) · signUp(email, pw) · recover(email) · setPassword(pw) · logout()
  *      profile() · createProfile(nome) · rename(nome) · record(vinta, modalita, livello, carte)
  *      leaderboard() · collection() · addToCollection(ids) · loadStory() · saveStory(dati) · levelOf(xp) · titleOf(livello) · xpFor(livello)
+ *      chatList(dopoId) · chatSend(testo) · chatDelete(id) · userId()
  */
 (function () {
   'use strict';
@@ -41,6 +42,10 @@
     if (/già riscattata/i.test(m)) return 'Missione già riscattata.';
     if (/missione scaduta/i.test(m)) return 'Missione scaduta: ne sono arrivate di nuove.';
     if (/could not find the function|PGRST202/i.test(m)) return 'Funzione online non ancora attiva.';
+    if (/chat troppo veloce/i.test(m)) return 'Piano! Aspetta qualche secondo prima di scrivere ancora.';
+    if (/serve un nome giocatore/i.test(m)) return 'Prima scegli il tuo nome giocatore.';
+    if (/messaggio troppo lungo/i.test(m)) return 'Messaggio troppo lungo (al massimo 300 caratteri).';
+    if (/relation .*chat.* does not exist|PGRST205|public\.chat/i.test(m)) return 'La chat non è ancora attiva.';
     if (/email/i.test(m) && /invalid/i.test(m)) return 'Indirizzo email non valido.';
     return m || `Errore ${status}`;
   }
@@ -140,6 +145,16 @@
   async function loadStory() { const r = await api(`/rest/v1/storia?giocatore=eq.${me()}&select=dati`); return r[0] ? r[0].dati : null; }
   const saveStory = (dati, keepalive) => api('/rest/v1/storia', { method: 'POST', keepalive, body: { giocatore: me(), dati, aggiornata: new Date().toISOString() }, headers: { Prefer: 'resolution=merge-duplicates,return=minimal' } });
 
+  // ------------------------------------------------------------ chat globale (supabase/aggiornamento-5.sql)
+  // dopo = id dell'ultimo messaggio già visto: arrivano solo quelli nuovi, dal più vecchio; senza, gli ultimi 60
+  const CHAT_SEL = 'select=id,giocatore,nome,testo,creato';
+  async function chatList(dopo) {
+    if (dopo) return api(`/rest/v1/chat?${CHAT_SEL}&id=gt.${+dopo}&order=id.asc&limit=100`);
+    return (await api(`/rest/v1/chat?${CHAT_SEL}&order=id.desc&limit=60`)).reverse();
+  }
+  const chatSend = testo => api('/rest/v1/rpc/scrivi_chat', { method: 'POST', body: { testo } });
+  const chatDelete = id => api(`/rest/v1/chat?id=eq.${+id}`, { method: 'DELETE', headers: { Prefer: 'return=minimal' } });
+
   // ------------------------------------------------------------ livelli
   // livello L si raggiunge con 25 × (L−1)² punti: 25, 100, 225, 400…
   const levelOf = xp => Math.floor(Math.sqrt(Math.max(0, xp) / 25)) + 1;
@@ -152,6 +167,7 @@
     weeklyBoard, claimMission, medals, addMedals,
     signIn, signUp, recover, setPassword, logout, profile, createProfile, rename, record, leaderboard, collection, addToCollection,
     loadStory, saveStory,
+    chatList, chatSend, chatDelete, userId: () => (ses && ses.user ? ses.user.id : null),
     levelOf, xpFor, titleOf,
   };
 })();

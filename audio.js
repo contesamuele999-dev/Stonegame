@@ -1,6 +1,6 @@
 /* STONE TEMPLE TAO — suoni, musica e vibrazione
- * Tutto è sintetizzato al volo con Web Audio, tranne la canzone della lobby (Stone Game Song.mp3).
- * API: Sound.unlock() · Sound.play(nome, forza) · Sound.setSfx(bool) · Sound.setMusic(bool)
+ * Tutto è sintetizzato al volo con Web Audio, tranne la canzone della lobby (Stone Game Song.mp3) e le grida di Liming Yue (audio/liming/).
+ * API: Sound.unlock() · Sound.play(nome, forza) · Sound.sample(nome, {pan, vol, rate, echo}) · Sound.setSfx(bool) · Sound.setMusic(bool)
  *      Sound.setVibration(bool) · Sound.buzz(pattern) · Sound.prodigy() · Sound.setTrack(nome)
  */
 (function () {
@@ -277,14 +277,49 @@
     vittoria: chip({ bpm: 140, intro: false, chords: 'c f g c', drums: { k: 'x.......x.......', s: '....x.......x...', h: 'x...x...x...x...' }, lead: `
       c5 - e5 - g5 - c6 - - - g5 - e5 - g5 - | a5 - - - f5 - a5 - c6 - - - a5 - - - | b5 - - - g5 - d5 - g5 - a5 - b5 - d6 - | c6 - - - - - - - g5 - e5 - c5 - - -` }),
   });
-  // la lobby suona la canzone vera, da file: parte e si ferma insieme alla musica, riprende da dove era rimasta
-  TRACKS.lobby = { beat: 0.5, step() {} };
-  let song = null;
+  // la lobby suona la canzone vera, da file: parte e si ferma insieme alla musica, riprende da dove era rimasta.
+  // Anche il remix del Maestro Liming Yue (le sue grida originali) è un file: suona nella sfida della Grotta dei Sussurri.
+  const FILES = { lobby: ['Stone%20Game%20Song.mp3', 0.6], liming: ['audio/liming/remix.mp3', 0.55] };
+  Object.keys(FILES).forEach(k => { TRACKS[k] = { beat: 0.5, step() {} }; });
+  const songs = {};
   function syncSong() {
-    const want = musicOn && track === 'lobby' && !document.hidden;
-    if (want && !song) { song = new Audio('Stone%20Game%20Song.mp3'); song.loop = true; song.volume = 0.6; }
-    if (!song) return;
-    if (want) song.play().catch(() => { /* il browser aspetta un tocco */ }); else song.pause();
+    for (const k of Object.keys(FILES)) {
+      const want = musicOn && track === k && !document.hidden;
+      if (want && !songs[k]) { songs[k] = new Audio(FILES[k][0]); songs[k].loop = true; songs[k].volume = FILES[k][1]; }
+      const song = songs[k];
+      if (!song) continue;
+      if (want) song.play().catch(() => { /* il browser aspetta un tocco */ }); else song.pause();
+    }
+  }
+
+  // ------------------------------------------------------------ campioni registrati (le grida di Liming Yue)
+  // Sound.sample('shuaa1', { pan: -1..1, vol, rate }) → Promise che si risolve quando il suono finisce
+  const buffers = {};
+  function loadSample(name) {
+    if (!buffers[name]) buffers[name] = fetch(`audio/liming/${name}.mp3`).then(r => r.arrayBuffer())
+      .then(b => new Promise((res, rej) => ctx.decodeAudioData(b, res, rej))).catch(() => { delete buffers[name]; return null; });
+    return buffers[name];
+  }
+  async function sample(name, o) {
+    o = o || {};
+    if (!opt.sfx || !init()) return;
+    if (ctx.state === 'suspended') { try { await ctx.resume(); } catch (e) { return; } }
+    const buf = await loadSample(name);
+    if (!buf || ctx.state !== 'running') return;
+    const src = ctx.createBufferSource(), g = ctx.createGain();
+    src.buffer = buf; src.playbackRate.value = o.rate || 1;
+    g.gain.value = o.vol === undefined ? 1 : o.vol;
+    let node = src;
+    if (o.pan && ctx.createStereoPanner) { const p = ctx.createStereoPanner(); p.pan.value = Math.max(-1, Math.min(1, o.pan)); src.connect(p); node = p; }
+    node.connect(g);
+    if (o.echo) { // eco di grotta
+      const d = ctx.createDelay(1), fb = ctx.createGain(), wet = ctx.createGain();
+      d.delayTime.value = 0.23; fb.gain.value = 0.38; wet.gain.value = 0.5;
+      node.connect(d); d.connect(fb); fb.connect(d); d.connect(wet); wet.connect(sfxBus);
+    }
+    g.connect(sfxBus);
+    src.start();
+    return new Promise(res => { src.onended = res; });
   }
   function schedule() {
     if (!ctx || ctx.state !== 'running') return;
@@ -306,7 +341,7 @@
   }
 
   window.Sound = {
-    unlock, play, prodigy, buzz, setTrack,
+    unlock, play, prodigy, buzz, setTrack, sample, preload: n => init() && loadSample(n),
     setSfx(v) { opt.sfx = !!v; },
     setMusic(v) { opt.music = !!v; if (!v) stopMusic(); else if (ctx && ctx.state === 'running') startMusic(); },
     setVibration(v) { opt.vibration = !!v; },

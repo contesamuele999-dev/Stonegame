@@ -86,6 +86,9 @@ for (const [id, d] of Object.entries(M.maps)) {
   if (d.check) starts.push(d.check);
   for (const [oid, od] of Object.entries(M.maps)) for (const e of od.exits || []) if (e.to === id) starts.push([e.tx, e.ty]);
   for (const f of M.FLY) if (f.map === id) starts.push([f.x, f.y]);
+  for (const od of Object.values(M.maps)) if (od.cave && od.cave.to === id) starts.push([od.cave.tx, od.cave.ty]); // ingresso di una grotta (casella O)
+  if (d.cave) { const to = M.maps[d.cave.to]; if (!to || SOLID.has((to.tiles[d.cave.ty] || '')[d.cave.tx])) fail(id, `grotta verso ${d.cave.to} non valida`); }
+  if (d.tiles.some(r => r.includes('O')) && !d.cave) fail(id, 'ingresso di grotta (O) senza destinazione');
   if (id === 'casa_mia') starts.push([5, 3]);
   const seen = new Set(), q = [];
   const walk = (x, y) => at(x, y) !== undefined && !block[y][x] && !npcBlock.has(x + ',' + y) && at(x, y) !== 'v';

@@ -1,44 +1,50 @@
-per partita: Qi 1.87 · Cambi 0.76
-partite 4000 in 61.0s | turni medi 17.2 | vince chi inizia 51.7% | senza esito 0
-wangting    costo 6   76.4%  (55)  uso att/m1/m2 73% / 12% / 14%
-zhenglei    costo 6   60.3%  (68)  uso att/m1/m2 54% / 24% / 23%
-chicca      costo 3   54.6%  (1351)  uso att/m1/m2 39% / 28% / 33%
-celeste     costo 2   54.5%  (1553)  uso att/m1/m2 71% / 29% / 0%
-samuele     costo 4   53.9%  (887)  uso att/m1/m2 69% / 21% / 11%
-signorello  costo 3   53.7%  (1334)  uso att/m1/m2 71% / 17% / 12%
-alessandro  costo 2   51.5%  (1578)  uso att/m1/m2 53% / 32% / 15%
-katya       costo 3   51.1%  (1409)  uso att/m1/m2 60% / 9% / 32%
-andrea      costo 4   51.1%  (926)  uso att/m1/m2 66% / 10% / 24%
-annalisa    costo 1   50.8%  (1545)  uso att/m1/m2 68% / 20% / 12%
-federica    costo 3   50.7%  (1342)  uso att/m1/m2 54% / 16% / 30%
-remigio     costo 2   50.7%  (1583)  uso att/m1/m2 72% / 10% / 18%
-nicole      costo 1   50.6%  (1588)  uso att/m1/m2 50% / 28% / 22%
-annastella  costo 2   50.5%  (1563)  uso att/m1/m2 48% / 26% / 26%
-grazia      costo 2   49.7%  (1531)  uso att/m1/m2 38% / 32% / 30%
-elia        costo 4   49.6%  (920)  uso att/m1/m2 71% / 12% / 17%
-lorenzo     costo 3   49.5%  (1405)  uso att/m1/m2 80% / 7% / 13%
-niccolo     costo 3   48.8%  (1295)  uso att/m1/m2 69% / 22% / 9%
-chen        costo 4   48.8%  (867)  uso att/m1/m2 55% / 31% / 14%
-christian   costo 2   48.3%  (1581)  uso att/m1/m2 51% / 32% / 18%
-strahinja   costo 3   48.2%  (1352)  uso att/m1/m2 49% / 23% / 28%
-viola       costo 2   47.2%  (1540)  uso att/m1/m2 59% / 13% / 28%
-adriano     costo 2   47.1%  (1614)  uso att/m1/m2 80% / 0% / 20%
-caterina    costo 1   46.5%  (1618)  uso att/m1/m2 79% / 6% / 14%
-vittorio    costo 2   43.3%  (1495)  uso att/m1/m2 49% / 28% / 24%
-chi perde la prima carta vince il 37.7%
+partite 8000 in 332.2s | turni medi 18.9 | vince chi inizia 51.9% | senza esito 0
+wangting    costo 6   72.2%  (54)  uso att/m1/m2 74% / 13% / 13%
+zhenglei    costo 6   65.2%  (46)  uso att/m1/m2 56% / 24% / 21%
+samuele     costo 4   59.5%  (1369)  uso att/m1/m2 70% / 20% / 9%
+lorenzo     costo 3   54.2%  (2190)  uso att/m1/m2 81% / 5% / 14%
+annastella  costo 2   53.8%  (2383)  uso att/m1/m2 46% / 27% / 26%
+elia        costo 4   53.4%  (1376)  uso att/m1/m2 74% / 11% / 15%
+alessandro  costo 2   53.0%  (2418)  uso att/m1/m2 52% / 33% / 16%
+chicca      costo 3   52.6%  (2221)  uso att/m1/m2 36% / 29% / 35%
+andrea      costo 4   52.5%  (1401)  uso att/m1/m2 66% / 9% / 25%
+signorello  costo 3   52.5%  (2164)  uso att/m1/m2 72% / 17% / 11%
+celeste     costo 2   52.1%  (2358)  uso att/m1/m2 76% / 24% / 0%
+nicole      costo 1   51.7%  (2197)  uso att/m1/m2 47% / 30% / 23%
+remigio     costo 2   51.6%  (2434)  uso att/m1/m2 74% / 8% / 18%
+federica    costo 3   51.3%  (2065)  uso att/m1/m2 53% / 18% / 29%
+niccolo     costo 3   50.9%  (2033)  uso att/m1/m2 70% / 22% / 8%
+katya       costo 3   50.8%  (2194)  uso att/m1/m2 61% / 7% / 31%
+giulia      costo 2   50.4%  (2322)  uso att/m1/m2 56% / 30% / 14%
+grazia      costo 2   50.4%  (2335)  uso att/m1/m2 35% / 32% / 33%
+chen        costo 4   49.5%  (1322)  uso att/m1/m2 56% / 30% / 14%
+annalisa    costo 1   49.4%  (2233)  uso att/m1/m2 66% / 23% / 11%
+strahinja   costo 3   49.2%  (2109)  uso att/m1/m2 47% / 24% / 29%
+liming      costo 4   49.1%  (1347)  uso att/m1/m2 64% / 30% / 6%
+christian   costo 2   49.1%  (2286)  uso att/m1/m2 52% / 30% / 18%
+adriano     costo 2   49.0%  (2444)  uso att/m1/m2 80% / 0% / 20%
+margherita  costo 2   48.3%  (2411)  uso att/m1/m2 50% / 28% / 23%
+caterina    costo 1   47.1%  (2133)  uso att/m1/m2 77% / 3% / 19%
+gatto       costo 2   46.6%  (2369)  uso att/m1/m2 51% / 24% / 25%
+viola       costo 2   46.4%  (2367)  uso att/m1/m2 59% / 13% / 28%
+ruben       costo 2   45.9%  (2475)  uso att/m1/m2 61% / 31% / 8%
+roberto     costo 3   45.6%  (2103)  uso att/m1/m2 48% / 24% / 28%
+simone      costo 2   45.2%  (2458)  uso att/m1/m2 79% / 9% / 13%
+vittorio    costo 2   44.7%  (2383)  uso att/m1/m2 47% / 28% / 24%
+chi perde la prima carta vince il 37.8%
 --- armi
-nessuna      85.9%  (142)
-shuangjian   49.4%  (1812)
-dao          49.1%  (1728)
-dadao        48.9%  (1825)
-qimeigun     48.8%  (1856)
-qiang        48.1%  (1756)
-dagan        48.0%  (1885)
-jian         47.7%  (1822)
-shuangdao    46.7%  (1829)
+nessuna      92.6%  (203)
+dadao        50.0%  (3705)
+shuangjian   49.3%  (3531)
+dao          49.0%  (3550)
+qimeigun     47.6%  (3758)
+qiang        47.3%  (3608)
+shuangdao    47.0%  (3752)
+dagan        46.4%  (3750)
+jian         44.5%  (3808)
 --- palestre (turni medi)
-lancenigo   18.4  (777)
-nessuno     17.1  (798)
-chenjiagou  16.8  (800)
-liming      17.2  (796)
-priula      16.8  (829)
+liming      18.7  (1674)
+lancenigo   20.5  (1600)
+priula      18.4  (1590)
+chenjiagou  18.2  (1593)
+nessuno     18.6  (1543)

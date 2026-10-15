@@ -135,11 +135,11 @@
   function unlockRandom(n) {
     if (settings.allUnlocked) return [];
     const have = unlocked();
-    const locked = shown().map(c => c.id).filter(id => !have.includes(id) && !LEGENDS.includes(id));
+    const locked = shown().filter(c => !c.story).map(c => c.id).filter(id => !have.includes(id) && !LEGENDS.includes(id));
     const got = [];
     while (got.length < n && locked.length) got.push(locked.splice(Math.floor(Math.random() * locked.length), 1)[0]);
     if (got.length) store('unlocked', have.concat(got));
-    if (got.length && !shown().some(c => !c.secret && !LEGENDS.includes(c.id) && !have.concat(got).includes(c.id))) award('collezione');
+    if (got.length && !shown().some(c => !c.secret && !c.story && !LEGENDS.includes(c.id) && !have.concat(got).includes(c.id))) award('collezione');
     return got;
   }
 
@@ -209,7 +209,7 @@
   const chipsHtml = list => list.map(([c, t]) => `<span class="chip ${c}">${esc(t)}</span>`).join('');
 
   // ------------------------------------------------------------ router
-  function go(screen) { A.screen = screen; closeLayer(); render(); window.scrollTo(0, 0); if (screen === 'account') accountLoad(); music(); }
+  function go(screen) { A.screen = screen; closeLayer(); render(); window.scrollTo(0, 0); if (screen === 'account') accountLoad(); if (screen === 'chat') chatOpened(); music(); }
   // musica: una per ogni tipo di sfida, la canzone nella lobby, quella calma del tempio negli altri menu (nella storia sceglie storia.js)
   const TRACK = { cpu: 'allenatore', pvp: 'rivale', online: 'rivale', tutorial: 'selvatico', replay: 'allenatore' };
   function music(name) {
@@ -221,7 +221,7 @@
     const fn = {
       home: renderHome, setup: renderSetup, build: renderBuild, battle: renderBattle, collection: renderCollection,
       rules: renderRules, ranking: renderRanking, settings: renderSettings, torneo: renderTorneo, online: renderOnline, live: renderLive, missioni: renderMissioni, medaglie: renderMedaglie,
-      account: renderAccount, storia: () => '', novita: renderNovita,
+      account: renderAccount, storia: () => '', novita: renderNovita, chat: renderChat,
     }[A.screen];
     $app.innerHTML = fn();
     if (A.screen === 'home') newsPopup();
@@ -229,6 +229,7 @@
     const ter = A.screen === 'battle' && A.game && A.game.terrain;
     document.body.style.setProperty('--terrain', ter ? `url(${terrainBg(ter)})` : 'none');
     if (A.screen === 'online') focusOnline();
+    if (A.screen === 'chat') chatPaint(true);
   }
 
   // ------------------------------------------------------------ HOME
@@ -274,6 +275,7 @@
           <button class="btn ${readyMissions() ? 'primary' : ''}" data-act="go" data-v="missioni">🎯 Missioni<small>${readyMissions() ? `${readyMissions()} premi da riscuotere` : `livello ${myLevel()}`}</small></button>
           <button class="btn" data-act="go" data-v="medaglie">🏅 Medaglie<small>${MEDALS.filter(x => myMedals()[x.id]).length}/${MEDALS.length}</small></button>
         </div>
+        ${cloudOn() ? `<button class="btn chat-btn ${C.unread ? 'primary' : ''}" data-act="go" data-v="chat">💬 Chat della palestra${C.unread ? `<span class="badge num">${C.unread > 99 ? '99+' : C.unread}</span>` : ''}<small>${C.unread ? `${C.unread} messagg${C.unread > 1 ? 'i nuovi' : 'io nuovo'}` : 'Scrivi a tutti i giocatori'}</small></button>` : ''}
         ${NEWS.length ? `<button class="btn ghost" data-act="go" data-v="novita">📰 Novità<small>${esc(NEWS[0].titolo)}</small></button>` : ''}
         <div class="menu-2">
           <button class="btn ghost" data-act="go" data-v="rules">Regole</button>
@@ -381,7 +383,7 @@
     const st = stats().cards[id];
     openLayer(`<div class="sheet-wrap" data-act="close"><div class="sheet" role="dialog" aria-label="${esc(c.name)}" data-stop>
       <div class="sheet-head"><div><h3>${esc(c.name)}${locked ? ' 🔒' : ''}</h3><p>${esc(c.title || RANK_SHORT[c.rank])} · costo ${c.cost} Punti Dojo${st ? ` · vinte ${st.w} su ${st.p}` : ''}</p></div></div>
-      ${locked ? `<p class="hint" style="text-align:left">${c.rank === 'L' ? 'Leggenda: si sblocca vincendo il torneo.' : 'Carta da sbloccare: vinci una partita per ottenerne una nuova.'}</p>` : ''}
+      ${locked ? `<p class="hint" style="text-align:left">${c.rank === 'L' ? 'Leggenda: si sblocca vincendo il torneo.' : c.story ? 'Si trova solo nella Modalità Storia: cercala nella Grotta dei Sussurri, in Inghilterra.' : 'Carta da sbloccare: vinci una partita per ottenerne una nuova.'}</p>` : ''}
       <div class="statline num"><span>PV <b>${c.hp}</b></span><span>ATK ${diff('atk')}<b>${c.atk}</b></span><span>DEF ${diff('def')}<b>${c.def}</b></span></div>
       ${locked ? '' : evoLine(id)}
       ${c.moves.map(m => `<div class="move special"><div class="mh"><span class="mn">${esc(m.name)}</span><span class="why">${esc(moveMeta(m))}</span></div><div class="md">${esc(m.desc)}</div></div>`).join('')}
@@ -1238,7 +1240,7 @@
     const list = S.copyOptions(g, f).map(o => `<button class="move special" data-act="copy-pick" data-uid="${f.uid}" data-i="${i}" data-card="${o.ref.card}" data-mi="${o.ref.i}">
       <span class="mh"><span class="mn">${esc(o.move.name)}</span><span class="why">da ${esc(o.from)}</span></span><span class="md">${esc(o.move.desc)}</span></button>`).join('');
     openLayer(`<div class="sheet-wrap" data-act="close"><div class="sheet" role="dialog" data-stop>
-      <div class="sheet-head"><div><h3>Apprendimento Fulmineo</h3><p>Quale mossa vuoi copiare?</p></div></div>
+      <div class="sheet-head"><div><h3>${esc((S.movesOf(f)[i] || {}).name || 'Copia')}</h3><p>Quale mossa vuoi copiare?${(S.movesOf(f)[i] || {}).copyMul ? ` Andrà con il ${Math.round(S.movesOf(f)[i].copyMul * 100)}% della forza.` : ''}</p></div></div>
       ${list}<button class="btn ghost" data-act="close">Annulla</button></div></div>`);
   }
 
@@ -1266,7 +1268,8 @@
   async function act(a, inner) {
     const g = A.game;
     A.hint = null;
-    if (inner && inner.formula) a.formula = await formulaPrompt(inner);
+    if (inner && inner.voice) a.formula = await voicePrompt(inner);
+    else if (inner && inner.formula) a.formula = await formulaPrompt(inner);
     A.sel = null; A.banner = '';
     A.busy = true;
     const special = a.move >= 0;
@@ -1299,7 +1302,7 @@
     else if (exec.target === 'enemies') tg = S.enemies(g, u.owner).map(f => f.uid);
     else if (exec.target === 'allies') tg = S.team(g, u.owner).map(f => f.uid).filter(x => x !== u.uid);
     else if (exec.target === 'none' && exec.offensive) tg = S.field(g).map(f => f.uid).filter(x => x !== u.uid);
-    return { actor: info(u.uid), move: exec.name, label: exec !== m ? `${m.name} → ${exec.name}` : m.name, targets: tg.map(info), info, formula: a.formula && typeof exec.formula === 'string' ? exec.formula : null };
+    return { actor: info(u.uid), move: exec.name, label: exec !== m ? `${m.name} → ${exec.name}` : m.name, targets: tg.map(info), info, formula: a.formula ? (exec.voice ? SHOUT_TXT[voiceWord(g, a)] || voiceWord(g, a) : typeof exec.formula === 'string' ? exec.formula : null) : null };
   }
 
   function buildSpec(d, evs) {
@@ -1332,13 +1335,14 @@
     const self = out[d.actor.uid];
     if (self && flags.confused) self.confuse = false;
     if (d.formula) flags.formula = d.formula;
-    return { attacker: d.actor, move: d.move, label: d.label, targets, self, flags, speed: speedK(), controls: speedHtml(), terrain: A.game.terrain,
+    return { attacker: d.actor, move: d.move, label: d.label, targets, self, flags, speed: speedK(), controls: speedHtml(), terrain: A.game.terrain, viewer: A.view,
       finisher: A.game.winner !== null && A.game.winner === d.actor.owner };
   }
 
   async function perform(a, local) {
     const g = A.game;
     const d = a.actor && a.move !== S.SWAP_I && use3D() ? describe(g, a) : null;
+    shoutFor(g, a);
     const turnBefore = g.turn;
     const mover = a.pass ? -1 : a.actor ? (S.byUid(g, a.actor) || {}).owner : g.turn;
     applyAct(a);
@@ -1617,6 +1621,91 @@
     const w = g.winner !== null ? g.players[g.winner].name : null;
     openLayer(`<div class="overlay" role="dialog"><div class="eyebrow">Fine del replay</div><h2>${w ? `Vince ${esc(w)}` : 'Replay finito'}</h2>
       <button class="btn primary" data-act="replay-again">Rivedi da capo</button><button class="btn ghost" data-act="quit-now">Menu</button></div>`);
+  }
+
+  // ------------------------------------------------------------ la voce di Liming Yue (Onomotopia Disastrosa)
+  const SHOUT = { shuaa: ['shuaa1', 'shuaa2'], tinn: ['tinn', 'tin'], paaa: ['paaa', 'pah'] };
+  const SHOUT_TXT = { shuaa: 'SHUAAA', tinn: 'TINN', paaa: 'PAAA' };
+  // il grido riuscito: quello detto al microfono, oppure (computer, replay vecchi) quello scelto dal motore
+  function voiceWord(g, a) { return typeof a.formula === 'string' ? a.formula : ['shuaa', 'tinn', 'paaa'][g.turnNo % 3]; }
+  // quando la mossa riesce si sente il grido vero del Maestro
+  function shoutFor(g, a) {
+    if (!a.actor || !a.formula || !window.Sound || !Sound.sample) return;
+    const u = S.byUid(g, a.actor), opt = u && S.actorOptions(g, u).find(o => o.i === a.move);
+    if (!opt || !opt.move.voice) return;
+    const list = SHOUT[voiceWord(g, a)] || SHOUT.shuaa;
+    setTimeout(() => Sound.sample(list[Math.floor(Math.random() * list.length)], { echo: true }), use3D() ? pace(900) : 0);
+  }
+  let micDenied = false;
+  // Grida al microfono la parola chiesta. Senza microfono: si indovina quale grido sta facendo il Maestro.
+  // Restituisce la parola (stringa) se riesce, false se no.
+  function voicePrompt(m) {
+    const target = ['shuaa', 'tinn', 'paaa'][Math.floor(Math.random() * 3)];
+    const example = w => { const l = SHOUT[w]; return window.Sound && Sound.sample ? Sound.sample(l[Math.floor(Math.random() * l.length)]) : Promise.resolve(); };
+    return new Promise(resolve => {
+      let done = false;
+      const finish = (ok, text) => {
+        if (done) return; done = true;
+        const gr = document.getElementById('vgrido'), ms = document.getElementById('vmsg');
+        if (gr) { gr.className = 'grido ' + (ok ? 'ok' : 'no'); gr.textContent = ok ? SHOUT_TXT[ok] + '!' : '…'; }
+        if (ms) ms.textContent = text;
+        document.querySelectorAll('.voce button').forEach(b => { b.disabled = true; });
+        sfx(ok ? 'buff' : 'debuff');
+        setTimeout(() => { closeLayer(); resolve(ok); }, 1400);
+      };
+      const mic = () => {
+        openLayer(`<div class="overlay voce" role="dialog" aria-label="${esc(m.name)}">
+          <div class="eyebrow">${esc(m.name)} · Liming Yue</div>
+          <div class="grido" id="vgrido">${SHOUT_TXT[target]}!</div>
+          <p id="vmsg">Ascolta il Maestro, poi tocca «Grida!» e urla forte <b>«${SHOUT_TXT[target]}!»</b> al microfono.</p>
+          <div class="meter" aria-hidden="true"><i id="vmeter"></i></div>
+          <button class="btn primary" id="vgo">🎤 Grida!</button>
+          <button class="btn" id="vhear">🔊 Ascolta il Maestro</button>
+          <button class="btn ghost" id="vno">Gioca senza microfono</button>
+        </div>`);
+        example(target);
+        document.getElementById('vhear').onclick = () => example(target);
+        document.getElementById('vno').onclick = () => guess();
+        document.getElementById('vgo').onclick = async () => {
+          const go = document.getElementById('vgo'), ms = document.getElementById('vmsg'), mt = document.getElementById('vmeter');
+          document.querySelectorAll('.voce button').forEach(b => { b.disabled = true; });
+          ms.textContent = 'Ora! Grida!';
+          go.textContent = '🎤 Ti ascolto…';
+          let frames;
+          try {
+            frames = await Voce.listen({ ms: 2200, onLevel: v => { if (mt) mt.style.width = Math.round(v * 100) + '%'; } });
+          } catch (e) {
+            micDenied = true;
+            toastQuick('Microfono non disponibile: si gioca a orecchio.');
+            guess();
+            return;
+          }
+          const r = Voce.check(frames, target);
+          if (!r.ok && r.loud < 0.03) finish(false, 'Troppo piano! Il Maestro non ha sentito niente.');
+          else if (!r.ok && r.word && r.word !== target) finish(false, `Sembrava «${SHOUT_TXT[r.word]}», non «${SHOUT_TXT[target]}»: niente sorpresa.`);
+          else if (!r.ok) finish(false, 'Un po\' troppo corto: niente sorpresa.');
+          else finish(target, r.loud > 0.25 ? 'Che grido! Anche il Maestro si è spaventato.' : 'Sorpresa riuscita!');
+        };
+      };
+      // senza microfono: il Maestro grida e tu riconosci quale grido è
+      const guess = () => {
+        const w = ['shuaa', 'tinn', 'paaa'][Math.floor(Math.random() * 3)];
+        let left = 8;
+        openLayer(`<div class="overlay voce" role="dialog" aria-label="${esc(m.name)}">
+          <div class="eyebrow">${esc(m.name)} · Liming Yue</div>
+          <div class="grido" id="vgrido">?!</div>
+          <p id="vmsg">Il Maestro grida: quale grido senti? Indovina per la sorpresa!</p>
+          <div class="timer num" id="vtimer">${left}</div>
+          <div class="scelte">${['shuaa', 'tinn', 'paaa'].map(k => `<button class="btn" data-w="${k}">${SHOUT_TXT[k]}</button>`).join('')}</div>
+          <button class="btn ghost" id="vhear">🔊 Riascolta</button>
+        </div>`);
+        example(w);
+        document.getElementById('vhear').onclick = () => example(w);
+        document.querySelectorAll('.voce [data-w]').forEach(b => { b.onclick = () => { clearInterval(iv); finish(b.dataset.w === w ? w : false, b.dataset.w === w ? 'Orecchio da Maestro!' : `Era «${SHOUT_TXT[w]}»: niente sorpresa.`); }; });
+        const iv = setInterval(() => { left--; const t = document.getElementById('vtimer'); if (t) t.textContent = left; if (left <= 0 || done) { clearInterval(iv); finish(false, `Tempo scaduto! Era «${SHOUT_TXT[w]}».`); } }, 1000);
+      };
+      if (micDenied || !window.Voce || !Voce.supported()) guess(); else mic();
+    });
   }
 
   // formula segreta di Flavio
@@ -1947,6 +2036,134 @@
     A.on = null;
   }
 
+
+  // ------------------------------------------------------------ CHAT GLOBALE (supabase/aggiornamento-5.sql)
+  // Tutti i giocatori con l'account si scrivono qui. Niente librerie: si chiedono i messaggi nuovi ogni pochi secondi
+  // (ogni 4 con la chat aperta, ogni 20 altrimenti, mai con l'app in secondo piano).
+  // Notifiche in app: un avviso in alto quando arriva un messaggio e il numero dei non letti sul pulsante della home.
+  const C = { msgs: [], last: 0, unread: 0, timer: 0, off: false, err: '', first: true, sending: false,
+    read: load('chat_letto', 0), muted: load('chat_muti', []) };
+  const chatReady = () => cloudOn() && Cloud.signedIn() && Cloud.chatList;
+  const hhmm = iso => { const d = new Date(iso); return isNaN(d) ? '' : d.toDateString() === new Date().toDateString() ? d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }) : d.toLocaleDateString('it-IT', { day: 'numeric', month: 'short' }) + ' ' + d.toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' }); };
+  const shownMsgs = () => C.msgs.filter(m => !C.muted.includes(m.giocatore));
+  function countUnread() {
+    const me = Cloud.userId && Cloud.userId();
+    C.unread = shownMsgs().filter(m => m.id > C.read && m.giocatore !== me).length;
+  }
+  function markRead() { if (C.last > C.read) { C.read = C.last; store('chat_letto', C.read); } C.unread = 0; }
+  function chatSchedule(ms) { clearTimeout(C.timer); C.timer = setTimeout(chatPoll, ms); }
+  async function chatPoll() {
+    if (!chatReady() || C.off || document.hidden) { chatSchedule(30000); return; }
+    try {
+      const list = await Cloud.chatList(C.last || null);
+      const me = Cloud.userId();
+      const fresh = list.filter(m => m.id > C.last);
+      if (fresh.length) {
+        C.msgs = C.msgs.concat(fresh).slice(-200);
+        C.last = Math.max(C.last, ...fresh.map(m => m.id));
+        // la prima volta in assoluto non si annunciano i messaggi vecchi
+        if (!C.read) { C.read = C.last; store('chat_letto', C.read); }
+        if (A.screen === 'chat' && !document.hidden) markRead();
+        else {
+          countUnread();
+          const news = fresh.filter(m => m.giocatore !== me && m.id > C.read && !C.muted.includes(m.giocatore));
+          if (news.length && !C.first) chatNotify(news);
+          if (A.screen === 'home' && !$layer.innerHTML) render();
+        }
+        if (A.screen === 'chat') chatPaint(true);
+      }
+      C.err = '';
+    } catch (e) {
+      C.err = e.message;
+      if (/non è ancora attiva/.test(e.message)) C.off = true;
+      if (A.screen === 'chat') chatPaint();
+    }
+    C.first = false;
+    chatSchedule(A.screen === 'chat' ? 4000 : 20000);
+  }
+  // l'avviso in alto: toccandolo si apre la chat (in partita e nella storia si chiude e basta)
+  function chatNotify(news) {
+    const m = news[news.length - 1];
+    document.querySelectorAll('.chat-toast').forEach(x => x.remove());
+    const el = document.createElement('button');
+    el.className = 'toast chat-toast';
+    el.setAttribute('aria-live', 'polite');
+    el.innerHTML = `<span class="ct-ic" aria-hidden="true">💬</span><span><b>${esc(m.nome)}</b><span class="ct-tx">${esc(m.testo)}</span>${news.length > 1 ? `<small>e altri ${news.length - 1} messaggi</small>` : ''}</span>`;
+    el.onclick = () => { el.remove(); if (A.screen !== 'battle' && A.screen !== 'storia') go('chat'); };
+    document.body.appendChild(el);
+    sfx('alert');
+    if (window.Sound) Sound.buzz(30);
+    setTimeout(() => { el.classList.add('out'); setTimeout(() => el.remove(), 300); }, 5000);
+  }
+  function chatOpened() { markRead(); chatPaint(true); if (chatReady() && !C.off) chatPoll(); setTimeout(() => { const i = document.getElementById('chat-in'); if (i && !isIOS) i.focus(); }, 60); }
+  function msgHtml(m, me) {
+    const mine = m.giocatore === me;
+    return `<div class="msg ${mine ? 'mine' : ''}" data-act="chat-msg" data-id="${m.id}" role="button" tabindex="0">
+      <div class="mh"><b>${esc(m.nome)}</b><time>${esc(hhmm(m.creato))}</time></div><p>${esc(m.testo)}</p></div>`;
+  }
+  // aggiorna solo l'elenco: chi sta scrivendo non perde il testo
+  function chatPaint(toBottom) {
+    const box = document.getElementById('chat-list');
+    if (!box) return;
+    const atEnd = box.scrollHeight - box.scrollTop - box.clientHeight < 60;
+    const me = Cloud.userId && Cloud.userId();
+    const list = shownMsgs();
+    box.innerHTML = C.off ? '<p class="hint">La chat non è ancora attiva: chi gestisce il gioco deve incollare <b>supabase/aggiornamento-5.sql</b> in Supabase.</p>'
+      : list.length ? list.map(m => msgHtml(m, me)).join('') : `<p class="hint">${C.err ? esc(C.err) : C.first ? 'Carico i messaggi…' : 'Ancora nessun messaggio. Rompi il ghiaccio!'}</p>`;
+    if (toBottom || atEnd) box.scrollTop = box.scrollHeight;
+    const er = document.getElementById('chat-err');
+    if (er) er.textContent = C.err && list.length ? C.err : '';
+  }
+  function renderChat() {
+    const ok = chatReady();
+    const prof = load('profilo', null);
+    return `<div class="topbar"><button class="back" data-act="go" data-v="home">← Menu</button><div class="eyebrow">Tutti i giocatori</div></div>
+    <div class="chat-page">
+      <h2>💬 Chat della palestra</h2>
+      ${!cloudOn() ? '<p class="hint">La chat ha bisogno di internet.</p>' : !ok ? `<p class="hint" style="text-align:left">Per leggere e scrivere in chat entra nel tuo account.</p><button class="btn primary" data-act="go" data-v="account">Entra o registrati</button>` : `
+      <div class="chat-list" id="chat-list" aria-live="polite" aria-label="Messaggi"></div>
+      <p class="chat-err" id="chat-err" role="status"></p>
+      <div class="chat-form">
+        <input id="chat-in" maxlength="300" autocomplete="off" enterkeyhint="send" placeholder="${prof ? `Scrivi come ${esc(prof.nome)}…` : 'Scrivi a tutti…'}" aria-label="Messaggio">
+        <button class="btn primary" data-act="chat-send">Invia</button>
+      </div>
+      <p class="hint" style="text-align:left">Sii gentile: i messaggi li leggono tutti. Tocca un tuo messaggio per cancellarlo, o quello di un altro per silenziarlo.${C.muted.length ? ` <button class="linkish" data-act="chat-unmute">Riattiva i ${C.muted.length} silenziati</button>` : ''}</p>`}
+    </div>`;
+  }
+  async function chatSend() {
+    const inp = document.getElementById('chat-in');
+    if (!inp || C.sending) return;
+    const t = inp.value.replace(/\s+/g, ' ').trim();
+    if (!t) return;
+    C.sending = true;
+    try {
+      const r = await Cloud.chatSend(t.slice(0, 300));
+      inp.value = '';
+      const m = Array.isArray(r) ? r[0] : r;
+      if (m && m.id && !C.msgs.some(x => x.id === m.id)) { C.msgs.push(m); C.last = Math.max(C.last, m.id); markRead(); }
+      C.err = '';
+      chatPaint(true);
+      chatSchedule(1500);
+    } catch (e) {
+      C.err = e.message;
+      if (/non è ancora attiva/.test(e.message)) C.off = true;
+      chatPaint();
+      const er = document.getElementById('chat-err'); if (er) er.textContent = e.message;
+    } finally { C.sending = false; }
+  }
+  function chatMsgSheet(id) {
+    const m = C.msgs.find(x => x.id === +id);
+    if (!m) return;
+    const mine = m.giocatore === Cloud.userId();
+    openLayer(`<div class="sheet-wrap" data-act="close"><div class="sheet" role="dialog" data-stop>
+      <div class="sheet-head"><div><h3>${esc(m.nome)}</h3><p>${esc(hhmm(m.creato))}</p></div></div>
+      <p class="chat-quote">${esc(m.testo)}</p>
+      ${mine ? `<button class="btn" data-act="chat-del" data-v="${m.id}">🗑️ Cancella il messaggio</button>` : `<button class="btn" data-act="chat-mute" data-v="${esc(m.giocatore)}">🔇 Silenzia ${esc(m.nome)}</button>`}
+      <button class="btn ghost" data-act="close">Chiudi</button></div></div>`);
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && chatReady()) chatSchedule(400); });
+  setTimeout(chatPoll, 2500);
+
   // ------------------------------------------------------------ LAYER (fogli e sovrapposizioni)
   function openLayer(html) { $layer.innerHTML = html; const b = $layer.querySelector('.btn.primary, .move:not(:disabled), .btn'); if (b && !$layer.querySelector('input')) b.focus({ preventScroll: true }); }
   function closeLayer() { $layer.innerHTML = ''; }
@@ -1975,6 +2192,11 @@
     switch (kind) {
       case 'go': if (v === 'online') A.on = A.on || { phase: 'menu' }; if (v === 'novita') newsSeen(); go(v); break;
       case 'news-ok': newsSeen(); closeLayer(); break;
+      case 'chat-send': chatSend(); break;
+      case 'chat-msg': chatMsgSheet(el.dataset.id); break;
+      case 'chat-del': closeLayer(); Cloud.chatDelete(v).then(() => { C.msgs = C.msgs.filter(m => m.id !== +v); chatPaint(); }).catch(err => toastQuick(err.message)); break;
+      case 'chat-mute': C.muted = C.muted.concat(v); store('chat_muti', C.muted); closeLayer(); render(); chatPaint(true); break;
+      case 'chat-unmute': C.muted = []; store('chat_muti', C.muted); render(); chatPaint(true); break;
       case 'mode': A.mode = v; go('setup'); break;
       case 'storia': if (window.Storia) { A.screen = 'storia'; render(); Storia.open(); } break;
       case 'level': A.level = v; store('level', v); saveNames(); render(); break;
@@ -2254,14 +2476,47 @@
     if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-act]')) { e.preventDefault(); handle(e); }
     if (e.key === 'Enter' && ['acc-email', 'acc-pass', 'acc-name'].includes(e.target.id)) { const b = $app.querySelector('[data-act^="acc-"].primary, [data-act="acc-rename"]'); if (b) handle({ target: b }); }
     if (e.key === 'Enter' && e.target.id === 'segreto') handle({ target: document.querySelector('[data-act="egg-try"]') });
+    if (e.key === 'Enter' && e.target.id === 'chat-in') { e.preventDefault(); chatSend(); }
+    if ((e.key === 'Enter' || e.key === ' ') && e.target.dataset && e.target.dataset.act === 'chat-msg') { e.preventDefault(); chatMsgSheet(e.target.dataset.id); }
     if (e.key === 'Escape' && $layer.innerHTML && !$layer.querySelector('input') && $layer.querySelector('.sheet')) closeLayer();
   });
   window.addEventListener('beforeunload', () => { if (A.mode === 'online' && window.Net && Net.role) Net.send({ t: 'bye' }); });
 
   // ------------------------------------------------------------ app installabile (fuori dall'anteprima)
+  let swReg = null;
   if ('serviceWorker' in navigator && window.top === window && /^https:$|^http:$/.test(location.protocol) && location.hostname !== 'localhost') {
-    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* non installabile qui */ }); });
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => { swReg = r; }).catch(() => { /* non installabile qui */ }); });
   }
+
+  // ------------------------------------------------------------ aggiornamento forzato per tutti
+  // index.html porta il numero di versione (meta "versione"); versione.json sul sito dice qual è l'ultima.
+  // Se sono diverse, l'app si ricarica da sola appena si può (mai a metà di una sfida online o di una scena 3D).
+  // Per pubblicare un aggiornamento: node tools/nuova-versione.js (lo fa già push.bat).
+  const VERSIONE = (document.querySelector('meta[name="versione"]') || {}).content || '';
+  let updating = false;
+  function safeToReload() {
+    if (A.mode === 'online' && A.game && A.game.winner === null) return false;
+    if (document.body.classList.contains('arena-open') || A.busy) return false;
+    if (A.screen === 'battle' && A.mode === 'storia' && A.game && A.game.winner === null) return false; // le sfide della storia non si salvano a metà
+    return true;
+  }
+  function forceUpdate(v) {
+    if (updating) return;
+    if (!safeToReload()) { setTimeout(() => forceUpdate(v), 5000); return; }
+    updating = true;
+    toastQuick('Nuovo aggiornamento: il gioco si riavvia…');
+    if (A.game && A.screen === 'battle' && A.mode !== 'replay') saveGame();
+    const go = () => location.replace(location.pathname + '?v=' + encodeURIComponent(v) + location.hash);
+    Promise.resolve(swReg && swReg.update()).catch(() => {}).then(() => setTimeout(go, 1200));
+  }
+  function checkVersion() {
+    if (!VERSIONE || document.hidden || updating || !/^https?:$/.test(location.protocol)) return;
+    fetch('versione.json?t=' + Date.now(), { cache: 'no-store' }).then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d && d.v && String(d.v) !== VERSIONE) forceUpdate(String(d.v)); }).catch(() => { /* offline */ });
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
+  setInterval(checkVersion, 5 * 60 * 1000);
+  setTimeout(checkVersion, 4000);
 
   // ------------------------------------------------------------ MODALITÀ STORIA (storia.js): battaglie e carte
   // o = { players, terrain, music, onEnd(vinta: true/false, null se si scappa) }
@@ -2285,10 +2540,10 @@
     const add = ids.filter(id => S.CARD[id] && !have.includes(id) && !S.CARD[id].secret);
     if (add.length) store('unlocked', have.concat(add));
   }
-  S.UI = { storyBattle, unlockCards, unlockEvolution, toastQuick, sfx, home: () => { A.screen = 'home'; render(); } };
+  S.UI = { storyBattle, unlockCards, unlockEvolution, toastQuick, sfx, voice: title => voicePrompt({ name: title || 'Grida con me' }), home: () => { A.screen = 'home'; render(); } };
 
   // solo per i test automatici (indirizzo che termina con #test)
-  if (location.hash === '#test') window.__sttTest = { A, S, packReplay };
+  if (location.hash === '#test') window.__sttTest = { A, S, packReplay, launch, newSetup, go, voicePrompt };
 
   const replayLink = location.hash.startsWith('#replay=');
   render();

@@ -8,6 +8,7 @@ FOCUS = {  # centro del volto (x, y) in frazione di larghezza/altezza, lato del 
     'lorenzo': (.55, .28, .46), 'niccolo': (.55, .31, .48), 'samuele': (.50, .31, .50),
     
     'wangting': (.49, .24, .48), 'remigio': (.50, .26, .50), 'nicole': (.50, .30, .50),
+    'liming': (.512, .17, .24), 'ruben': (.50, .205, .30), 'simone': (.50, .19, .30), 'roberto': (.507, .33, .46), 'margherita': (.513, .30, .34), 'gatto': (.47, .195, .50), 'giulia': (.50, .22, .32),
     'signorello': (.46, .26, .50), 'annalisa': (.50, .30, .50), 'zhenglei': (.47, .26, .48), 'strahinja': (.50, .32, .46), 'viola': (.50, .30, .46), 'vittorio': (.50, .30, .48),
 }
 for cid, (fx, fy, side) in FOCUS.items():

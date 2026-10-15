@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#140f0c">
+<meta name="versione" content="30">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="apple-touch-icon" href="img/icona-192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -296,6 +297,15 @@
   .overlay .faces i { width: 64px; height: 64px; border-radius: 6px; background-size: cover; background-position: center; border: 1.5px solid var(--line); }
   .formula input { width: min(320px, 100%); min-height: 50px; border-radius: 6px; border: 1.5px solid var(--temple); background: var(--ink-2); color: var(--paper); padding: 8px 12px; font: 18px var(--body); text-align: center; }
   .timer { font-family: var(--display); font-size: 44px; color: var(--gold); }
+  /* grido al microfono (Onomotopia Disastrosa di Liming Yue) */
+  .voce .grido { font-family: var(--display); font-size: clamp(44px, 14vw, 76px); line-height: 1; color: #d9a4ff; text-shadow: 0 0 18px #b04cff99, 3px 3px 0 #2a1440; letter-spacing: .02em; }
+  .voce .grido.ok { color: var(--gold); text-shadow: 0 0 22px #ffd24aaa, 3px 3px 0 #3a2a10; animation: voce-pop .4s ease-out; }
+  .voce .grido.no { color: var(--paper-dim); text-shadow: none; }
+  .voce .meter { width: min(320px, 100%); height: 16px; border-radius: 8px; background: var(--ink-2); border: 1.5px solid var(--line); overflow: hidden; }
+  .voce .meter i { display: block; height: 100%; width: 0; background: linear-gradient(90deg, #6fb3e6, #b04cff, #ffd24a); transition: width .06s linear; }
+  .voce .scelte { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; width: min(360px, 100%); }
+  .voce .scelte .btn { min-width: 0; padding-inline: 4px; }
+  @keyframes voce-pop { 0% { transform: scale(.6); } 70% { transform: scale(1.15); } 100% { transform: scale(1); } }
 
   /* ---------- collezione / regole ---------- */
   .collection { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; padding-bottom: 24px; }
@@ -338,6 +348,30 @@
   .lad-body { display: flex; align-items: center; gap: 10px; }
   .lad-body small { color: var(--paper-dim); font-size: 13px; }
   .rank-page { display: grid; gap: 10px; padding-bottom: 24px; }
+  /* ---------- chat globale ---------- */
+  .chat-page { display: grid; gap: 10px; padding-bottom: 24px; }
+  .chat-list { display: grid; align-content: start; gap: 8px; height: min(58vh, 560px); overflow-y: auto; padding: 10px; border-radius: 10px; border: 1.5px solid var(--line); background: var(--ink-2); overscroll-behavior: contain; }
+  .msg { justify-self: start; max-width: 86%; padding: 7px 11px 8px; border-radius: 4px 12px 12px 12px; background: var(--ink); border: 1.5px solid var(--line); text-align: left; cursor: pointer; }
+  .msg.mine { justify-self: end; border-radius: 12px 4px 12px 12px; border-color: var(--temple-dim); background: #2a150c; }
+  .msg .mh { display: flex; gap: 8px; align-items: baseline; justify-content: space-between; }
+  .msg b { font-family: var(--label); font-size: 14px; letter-spacing: .02em; color: var(--gold); }
+  .msg.mine b { color: var(--temple); }
+  .msg time { font-size: 11.5px; color: var(--paper-dim); white-space: nowrap; }
+  .msg p { margin: 2px 0 0; font-size: 15px; line-height: 1.35; color: var(--paper); overflow-wrap: anywhere; white-space: pre-wrap; }
+  .chat-form { display: grid; grid-template-columns: 1fr auto; gap: 8px; }
+  .chat-form input { min-width: 0; min-height: 48px; border-radius: 8px; border: 1.5px solid var(--line); background: var(--ink-2); color: var(--paper); padding: 8px 12px; font: 16px var(--body); }
+  .chat-form input:focus { border-color: var(--temple); outline: none; }
+  .chat-form .btn { min-width: 0; padding-inline: 18px; }
+  .chat-err { margin: 0; min-height: 1em; font-size: 13.5px; color: #ff8a70; }
+  .chat-quote { margin: 0 0 4px; padding: 10px 12px; border-radius: 8px; background: var(--ink); color: var(--paper); overflow-wrap: anywhere; }
+  .linkish { background: none; border: 0; padding: 0; color: var(--temple); font: inherit; text-decoration: underline; cursor: pointer; }
+  .chat-btn { position: relative; }
+  .badge { position: absolute; top: -8px; right: -6px; min-width: 26px; height: 26px; padding: 0 7px; border-radius: 13px; background: #d8412f; color: #fff; font-size: 14px; font-weight: 700; display: grid; place-items: center; border: 2px solid var(--ink); }
+  .chat-toast { display: flex; gap: 10px; align-items: flex-start; text-align: left; cursor: pointer; color: var(--paper); font: inherit; width: auto; }
+  .chat-toast .ct-ic { font-size: 24px; line-height: 1; }
+  .toast.chat-toast b { font-family: var(--label); font-size: 15px; color: var(--gold); display: block; letter-spacing: .02em; }
+  .chat-toast .ct-tx { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; font-size: 14.5px; overflow-wrap: anywhere; }
+  .chat-toast small { display: block; margin-top: 2px; font-size: 12.5px; color: var(--paper-dim); }
   .sec { font-family: var(--label); font-weight: 700; font-size: 18px; letter-spacing: .05em; text-transform: uppercase; color: var(--temple); margin: 10px 0 0; }
   .board { width: 100%; border-collapse: collapse; font-size: 15px; }
   .board th { font-family: var(--label); font-weight: 600; font-size: 13px; letter-spacing: .06em; text-transform: uppercase; color: var(--paper-dim); text-align: left; padding: 4px 6px; border-bottom: 1px solid var(--line); }
@@ -639,16 +673,17 @@
 <body>
 <div id="app"></div>
 <div id="layer"></div>
-<script src="vendor/three.min.js"></script>
-<script src="vendor/peerjs.min.js"></script>
-<script src="engine.js"></script>
-<script src="audio.js"></script>
-<script src="net.js"></script>
-<script src="arena3d.js"></script>
-<script src="cloud.js"></script>
-<script src="mondo.js"></script>
-<script src="storia.js"></script>
-<script src="novita.js"></script>
-<script src="ui.js"></script>
+<script src="vendor/three.min.js?v=30"></script>
+<script src="vendor/peerjs.min.js?v=30"></script>
+<script src="engine.js?v=30"></script>
+<script src="audio.js?v=30"></script>
+<script src="voce.js?v=30"></script>
+<script src="net.js?v=30"></script>
+<script src="arena3d.js?v=30"></script>
+<script src="cloud.js?v=30"></script>
+<script src="mondo.js?v=30"></script>
+<script src="storia.js?v=30"></script>
+<script src="novita.js?v=30"></script>
+<script src="ui.js?v=30"></script>
 </body>
 </html>
