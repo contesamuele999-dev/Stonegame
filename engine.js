@@ -435,6 +435,55 @@
       ],
     },
     {
+      id: 'ruben', name: 'Ruben Rossi', rank: 'A', cost: 2, hp: 145, atk: 55, def: 50,
+      orig: { atk: 30, def: 40 },
+      moves: [
+        { name: 'Massaggio Illusorio', target: 'enemy', cd: 2, pierce: true, hit: { flat: 10 },
+          desc: 'Si avvicina proponendo un massaggio tuina, ma ne approfitta e attacca a sorpresa con 10 danni in più: impossibile schivarlo.',
+          use(g, u, t) { log(g, `💆 ${nm(u)} propone un massaggio tuina a ${nm(t)}...`); attack(g, u, t, { flat: 10, pierce: true }); } },
+        { name: 'Istinto Meridiano', target: 'self', cd: 3,
+          desc: 'Colpisce solo gli agopunti avversari: +10 ATK e +10 DEF per 3 turni.',
+          use(g, u) { addStatus(g, u, u, 'atkAdd', 3, 10, true); addStatus(g, u, u, 'defAdd', 3, 10, true); log(g, `🪡 ${nm(u)} trova i meridiani: +10 ATK e +10 DEF!`); } },
+      ],
+    },
+    {
+      id: 'simone', name: 'Simone Squizzato', rank: 'A', cost: 2, hp: 150, atk: 60, def: 55,
+      orig: { atk: 55, def: 45 },
+      moves: [
+        { name: 'Tuta Immanente', target: 'self', cd: 4,
+          desc: 'Il Qi accumulato in anni di pratica con la stessa tuta: +50 DEF per 2 turni.',
+          use(g, u) { addStatus(g, u, u, 'defAdd', 2, 50, true); log(g, `🥋 ${nm(u)} indossa la tuta di sempre: +50 DEF!`); } },
+        { name: 'Giovinezza Apparente', target: 'enemies', cd: 3,
+          desc: 'Sembra così giovane che gli avversari si sentono in svantaggio: tutti −15 ATK per 2 turni.',
+          use(g, u) { for (const f of enemies(g, u.owner)) addStatus(g, f, u, 'atkAdd', 2, -15); log(g, `😎 ${nm(u)} sfoggia la sua giovinezza: gli avversari si sentono vecchi!`); } },
+      ],
+    },
+    {
+      id: 'roberto', name: 'Roberto Morini', rank: 'A', cost: 3, hp: 140, atk: 65, def: 50,
+      orig: { atk: 60, def: 50 },
+      moves: [
+        { name: 'Accento Inclusivo', target: 'enemy', cd: 2, hit: { mul: 1.25 },
+          desc: 'Si fa amico dell\'avversario per poi dargli una pacca sulla spalla troppo forte: attacco con il 25% di forza in più.',
+          use(g, u, t) { log(g, `🤝 ${nm(u)} fa amicizia con ${nm(t)}... pacca sulla spalla!`); attack(g, u, t, { mul: 1.25 }); } },
+        // copyMul: la mossa copiata va con il 75% dell'ATK (doAction)
+        { name: 'Forma con VR', target: 'copy', cd: 4, nocopy: true, copyMul: 0.75,
+          desc: 'Studia le mosse avversarie con un\'analisi statistica in realtà virtuale: copia e usa subito una mossa speciale di un avversario in campo, ma con il 75% della forza.',
+          use() {} },
+      ],
+    },
+    {
+      id: 'margherita', name: 'Margherita Carli', rank: 'A', cost: 2, hp: 135, atk: 50, def: 50,
+      orig: { atk: 20, def: 40 },
+      moves: [
+        { name: 'Parlantina Competente', target: 'enemy', cd: 4, hit: {},
+          desc: 'Stordisce il nemico con una serie di nozioni super utili (1 turno) mentre lo colpisce.',
+          use(g, u, t) { log(g, `📚 ${nm(u)} spiega a ${nm(t)} tantissime nozioni utilissime...`); attack(g, u, t); stun(g, t, u, 1); } },
+        { name: 'Discernimento Occulto', target: 'enemy', cd: 3, pierce: true, hit: { atkAdd: 20 },
+          desc: 'Attacca senza che il nemico se ne accorga, con 20 ATK in più (nessuno capisce perché): non si può schivare.',
+          use(g, u, t) { log(g, `🔮 Nessuno capisce come, ma ${nm(u)} ha già colpito!`); attack(g, u, t, { atkAdd: 20, pierce: true }); } },
+      ],
+    },
+    {
       id: 'wangting', name: 'Chen Wangting', rank: 'L', title: 'Fondatore Supremo', cost: 6, hp: 170, atk: 85, def: 90,
       orig: { atk: '∞', def: '∞' },
       moves: [
@@ -839,7 +888,7 @@
     if (g.winner !== null) log(g, `🏆 ${g.players[g.winner].name} vince la sfida!`);
   }
 
-  // Attacco generico. opts: mul, flat, defMul, ignoreDef, pierce
+  // Attacco generico. opts: mul, flat, defMul, ignoreDef, pierce, atkAdd (ATK in più solo per questo colpo)
   function attack(g, u, t, opts) {
     opts = opts || {};
     if (u.hp <= 0 || t.hp <= 0) return 0;
@@ -856,7 +905,7 @@
         log(g, `${nm(t)} è una presenza eterea: il colpo la attraversa!`); ev(g, { type: 'status', uid: t.uid, text: 'SCHIVATA' }); return 0;
       }
     }
-    let atk = effAtk(g, u) * (opts.mul || 1);
+    let atk = (effAtk(g, u) + (opts.atkAdd || 0)) * (opts.mul || 1);
     const nx = get(u, 'nextAtkMul');
     if (nx) { atk *= nx.value; u.st = u.st.filter(s => s !== nx); }
     let ignoreDef = opts.ignoreDef;
@@ -1165,6 +1214,13 @@
         const o = enemies(g, u.owner).filter(f => f !== t && !has(f, 'hidden'));
         if (o.length) attack(g, u, o[Math.floor(rand(g) * o.length)], { basic: true, mul: w.cleave });
       }
+    } else if (m.copyMul && exec !== m) {
+      // copia "con meno forza" (Forma con VR): per la mossa copiata l'ATK vale solo copyMul
+      const weak = { type: 'atkMul', dur: 1, value: m.copyMul, src: u.owner, at: g.turnNo, perm: false };
+      u.st.push(weak);
+      exec.use(g, u, t, a);
+      u.st = u.st.filter(x => x !== weak);
+      if (!exec.nocopy) g.lastSpecial = { card: exec.ref.card, i: exec.ref.i };
     } else {
       exec.use(g, u, t, a);
       // la bottiglia di Carla cattura l'ultima mossa speciale usata
@@ -1209,7 +1265,7 @@
     if (blocked) return [0, 0];
     const w = weaponOf(u) || {};
     const hits = m.basic && w.twice ? 2 : 1;
-    let atk = effAtk(g, u) * (h.mul || 1) * (hits === 2 ? w.twice : 1);
+    let atk = (effAtk(g, u) + (h.atkAdd || 0)) * (h.mul || 1) * (hits === 2 ? w.twice : 1);
     const nx = get(u, 'nextAtkMul'); if (nx) atk *= nx.value;
     const ignore = h.ignoreDef || has(u, 'feint');
     const def = ignore ? 0 : Math.max(-25, effDef(g, t) * (h.defMul || 1) - (w.pierceDef || 0));

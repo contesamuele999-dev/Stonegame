@@ -397,7 +397,7 @@
       { id: 'consiglio', x: 12, y: 22, look: 'gente', name: 'Escursionista',
         say: ['Camminando nell\'erba alta incontrerai gli spiriti delle carte.', 'Se vinci, una pergamena può reclutarli. Se non ti va di combattere, puoi sempre scappare!', 'Tieni premuto B per correre.'] },
     ],
-    wild: { rate: 0.09, pool: [['nicole', 1, 2], ['caterina', 1, 2], ['annalisa', 1, 3], ['vittorio', 2, 3], ['viola', 2, 3], ['grazia', 2, 3, 5]] },
+    wild: { rate: 0.09, pool: [['nicole', 1, 2], ['caterina', 1, 2], ['annalisa', 1, 3], ['vittorio', 2, 3], ['viola', 2, 3], ['margherita', 1, 3, 6], ['grazia', 2, 3, 5]] },
     exits: [{ x: 7, y: 29, w: 2, to: 'lancenigo', tx: 10, ty: 1 }, { x: 7, y: 0, w: 2, to: 'priula', tx: 7, ty: 18 }],
   };
 
@@ -443,7 +443,7 @@
       { id: 'ragazza', x: 4, y: 14, look: 'gente2', name: 'Ragazza', move: 'wander',
         say: ['La Federica allena gli allievi delle medie. Sono tantissimi e urlano tantissimo.', 'Nella sua palestra gli Allievi hanno +10 ATK e +10 DEF: portane qualcuno!'] },
     ],
-    wild: { rate: 0.08, pool: [['christian', 2, 4], ['grazia', 2, 3], ['annastella', 2, 4], ['viola', 2, 4], ['alessandro', 3, 4, 5]] },
+    wild: { rate: 0.08, pool: [['christian', 2, 4], ['grazia', 2, 3], ['annastella', 2, 4], ['viola', 2, 4], ['ruben', 2, 4, 6], ['alessandro', 3, 4, 5]] },
     exits: [{ x: 7, y: 19, w: 2, to: 'percorso1', tx: 7, ty: 1 }, { x: 0, y: 6, to: 'montello', tx: 22, ty: 3 }],
   };
 
@@ -547,7 +547,7 @@
           after: '...',
           onWin: W => W.gain('signorello', 6, 'Lorenzo Signorello si unisce a te!') } },
     ],
-    wild: { on: 'c', rate: 0.05, pool: [['christian', 3, 5], ['celeste', 3, 5], ['adriano', 3, 5], ['remigio', 4, 5], ['alessandro', 3, 5], ['lorenzo', 4, 5, 4], ['strahinja', 5, 5, 2]] },
+    wild: { on: 'c', rate: 0.05, pool: [['christian', 3, 5], ['celeste', 3, 5], ['adriano', 3, 5], ['remigio', 4, 5], ['simone', 4, 5, 6], ['alessandro', 3, 5], ['lorenzo', 4, 5, 4], ['strahinja', 5, 5, 2]] },
     exits: [{ x: 23, y: 3, to: 'priula', tx: 1, ty: 6 }, { x: 13, y: 19, to: 'percorso2', tx: 7, ty: 1 }],
   };
 
@@ -719,7 +719,7 @@
         trainer: { cards: ['federica', 'celeste', 'viola'], lv: 7, cpu: 'normale', sight: 5,
           intro: 'Una signora non rifiuta mai un duello. Prego, prima tu.', win: 'Oh my. Che maleducazione vincere così bene.', after: 'Il Maestro Liming Yue è severo, ma giusto.' } },
     ],
-    wild: { rate: 0.1, n: 2, cpu: 'normale', pool: [['federica', 6, 8], ['niccolo', 6, 8], ['strahinja', 6, 8], ['celeste', 6, 7], ['grazia', 6, 7], ['signorello', 8, 8, 2]] },
+    wild: { rate: 0.1, n: 2, cpu: 'normale', pool: [['federica', 6, 8], ['niccolo', 6, 8], ['strahinja', 6, 8], ['celeste', 6, 7], ['grazia', 6, 7], ['roberto', 6, 8, 4], ['signorello', 8, 8, 2]] },
   };
 
   maps.palestra_liming = {

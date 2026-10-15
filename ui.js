@@ -1240,7 +1240,7 @@
     const list = S.copyOptions(g, f).map(o => `<button class="move special" data-act="copy-pick" data-uid="${f.uid}" data-i="${i}" data-card="${o.ref.card}" data-mi="${o.ref.i}">
       <span class="mh"><span class="mn">${esc(o.move.name)}</span><span class="why">da ${esc(o.from)}</span></span><span class="md">${esc(o.move.desc)}</span></button>`).join('');
     openLayer(`<div class="sheet-wrap" data-act="close"><div class="sheet" role="dialog" data-stop>
-      <div class="sheet-head"><div><h3>Apprendimento Fulmineo</h3><p>Quale mossa vuoi copiare?</p></div></div>
+      <div class="sheet-head"><div><h3>${esc((S.movesOf(f)[i] || {}).name || 'Copia')}</h3><p>Quale mossa vuoi copiare?${(S.movesOf(f)[i] || {}).copyMul ? ` Andrà con il ${Math.round(S.movesOf(f)[i].copyMul * 100)}% della forza.` : ''}</p></div></div>
       ${list}<button class="btn ghost" data-act="close">Annulla</button></div></div>`);
   }
 
@@ -2483,9 +2483,40 @@
   window.addEventListener('beforeunload', () => { if (A.mode === 'online' && window.Net && Net.role) Net.send({ t: 'bye' }); });
 
   // ------------------------------------------------------------ app installabile (fuori dall'anteprima)
+  let swReg = null;
   if ('serviceWorker' in navigator && window.top === window && /^https:$|^http:$/.test(location.protocol) && location.hostname !== 'localhost') {
-    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js').catch(() => { /* non installabile qui */ }); });
+    window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js', { updateViaCache: 'none' }).then(r => { swReg = r; }).catch(() => { /* non installabile qui */ }); });
   }
+
+  // ------------------------------------------------------------ aggiornamento forzato per tutti
+  // index.html porta il numero di versione (meta "versione"); versione.json sul sito dice qual è l'ultima.
+  // Se sono diverse, l'app si ricarica da sola appena si può (mai a metà di una sfida online o di una scena 3D).
+  // Per pubblicare un aggiornamento: node tools/nuova-versione.js (lo fa già push.bat).
+  const VERSIONE = (document.querySelector('meta[name="versione"]') || {}).content || '';
+  let updating = false;
+  function safeToReload() {
+    if (A.mode === 'online' && A.game && A.game.winner === null) return false;
+    if (document.body.classList.contains('arena-open') || A.busy) return false;
+    if (A.screen === 'battle' && A.mode === 'storia' && A.game && A.game.winner === null) return false; // le sfide della storia non si salvano a metà
+    return true;
+  }
+  function forceUpdate(v) {
+    if (updating) return;
+    if (!safeToReload()) { setTimeout(() => forceUpdate(v), 5000); return; }
+    updating = true;
+    toastQuick('Nuovo aggiornamento: il gioco si riavvia…');
+    if (A.game && A.screen === 'battle' && A.mode !== 'replay') saveGame();
+    const go = () => location.replace(location.pathname + '?v=' + encodeURIComponent(v) + location.hash);
+    Promise.resolve(swReg && swReg.update()).catch(() => {}).then(() => setTimeout(go, 1200));
+  }
+  function checkVersion() {
+    if (!VERSIONE || document.hidden || updating || !/^https?:$/.test(location.protocol)) return;
+    fetch('versione.json?t=' + Date.now(), { cache: 'no-store' }).then(r => (r.ok ? r.json() : null))
+      .then(d => { if (d && d.v && String(d.v) !== VERSIONE) forceUpdate(String(d.v)); }).catch(() => { /* offline */ });
+  }
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) checkVersion(); });
+  setInterval(checkVersion, 5 * 60 * 1000);
+  setTimeout(checkVersion, 4000);
 
   // ------------------------------------------------------------ MODALITÀ STORIA (storia.js): battaglie e carte
   // o = { players, terrain, music, onEnd(vinta: true/false, null se si scappa) }

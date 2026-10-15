@@ -25,6 +25,7 @@
     signorello: ['#a3161b', '#d4ae62'], remigio: ['#2a5aa8', '#d8412f'], nicole: ['#f2ede6', '#e89ab0'],
     annalisa: ['#e9f2ea', '#55b98a'], wangting: ['#6d6a5e', '#d4ae62'], zhenglei: ['#f4efe2', '#b04cff'],
     liming: ['#1c1c1f', '#d8412f'], gatto: ['#d4a530', '#c8322a'], giulia: ['#2a2a2e', '#b8322a'],
+    ruben: ['#1a1a1d', '#ff8a3a'], simone: ['#1e1626', '#d4ae62'], roberto: ['#2f4a2a', '#7bd87b'], margherita: ['#efe8dc', '#ff9a3d'],
   };
   const BELT = { M: '#d4ae62', I: '#111111', A: '#f2efe6', L: '#b04cff' };
 
@@ -85,6 +86,14 @@
     'Presenza Ammazzatempo': { anim: 'cast', fx: 'hypno', e: '🐱', c: '#ffd24a' },
     'Squartatrice di Anime': { anim: 'spin', fx: 'burst', e: '🔪', c: '#d8412f' },
     'Pucciosità Illusoria': { anim: 'cast', fx: 'orb', e: '🥺', c: '#ff8fb1' },
+    'Massaggio Illusorio': { anim: 'palm', fx: 'burst', e: '💆', c: '#ff8a3a' },
+    'Istinto Meridiano': { anim: 'meditate', fx: 'aura', e: '🪡', c: '#ffb347' },
+    'Tuta Immanente': { anim: 'powerup', fx: 'metal', e: '🥋', c: '#d4ae62' },
+    'Giovinezza Apparente': { anim: 'cast', fx: 'wave', e: '😎', c: '#a978e0' },
+    'Accento Inclusivo': { anim: 'punch', fx: 'burst', e: '🤝', c: '#7bd87b' },
+    'Forma con VR': { anim: 'cast', fx: 'orb', e: '🥽', c: '#38d6ff' },
+    'Parlantina Competente': { anim: 'shout', fx: 'bubble', t: 'BLA BLA', c: '#eadbc0' },
+    'Discernimento Occulto': { anim: 'palm', fx: 'burst', e: '🔮', c: '#b04cff' },
   };
 
   // ------------------------------------------------------------ stato
@@ -176,6 +185,7 @@
     remigio: [0.502, 0.24, 0.12], samuele: [0.576, 0.216, 0.063, '#2b2018'],
     signorello: [0.479, 0.23, 0.086], strahinja: [0.48, 0.255, 0.096], viola: [0.5, 0.283, 0.168, '#5a3a24'],
     vittorio: [0.476, 0.288, 0.196], wangting: [0.49, 0.191, 0.085], zhenglei: [0.46, 0.21, 0.105],
+    ruben: [0.507, 0.213, 0.118, '#3a2418'], simone: [0.5, 0.202, 0.11, '#c99a7a'], roberto: [0.507, 0.329, 0.2, '#8a8a86'], margherita: [0.513, 0.315, 0.17, '#2a1d16'],
     liming: [0.512, 0.173, 0.07, '#1d1612'], gatto: [0.47, 0.215, 0.26, '#d4a530'], giulia: [0.487, 0.207, 0.1, '#5a3a24'],
   };
   // foto del viso di fronte, solo per le teste 3D: [file in img/, centro x, centro y, larghezza del viso, capelli]

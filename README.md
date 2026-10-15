@@ -1,6 +1,6 @@
 # Stone Temple Cards Game
 
-Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal telefono con 26 personaggi della palestra (tra cui il Maestro Liming Yue, Giulia Gagno e il Gatto Dorato) e 2 Leggende del Taijiquan stile Chen.
+Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal telefono con 30 personaggi della palestra (tra cui il Maestro Liming Yue e il Gatto Dorato) e 2 Leggende del Taijiquan stile Chen.
 
 - **Contro il computer**, con tre livelli di difficoltà: facile, normale e difficile.
 - **Torneo**: 5 incontri contro squadre sempre più forti, fino al Tempio dei Maestri.
@@ -38,8 +38,12 @@ Dal menu iniziale, "📖 Modalità Storia". Si crea il proprio personaggio (nome
 - **Comprare, vendere, scambiare**: in bottega pergamene e bustine (Allievi, Istruttori, Maestri: più sigilli hai, più alto il livello della carta che esce) e si vendono le copie doppie. Alcuni abitanti propongono scambi di carte.
 - **Squadra**: 4 carte e 10 Punti Dojo come nel gioco normale; le carte trovate nella storia si sbloccano anche nel resto del gioco. Le carte segrete restano fuori dalla storia.
 - **Arena del Tempio** (Lancenigo, a destra della Stone Temple Tao): una torre di sfide senza fine, aperta dal primo sigillo. Al piano N una squadra a caso di livello 1 + N/2 (anche oltre il 10), sempre la stessa per lo stesso viaggio e piano; il computer passa da facile a normale (dal piano 6) e difficile (dal 16); la palestra cambia a ogni piano. Ogni 5 piani un campione (Tommaso, Federica, Liming Yue, Chen Delang, Samuele, le Leggende, poi da capo più forti): vale 3 pergamene e una carta (Istruttore, Maestro dal piano 15, Leggenda dal 30). Ogni 10 piani un traguardo: chi perde riparte dall'ultimo, senza perdere monete. La **sfida del giorno** ha una regola diversa ogni giorno, uguale per tutti (solo Allievi, tre Maestri nella Piazza del Taiji, squadra da 7 Punti Dojo...), avversari di un livello sopra la tua squadra e un premio in più una volta al giorno. Il record sta nella Tessera.
-- **La Grotta dei Sussurri** (sidestory in Inghilterra): dopo aver battuto il Maestro Liming Yue, lui confessa che lo spirito della sua carta è scappato e grida nella grotta del parco (il bobby all'ingresso ora ti lascia passare). Dentro si sentono le sue grida vere, registrate («Shuaaa», «Tinn», «Paaa», «Taaan», «Zsss»…), con le scritte che indicano da dove arrivano; con le cuffie si sente anche da che parte (audio stereo). Per raggiungerlo si risponde alle sue tre grida colpendo le lanterne di pietra nello stesso ordine (diverso per ogni viaggio). Lo spirito ti fa gridare con lui al microfono e poi ti sfida, con il remix delle sue grida come musica: vincendo, la carta di Liming Yue si unisce a te. Le mutande ritrovate nella grotta si riportano al Maestro in cambio di monete. Liming Yue si trova solo qui (non esce dalle vittorie a caso né dalle bustine); Gatto Dorato e Giulia Gagno si incontrano nella grotta e sul Percorso 2.
+- **La Grotta dei Sussurri** (sidestory in Inghilterra): dopo aver battuto il Maestro Liming Yue, lui confessa che lo spirito della sua carta è scappato e grida nella grotta del parco (il bobby all'ingresso ora ti lascia passare). Dentro si sentono le sue grida vere, registrate («Shuaaa», «Tinn», «Paaa», «Taaan», «Zsss»…), con le scritte che indicano da dove arrivano; con le cuffie si sente anche da che parte (audio stereo). Per raggiungerlo si risponde alle sue tre grida colpendo le lanterne di pietra nello stesso ordine (diverso per ogni viaggio). Lo spirito ti fa gridare con lui al microfono e poi ti sfida, con il remix delle sue grida come musica: vincendo, la carta di Liming Yue si unisce a te. Le mutande ritrovate nella grotta si riportano al Maestro in cambio di monete. Liming Yue si trova solo qui (non esce dalle vittorie a caso né dalle bustine); Gatto Dorato e Giulia Gagno si incontrano nella grotta e sul Percorso 2; Margherita Carli sul Percorso 1, Ruben Rossi a Ponte della Priula, Simone Squizzato nella Grotta del Montello, Roberto Morini nel parco inglese.
 - Il viaggio si salva da solo (a ogni porta, sfida e acquisto) sul telefono. Mappe e trama stanno in `mondo.js` (anche l'Arena), il motore del mondo in `storia.js`; `node tools/test-storia.js` controlla che le mappe siano percorribili e che le squadre dell'Arena siano valide.
+
+### Aggiornamento automatico su tutti i telefoni
+
+Il numero di versione sta in `index.html` (`<meta name="versione">` e `?v=` sugli script), in `versione.json` e nel nome della cache di `sw.js`; `node tools/nuova-versione.js` li alza tutti insieme (`push.bat` lo fa da solo quando ci sono modifiche). Ogni telefono con il gioco aperto controlla `versione.json` all'avvio, ogni 5 minuti e quando l'app torna in primo piano: se la versione è cambiata mostra "Nuovo aggiornamento: il gioco si riavvia…" e si ricarica da solo con i file nuovi. Non lo fa mai a metà di una sfida online, di una sfida della Modalità Storia o di una scena 3D: aspetta la fine (le altre partite si salvano e si riprendono). Le app aperte con una versione precedente alla 30 le ricarica una volta il service worker.
 
 ## Come aprirlo
 
@@ -178,6 +182,7 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 | Niccolò Cividini | Istruttore | 3 | 135 | 70 | 65 |
 | Strahinja Crnic | Istruttore | 3 | 140 | 80 → **75** | 50 |
 | Lorenzo Pattaro | Allievo | 3 | 145 | 90 → **80** | 80 → **55** |
+| Roberto Morini | Allievo | 3 | 140 | 60 → **65** | 50 |
 | Adriano Rossetto | Allievo | 2 | 145 | 30 → **50** | 90 → **80** |
 | Alessandro Rizzo | Allievo | 2 | 150 | 60 → **65** | 30 → **35** |
 | Annastella Bettiol | Allievo | 2 | 150 | 40 → **60** | 50 |
@@ -187,6 +192,9 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 | Christian Cecchin | Allievo | 2 | 115 | 40 → **50** | 50 |
 | Grazia Lecci | Allievo | 2 | 120 | 40 → **55** | 45 |
 | Remigio Spinazzè | Allievo | 2 | 140 | 70 → **65** | 70 → **60** |
+| Ruben Rossi | Allievo | 2 | 145 | 30 → **55** | 40 → **50** |
+| Simone Squizzato | Allievo | 2 | 150 | 55 → **60** | 45 → **55** |
+| Margherita Carli | Allievo | 2 | 135 | 20 → **50** | 40 → **50** |
 | Viola Donadi | Allievo | 2 | 125 | 40 → **50** | 50 |
 | Vittorio Buosi | Allievo | 2 | 100 | 50 → **40** | 30 → **35** |
 | Annalisa Brino | Allievo | 1 | 145 | 20 → **45** | 50 → **55** |
@@ -283,6 +291,10 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 - *Terza Persona Colloquiale* (ricarica 4): Stordisce il nemico dandogli del "Lei" per 2 turni.
 - *Mutandone Dirompente* (ricarica 3): Indossa la divisa da Sumo: +20 ATK e +20 DEF per 3 turni.
 
+**Margherita Carli**
+- *Parlantina Competente* (ricarica 4): Stordisce il nemico con una serie di nozioni super utili (1 turno) mentre lo colpisce.
+- *Discernimento Occulto* (ricarica 3): Attacca senza che il nemico se ne accorga, con 20 ATK in più: non si può schivare.
+
 **Nicole Fava**
 - *Cameraman Improvvisato* (ricarica 3): Cattura l'istante perfetto: prende fino a 30 punti DEF dell'avversario e li aggiunge ai suoi per 2 turni; il suo prossimo attacco fa il 50% in più.
 - *Gentilezza Ultrapremurosa* (ricarica 4): Il tocco magico della cura: +10 ATK e +10 DEF a ogni membro della squadra in campo per 2 turni, e 10 PV di cura.
@@ -291,9 +303,21 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 - *Potenziamento Tysoniano* (ricarica 2, al massimo 3 volte): Aumenta l'attacco di 10 punti per il resto della partita (fino a 3 volte).
 - *Manutenzione Post-Apocalittica* (ricarica 4): Cura tutta la squadra in campo di 20 PV.
 
+**Roberto Morini**
+- *Accento Inclusivo* (ricarica 2): Si fa amico dell'avversario e poi gli dà una pacca sulla spalla troppo forte: attacco con il 25% di forza in più.
+- *Forma con VR* (ricarica 4): Copia e usa subito una mossa speciale di un avversario in campo, ma con il 75% della forza.
+
+**Ruben Rossi**
+- *Massaggio Illusorio* (ricarica 2): Propone un massaggio tuina e attacca a sorpresa con 10 danni in più: impossibile schivarlo.
+- *Istinto Meridiano* (ricarica 3): Colpisce solo gli agopunti: +10 ATK e +10 DEF per 3 turni.
+
 **Samuele Contessa**
 - *Videopatia* (ricarica 3): Chi entra nell'obiettivo subisce ansia da prestazione: ATK e DEF −50% per 2 turni.
 - *Gomiti di Ferro* (ricarica 4): Invulnerabile per 1 turno e +10 ATK per ogni carta Maestro in campo (per 2 turni).
+
+**Simone Squizzato**
+- *Tuta Immanente* (ricarica 4): Il Qi accumulato in anni di pratica con la stessa tuta: +50 DEF per 2 turni.
+- *Giovinezza Apparente* (ricarica 3): Sembra così giovane che gli avversari si sentono in svantaggio: tutti −15 ATK per 2 turni.
 
 **Strahinja Crnic**
 - *Dolori Omnidirezionali* (ricarica 4): Dolori che nessuno nota: ogni avversario in campo subisce 10 danni per 3 turni (ignorano la difesa).
