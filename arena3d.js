@@ -24,6 +24,7 @@
     strahinja: ['#2b4c8c', '#6fb3e6'], viola: ['#8c2b2b', '#ff9a3d'], vittorio: ['#151515', '#e8631c'],
     signorello: ['#a3161b', '#d4ae62'], remigio: ['#2a5aa8', '#d8412f'], nicole: ['#f2ede6', '#e89ab0'],
     annalisa: ['#e9f2ea', '#55b98a'], wangting: ['#6d6a5e', '#d4ae62'], zhenglei: ['#f4efe2', '#b04cff'],
+    liming: ['#1c1c1f', '#d8412f'], gatto: ['#d4a530', '#c8322a'], giulia: ['#2a2a2e', '#b8322a'],
   };
   const BELT = { M: '#d4ae62', I: '#111111', A: '#f2efe6', L: '#b04cff' };
 
@@ -78,6 +79,12 @@
     'Discendenza Impetuosa': { anim: 'point', fx: 'orb', e: '🙇', c: '#d4ae62' },
     'Ciuffata Cosmica': { anim: 'dance', fx: 'shock', e: '🌌', c: '#b04cff' },
     'Forma Universale': { anim: 'cast', fx: 'calm', e: '🌀', c: '#f5e27a' },
+    'Onomotopia Disastrosa': { anim: 'shout', fx: 'bubble', t: '!!!', c: '#b04cff', voice: true },
+    'Vestiario Smemorato': { anim: 'throw', fx: 'lob', e: '🩲', c: '#ff8fb1' },
+    'Zampata Perpetua': { anim: 'palm', fx: 'burst', e: '🐾', c: '#ffd24a' },
+    'Presenza Ammazzatempo': { anim: 'cast', fx: 'hypno', e: '🐱', c: '#ffd24a' },
+    'Squartatrice di Anime': { anim: 'spin', fx: 'burst', e: '🔪', c: '#d8412f' },
+    'Pucciosità Illusoria': { anim: 'cast', fx: 'orb', e: '🥺', c: '#ff8fb1' },
   };
 
   // ------------------------------------------------------------ stato
@@ -169,6 +176,7 @@
     remigio: [0.502, 0.24, 0.12], samuele: [0.576, 0.216, 0.063, '#2b2018'],
     signorello: [0.479, 0.23, 0.086], strahinja: [0.48, 0.255, 0.096], viola: [0.5, 0.283, 0.168, '#5a3a24'],
     vittorio: [0.476, 0.288, 0.196], wangting: [0.49, 0.191, 0.085], zhenglei: [0.46, 0.21, 0.105],
+    liming: [0.512, 0.173, 0.07, '#1d1612'], gatto: [0.47, 0.215, 0.26, '#d4a530'], giulia: [0.487, 0.207, 0.1, '#5a3a24'],
   };
   // foto del viso di fronte, solo per le teste 3D: [file in img/, centro x, centro y, larghezza del viso, capelli]
   const PHOTO = { samuele: ['volti3d/samuele.webp', 0.503, 0.6, 0.66, '#2b2018'] };
@@ -1445,18 +1453,33 @@
 
     const A = fighter(spec.attacker);
     equip(A, spec.attacker.weapon);
-    A.g.position.set(-0.55, 0, 1.3);
     root.add(A.g);
-    const tgs = spec.targets.slice(0, 5).map((t, i, arr) => {
+    const tlist = spec.targets.slice(0, 5);
+    const tgs = tlist.map(t => {
       const ch = fighter(t);
       equip(ch, t.weapon);
-      const n = arr.length;
-      const spread = n === 1 ? [0] : Array.from({ length: n }, (_, k) => k / (n - 1) - 0.5);
-      const s = spread[i];
-      ch.g.position.set(0.55 + s * 1.6, 0, -1.5 - Math.abs(s) * 0.6 + (n > 3 && i % 2 ? 0.35 : 0));
       root.add(ch.g);
       return { ch, out: t.out, ally: t.ally };
     });
+    // prospettiva: la squadra di chi tiene il telefono (spec.viewer) sta sempre in primo piano,
+    // quella avversaria sullo sfondo, chiunque agisca. Senza viewer: in primo piano chi agisce.
+    const mine = d => (spec.viewer === undefined || spec.viewer === null || spec.viewer < 0 ? d === spec.attacker || d.ally : d.owner === spec.viewer);
+    const near = [], far = [];
+    (mine(spec.attacker) ? near : far).push(A);
+    tlist.forEach((t, i) => (mine(t) ? near : far).push(tgs[i].ch));
+    if (!far.length || !near.length) {
+      // una squadra sola in scena: chi agisce davanti, gli altri dietro (come sempre)
+      const others = (far.length ? far : near).filter(c => c !== A);
+      near.length = 0; far.length = 0; near.push(A); far.push(...others);
+    }
+    const row = (list, cx, z, deep) => list.forEach((c, i) => {
+      const n = list.length;
+      const s = n === 1 ? 0 : i / (n - 1) - 0.5;
+      c.g.position.set(cx + s * (z > 0 ? 1.3 : 1.6), 0, z + deep * Math.abs(s) * 0.6 + (n > 3 && i % 2 ? -deep * 0.35 : 0));
+    });
+    // in primo piano si sta più stretti: in due o tre restano dentro lo schermo del telefono
+    row(near, near.length > 1 ? -0.1 : -0.55, 1.3, -0.4);
+    row(far, far.length > 1 ? 0.45 : 0.55, -1.5, -1);
     const focus = tgs.length ? tgs.map(t => t.ch.g.position).reduce((a, b) => a.clone().add(b)).multiplyScalar(1 / tgs.length) : new T.Vector3(1, 0, -1);
     stage(A, focus.x, focus.z, 0.6);
     tgs.forEach(t => stage(t.ch, A.g.position.x, A.g.position.z, 0.3));
@@ -1528,7 +1551,7 @@
         const to = chestPos(t.ch);
         const fx = M.fx;
         if (fx === 'lob' || kind === 'throw') await lob(from, to, M.e || '✨', 0.55);
-        else if (fx === 'bubble') { const s = sprite(textTex(M.t, '#000', true), 0.6); s.position.copy(from); root.add(s); await tween(0.45, tt => { s.position.lerpVectors(from, headPos(t.ch).add(new T.Vector3(0, 0.3, 0)), tt); }, ease.out); setTimeout(() => root.remove(s), 500 / speed); }
+        else if (fx === 'bubble') { const s = sprite(textTex(M.voice && spec.flags && spec.flags.formula ? String(spec.flags.formula).toUpperCase().split(' ')[0] + '!' : M.t, '#000', true), 0.6); s.position.copy(from); root.add(s); await tween(0.45, tt => { s.position.lerpVectors(from, headPos(t.ch).add(new T.Vector3(0, 0.3, 0)), tt); }, ease.out); setTimeout(() => root.remove(s), 500 / speed); }
         else if (fx === 'wave' || fx === 'hypno') { for (let k = 0; k < 3; k++) { const p = new T.Vector3().lerpVectors(from, to, (k + 1) / 4); ring(p, M.c, 0.6 + k * 0.2, 0.45, false, to); await wait(0.07); } await orb(from, to, M.c, M.e, 0.3, 0.1); if (fx === 'hypno') for (let k = 0; k < 4; k++) { ring(to, k % 2 ? '#ffffff' : M.c, 1.3, 0.5); await wait(0.06); } }
         else if (fx === 'shock') { const gp = new T.Vector3(A.g.position.x, 0.04, A.g.position.z); if (i === 0) { ring(gp, M.c, 4.5, 0.6, true); shake(0.1, 0.3); } await wait(0.3); }
         else if (fx === 'papers') { for (let k = 0; k < 3; k++) { lob(from, to.clone().add(new T.Vector3(0, k * 0.15, 0)), '📄', 0.4, 0.5); await wait(0.05); } await lob(from, to, M.e, 0.4, 0.4); }
@@ -1563,7 +1586,8 @@
         await Promise.all([moveTo(ghost, gx, gz, 0.35, ease.out), toPose(A, 'dizzy', 0.2)]);
         root.remove(ghost.g);
         pop(hp(), emojiTex(M.e), 0.6, 0.9);
-        await tween(0.35, (t, raw) => { A.g.position.x = -0.55 - Math.sin(raw * Math.PI) * 0.4; }, ease.lin);
+        const fx0 = A.g.position.x;
+        await tween(0.35, (t, raw) => { A.g.position.x = fx0 - Math.sin(raw * Math.PI) * 0.4; }, ease.lin);
       } else {
         const p = M.pose || (kind === 'meditate' ? 'meditate' : kind === 'stomp' ? 'stomp' : 'power');
         sfx(kind === 'meditate' ? 'heal' : 'buff');

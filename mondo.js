@@ -6,7 +6,7 @@
  *   #  parete di grotta c  pavimento di grotta    o  masso
  *   W  muro interno    w  parquet                m  tatami          R  tappeto        e  zerbino (uscita)
  *   x  scaffale        q  tavolo                 p  pianta          l/j letto (testa/piedi) k bancone
- *   g  pavimento del tempio  G  muro del tempio  L  lanterna di pietra  i  lampione   U  cabina telefonica
+ *   g  pavimento del tempio  G  muro del tempio  L  lanterna di pietra  u  lanterna di grotta  i  lampione   U  cabina telefonica
  * Gli edifici (bld) si appoggiano sopra le caselle: la porta è la casella in basso alla colonna "door".
  * Gli script (talk, run, onWin…) ricevono W, l'API di storia.js: say, ask, gain, challenge, shop, fly, trade…
  */
@@ -48,6 +48,9 @@
     guardia: { h: '#2a2020', c: '#3a4a6a', p: '#2a2a3a', style: 'short' },
     pescatore: { h: '#8a8a8a', c: '#3aa060', p: '#5a4a3a', style: 'short' },
     custode: { h: '#d8d8d0', c: '#8a2420', d: '#e0b040', b: '#e0b040', p: '#222228', style: 'bun' },
+    spirito: { h: '#b8a8e8', s: '#e8e0fa', c: '#3a2a5a', d: '#d8412f', b: '#b04cff', p: '#8a7ab0', style: 'short' },
+    bobby: { h: '#3a2a22', c: '#1c2a4a', d: '#e0c060', p: '#1c2a4a', style: 'short' },
+    acchiappa: { h: '#c8482a', c: '#c8b878', d: '#d8412f', p: '#6a5a3a', style: 'short' },
   };
 
   const BADGES = [
@@ -194,6 +197,8 @@
             W.scrolls(5); W.sfx('item');
             return W.say('Hai ricevuto 5 pergamene!');
           }
+          if (W.flag('sussurri:via') && !W.flag('sussurri:fine')) return W.say(['Da tre notti, dalla grotta del parco: «Shuaaa!», «Tinn!», «Paaa!».', 'Ho provato con i tappi per le orecchie e con la camomilla. Niente. Il tè risolve tutto, tranne questo.'], who);
+          if (W.flag('sussurri:fine')) return W.say('Finalmente dormo! Stanotte ho sognato solo un piccolo «shuaa». Molto educato.', who);
           return W.say('Anche il Tè del Maestro, nelle sfide, toglie gli effetti negativi. Il tè risolve tutto.', who);
         } },
       { id: 'inglese3', where: 'ing', x: 5, y: 3, look: 'inglese', name: 'Mr. Smith',
@@ -593,7 +598,7 @@
           win: ['Di nuovo?! Va bene, va bene...', 'Vado in Cina ad allenarmi con i veri Maestri. Ci rivediamo là!'],
           lose: 'Te l\'avevo detto! Allenati ancora, {n}!' } },
     ],
-    wild: { rate: 0.09, pool: [['vittorio', 4, 6], ['viola', 4, 6], ['annastella', 4, 6], ['remigio', 5, 6], ['lorenzo', 5, 6, 5], ['niccolo', 6, 6, 2]] },
+    wild: { rate: 0.09, pool: [['vittorio', 4, 6], ['viola', 4, 6], ['annastella', 4, 6], ['remigio', 5, 6], ['gatto', 4, 6, 6], ['giulia', 4, 6, 6], ['lorenzo', 5, 6, 5], ['niccolo', 6, 6, 2]] },
     exits: [{ x: 7, y: 0, to: 'montello', tx: 13, ty: 18 }, { x: 7, y: 27, w: 2, to: 'treviso', tx: 12, ty: 1 }],
   };
 
@@ -670,7 +675,7 @@
     name: 'Inghilterra', check: [12, 15], weather: 'pioggia',
     tiles: [
       'TTTTTTTTTTTTTTTTTTTTTT',
-      'TT...............,,,TT',
+      'TT..............MMOMTT',
       'TT...............,,,TT',
       'TT...............,,,TT',
       'TT..............,,,,TT',
@@ -695,11 +700,16 @@
       { x: 15, y: 9, w: 5, h: 4, k: 'casa', door: 2, to: 'casa', room: 'ing', roof: '#8a3a3a', wall: '#e4dccc' },
     ],
     signs: [{ x: 15, y: 8, text: 'INGHILTERRA · Palestra del Maestro Liming Yue: disciplina inglese, mosse speciali più rapide.' }],
+    cave: { to: 'sussurri', tx: 9, ty: 16, dir: 'up' },
     npc: [
       { id: 'pilota', x: 14, y: 15, dir: 'left', look: 'pilota', name: 'Pilota',
         talk: async (W, who) => { await W.say('Il mio aereo è pronto. Si parte?', who); if (!await W.fly()) await W.say('Quando vuoi, sono qui.', who); } },
       { id: 'mercante', x: 19, y: 15, dir: 'left', look: 'inglese', name: 'Bancarella',
         talk: async (W, who) => { await W.say('Pergamene e bustine, signore! Accettiamo anche monete italiane.', who); await W.shop(['pergamena', 'pergamene5', 'bustinaA', 'bustinaI']); } },
+      { id: 'bobby', x: 18, y: 2, dir: 'down', look: 'bobby', name: 'Bobby', fixed: true, hide: s => !!s.flags['sussurri:via'],
+        say: s => (s.badges.includes(1)
+          ? ['Grotta chiusa per sussurri molesti, signore.', 'Il Maestro Liming Yue mi ha detto di non far entrare nessuno. Dice che la faccenda è... imbarazzante.', 'Se vuole entrare, ne parli con lui in palestra.']
+          : ['Grotta chiusa, signore. Dentro qualcuno grida «Shuaaa!» giorno e notte.', 'Scotland Yard pensa a un fantasma. Io penso a un tenore molto mattiniero.']) },
       { id: 'pioggia', x: 8, y: 15, look: 'inglese2', name: 'Signora con ombrello', move: 'wander',
         say: ['Qui piove sempre. Il Maestro Liming Yue dice che la pioggia allena la pazienza.'] },
       { id: 'arthur', x: 9, y: 10, dir: 'right', look: 'inglese', name: 'Gentleman Arthur',
@@ -734,7 +744,37 @@
         trainer: { cards: ['niccolo', 'strahinja', 'federica', 'nicole'], lv: 8, cpu: 'normale', badge: 1, sight: 2,
           intro: ['Benvenuto. In questa palestra le mosse speciali si ricaricano un turno prima.', 'Disciplina, puntualità, tè alle cinque. Cominciamo.'],
           win: ['Ottima disciplina, {n}.', 'Il Sigillo della Disciplina è tuo. Ora puoi volare in Cina, a Chenjiagou.'],
-          after: 'A Chenjiagou troverai Chen Delang nella Piazza del Taiji. Salutamelo.' } },
+          after: 'A Chenjiagou troverai Chen Delang nella Piazza del Taiji. Salutamelo.' },
+        // dopo la sfida: la sidestory della Grotta dei Sussurri
+        talk: async (W, who) => {
+          if (W.flag('sussurri:fine')) {
+            if (!W.flag('sussurri:premio')) {
+              W.set('sussurri:premio');
+              await W.say(['SHUAAA! ...Scusa. La voce è tornata e la sto provando.', 'Il mio spirito ti segue, vedo. Trattalo bene: grida forte, ma ha un cuore d\'oro.'], who);
+              const n = [0, 1, 2].filter(i => W.flag(`it:sussurri:${i}`)).length;
+              if (n) {
+                await W.say([`E queste sono... ${n === 3 ? 'tutte e tre le mutande' : n === 1 ? 'le mutande' : 'le mutande'} dei miei allievi! Le hai ritrovate nella grotta?`, 'In Inghilterra un gentiluomo ricompensa sempre chi restituisce la biancheria.'], who);
+                W.money(400 * n); W.sfx('item');
+                await W.say(`Hai ricevuto ${400 * n} monete!`);
+              }
+              return W.say('Disciplina, puntualità, tè alle cinque. E ogni tanto, un bel grido.', who);
+            }
+            return W.say('Ricordati: l\'Onomotopia Disastrosa si grida, non si sussurra. Al microfono, con tutto il fiato!', who);
+          }
+          if (!W.flag('sussurri:via')) {
+            W.set('sussurri:via');
+            await W.say([
+              'Ottima sfida, {n}. Ora però... devo confessarti una cosa imbarazzante.',
+              'Stamattina mi allenavo con i ventagli nella grotta del parco. Ho gridato «SHUAAA!» così forte che lo spirito della mia carta è saltato fuori.',
+              'Ora vaga là dentro e ripete le mie grida: «Shuaaa! Tinn! Paaa!». I vicini pensano che la grotta sia infestata. Mrs. Brown non dorme da tre notti.',
+              'E non è tutto. È uno spirito dispettoso: ruba le mutande a chi entra. Lo chiamo Vestiario Smemorato. Non chiedermi perché lo so.',
+              'Io senza voce non posso insegnare. Vai tu: segui i sussurri, ascolta da che parte arrivano. Se riesci a calmarlo, viaggerà con te.',
+              'Ho avvisato il bobby davanti alla grotta: ti lascerà passare. E se trovi delle mutande... riportamele. Non sono mie. Sono dei miei allievi. Davvero.',
+            ], who);
+            return;
+          }
+          return W.say(['La grotta è nel parco, a nord-est. Segui i sussurri!', 'Consiglio da Maestro: con le cuffie si capisce meglio da che parte arrivano.'], who);
+        } },
       { id: 'inglese1', x: 0, y: 8, dir: 'right', look: 'inglese', name: 'Allievo inglese',
         trainer: { cards: ['strahinja', 'caterina', 'viola'], lv: 7, cpu: 'normale', sight: 10,
           intro: 'Allievo del Maestro Liming Yue, al tuo servizio. E alla tua sconfitta!', win: 'Bloody hell!', after: 'Il Maestro usa tanti Istruttori: le mosse che valgono doppio sugli Istruttori qui brillano.' } },
@@ -744,6 +784,123 @@
       { id: 'guida', x: 8, y: 10, look: 'gente', name: 'Guida',
         say: ['Qui le mosse speciali si ricaricano un turno prima: per entrambe le squadre!', 'Il Maestro schiera Istruttori. Carte come Oksana o Federico, se le hai, fanno effetto doppio su di loro.'] },
     ],
+  };
+
+  // ------------------------------------------------------------ SIDESTORY: la Grotta dei Sussurri (Inghilterra)
+  // Lo spirito della carta di Liming Yue è scappato e grida nella grotta. Si segue la voce (stereo: da che parte arriva),
+  // si risponde ai suoi gridi colpendo le lanterne nell'ordine giusto e lo si sfida: vincendo arriva la carta di Liming Yue.
+  const SUS_WORD = { shuaa: ['shuaa1', 'Shuaaa…'], tinn: ['tinn', 'Tinn…'], paaa: ['paaa', 'Paaa…'] };
+  const SUS_LANTERN = { '5,7': 'shuaa', '10,7': 'tinn', '14,7': 'paaa' };
+  // l'ordine dei gridi: sempre lo stesso per lo stesso viaggio
+  const susSeq = s => { const w = ['shuaa', 'tinn', 'paaa']; let h = 7; for (const c of String(s.id || s.name || 'x')) h = (h * 31 + c.charCodeAt(0)) | 0; h = Math.abs(h); return [w.splice(h % 3, 1)[0], w.splice((h >> 3) % 2, 1)[0], w[0]]; };
+  let susProg = [];
+  const SPIRITO = { name: 'Spirito di Liming Yue', face: 'liming' };
+  async function susCall(W) {
+    const seq = susSeq(W.s);
+    await W.say('Dal buio, oltre il masso, lo spirito grida:');
+    for (const k of seq) { W.whisper(SUS_WORD[k][0], SUS_WORD[k][1].toUpperCase().replace('…', '!'), [9, 2], { vol: 1 }); await W.sleep(1150); }
+    await W.sleep(300);
+  }
+  maps.sussurri = {
+    name: 'Grotta dei Sussurri', dark: true, music: 'grotta', edge: '#',
+    tiles: [
+      '####################',
+      '#######cccccc#######',
+      '######cccccccc######',
+      '######ccc~~ccc######',
+      '######cccccccc######',
+      '#########cc#########',
+      '#####cccccccccc#####',
+      '#####uccccucccu#####',
+      '#####cccccccccc#####',
+      '#####cccccccccc#####',
+      '#########cc#########',
+      '##cccccccccccccccc##',
+      '##cc###~~~~~~###cc##',
+      '##cc###~~~~~~###cc##',
+      '##cc#cccccccccc#cc##',
+      '##cccc###cc###cccc##',
+      '#########cc#########',
+      '#########cc#########',
+    ],
+    // il masso davanti alla sala dello spirito: si sposta rispondendo ai suoi gridi
+    gates: [{ x: 9, y: 5, open: s => !!s.flags['sussurri:porta'] }, { x: 10, y: 5, open: s => !!s.flags['sussurri:porta'] }],
+    whisper: {
+      every: [2600, 5200],
+      from: s => (s.flags['sussurri:fine'] ? null : [10, 2]),
+      list: [['shuaa1', 'Shuaaa…'], ['shuaa2', 'Shuaaa…'], ['tinn', 'Tinn…'], ['tin', 'Tin!'], ['paaa', 'Paaa…'], ['pah', 'Pah!'], ['shuum', 'Shuuum…'],
+        ['vuum', 'Vuuum…'], ['yah', 'Yah!'], ['taaan', 'Taaan…'], ['zss', 'Zsss…'], ['iii', 'Iiih…'], ['bum', 'Bum…'], ['aquila', 'Kiii!'], ['sus1', '…'], ['sus2', '…']],
+    },
+    look: {
+      u: 'Una lanterna di pietra con un ventaglio inciso. Sembra fatta per essere colpita.',
+      o: 'Un masso enorme. Dall\'altra parte qualcuno ridacchia: «Shuaaa…»',
+    },
+    act: (x, y, s) => {
+      // le lanterne: ognuna ha il suo grido
+      const k = SUS_LANTERN[x + ',' + y];
+      if (k) return async W => {
+        await W.sample(SUS_WORD[k][0], { echo: true });
+        if (W.flag('sussurri:porta')) return W.say(`La lanterna risponde: «${SUS_WORD[k][1].replace('…', '!').toUpperCase()}» L'eco rimbalza ovunque.`);
+        susProg.push(k);
+        const seq = susSeq(s), okSoFar = susProg.every((w, i) => w === seq[i]);
+        if (!okSoFar) { susProg = []; await W.sleep(250); await W.sample('bum', { echo: true }); return W.say('Dall\'altra parte del masso: «BUM!». Lo spirito sbuffa. Si ricomincia da capo.'); }
+        if (susProg.length < seq.length) return W.say(`La lanterna grida: «${SUS_WORD[k][1].replace('…', '!').toUpperCase()}» Lo spirito, oltre il masso, ascolta…`);
+        susProg = [];
+        W.set('sussurri:porta');
+        await W.sleep(300);
+        W.whisper('aquila', 'KIIII!', [9, 2], { vol: 1 });
+        await W.sleep(700);
+        W.gates();
+        return W.say(['Lo spirito ha riconosciuto le sue grida! Il masso rotola via con un gran fracasso.', 'Dalla sala in fondo arriva un «Shuaaa» molto soddisfatto.']);
+      };
+      // il masso: lo spirito ripete i suoi gridi
+      if ((x === 9 || x === 10) && y === 5 && !s.flags['sussurri:porta']) return async W => { susProg = []; await susCall(W); return W.say('Forse le lanterne di pietra possono rispondergli. Nello stesso ordine.'); };
+      return null;
+    },
+    trig: [{ x: 9, y: 9, w: 2, if: s => !s.flags['sussurri:porta'] && !s.flags['sussurri:eco'], run: async W => {
+      W.set('sussurri:eco');
+      await susCall(W);
+      await W.say(['Tre gridi, uno dopo l\'altro. Poi silenzio.', 'Davanti a te ci sono tre lanterne di pietra con un ventaglio inciso. E un masso che blocca il passaggio.']);
+    } }],
+    items: [
+      { x: 2, y: 15, money: 50, text: 'Per terra c\'è un paio di mutande a pois! Le metti via con discrezione: sono degli allievi del Maestro.' },
+      { x: 17, y: 15, money: 50, text: 'Un altro paio di mutande, con i draghetti. Nel taschino ci sono delle monete.' },
+      { x: 13, y: 2, money: 100, text: 'Mutande di seta con scritto «MAESTRO». Forse queste sono proprio sue.' },
+      { x: 17, y: 11, scrolls: 3 },
+    ],
+    signs: [{ x: 13, y: 9, text: 'Inciso nella roccia: «Chi risponde al Maestro come il Maestro lo chiama, passa». Sotto, a matita: «Mutande smarrite: chiedere a Liming».' }],
+    npc: [
+      { id: 'nigel', x: 12, y: 14, dir: 'left', look: 'acchiappa', name: 'Acchiappafantasmi Nigel',
+        trainer: { cards: ['gatto', 'giulia', 'annalisa'], lv: 8, cpu: 'normale', sight: 4,
+          intro: ['Fermo! Qui c\'è un fantasma che grida «Shuaaa!».', 'Io l\'ho quasi preso. Mi ha rubato le mutande. Ma l\'ho quasi preso.'],
+          win: ['Va bene, va bene. Il fantasma è tuo.', 'Consiglio: ascolta da che parte arriva la voce. Le cuffie aiutano. Io le ho perse insieme alle mutande.'],
+          after: 'La sala con le lanterne è a nord. Il fantasma risponde solo a chi grida come lui.' } },
+      { id: 'spirito', x: 10, y: 2, dir: 'down', look: 'spirito', name: 'Spirito di Liming Yue', face: 'liming', hide: s => !!s.flags['sussurri:fine'],
+        talk: async (W, who) => {
+          await W.sample('shuaa2', { echo: true });
+          await W.say([
+            'SHUAAA! ...Oh. Ciao.',
+            'Scusa, è più forte di me: qui l\'eco è perfetta. TINN! Senti che bello?',
+            'Sono lo spirito della carta del Maestro Liming Yue. Stamattina ha gridato così forte che sono saltato fuori.',
+            'Le mutande? Ah, sì. Vestiario Smemorato: le prendo in prestito. Per sempre.',
+            'Vuoi riportarmi dal Maestro? Prima fammi sentire la tua voce. Grida con me!',
+          ], who);
+          const ok = await W.voice('Grida con lo spirito');
+          await W.say(ok ? 'PAAA! Che fiato! Mi piaci già.' : 'Mmh, più un sussurro che un grido. Ma vediamo come te la cavi in sfida!', who);
+          if (await W.ask('Sfidi lo spirito di Liming Yue?', ['Sfida!', 'Non ancora'], who) !== 0) return W.say('Shuaaa… ti aspetto. Tanto io da qui non mi muovo.', who);
+          const win = await W.challenge({ name: 'Spirito di Liming Yue', cards: ['liming', 'federica', 'niccolo', 'strahinja'], lv: [9, 8, 8, 8], cpu: 'normale', terrain: 'liming', music: 'liming',
+            intro: 'Onomotopia Disastrosa! SHUAAA!',
+            win: ['...shuaa. Hai vinto tu.', 'Va bene, viaggerò con te. Prometto di gridare solo in sfida. Quasi sempre.'],
+            lose: 'TINN! Torna quando avrai più fiato.' }, who);
+          if (!win) return;
+          W.set('sussurri:fine');
+          await W.gain('liming', 8, 'Liming Yue si unisce a te!');
+          W.refresh();
+          await W.say(['Nella grotta torna il silenzio. Si sente solo una goccia… e, lontano, un piccolo «shuaa». Forse è solo l\'abitudine.', 'Il Maestro Liming Yue sarà contento di saperlo.']);
+        } },
+    ],
+    wild: { on: 'c', rate: 0.04, pool: [['giulia', 6, 8], ['gatto', 6, 8], ['viola', 6, 8], ['christian', 7, 8], ['federica', 7, 8, 4]] },
+    exits: [{ x: 9, y: 17, w: 2, to: 'inghilterra', tx: 18, ty: 2 }],
   };
 
   maps.chenjiagou = {

@@ -232,6 +232,8 @@
     '....ommmmmo.....', '...ommmmmmmo....', '...ooooooooo....', '................',
   ];
   function lantern(g) { tfloor(g); pat(g, LANTERN, 0, 0, { o: '#3a3a40', m: '#a8a8a0', y: '#ffd860', r: '#ff8a3a' }); }
+  // la lanterna di pietra della Grotta dei Sussurri: stessa lanterna, sul pavimento della grotta, con la fiamma viola
+  function caveLantern(g) { caveFloor(g, 1); pat(g, LANTERN, 0, 0, { o: '#2a2028', m: '#9a948c', y: '#e2c4ff', r: '#b04cff' }); }
   function lamp(g) {
     pave(g);
     pat(g, ['......oooo......', '.....oyyyyo.....', '.....oyyyyo.....', '......oooo......'], 0, 0, { o: '#202028', y: '#ffe08a' });
@@ -254,7 +256,7 @@
     'M': { p: mountain, v: 4, n: 1, solid: 1 }, 'O': { p: caveMouth }, '#': { p: caveWall, v: 4, n: 1, solid: 1 }, 'c': { p: caveFloor, v: 4 },
     'b': { p: bridge, n: 1 }, 'W': { p: wall, n: 1, solid: 1 }, 'w': { p: wood, v: 2 }, 'm': { p: tatami, v: 2 }, 'R': { p: rug, n: 1 },
     'x': { p: shelf, v: 4, solid: 1 }, 'q': { p: table, solid: 1 }, 'p': { p: plant, solid: 1 }, 'l': { p: bedTop, solid: 1 }, 'j': { p: bedLow, solid: 1 },
-    'k': { p: counter, solid: 1 }, 'e': { p: mat }, 'g': { p: tfloor }, 'G': { p: twall, n: 1, solid: 1 }, 'L': { p: lantern, solid: 1 },
+    'k': { p: counter, solid: 1 }, 'e': { p: mat }, 'g': { p: tfloor }, 'G': { p: twall, n: 1, solid: 1 }, 'L': { p: lantern, solid: 1 }, 'u': { p: caveLantern, solid: 1 },
     'i': { p: lamp, solid: 1 }, 'U': { p: phone, solid: 1 }, '0': { p: voidT, solid: 1 },
   };
   const tileCache = new Map();
@@ -523,9 +525,12 @@
   }
   function enterMap(id, x, y, dir) {
     const d = M.maps[id];
-    MAP = { id, def: d, rows: d.tiles, W: d.tiles[0].length, H: d.tiles.length, bld: [], items: [], signs: d.signs || [] };
+    // i passaggi chiusi (gates) diventano massi finché la loro condizione non si avvera
+    const rows = d.tiles.map(r => r.split(''));
+    (d.gates || []).forEach(gt => { if (!(gt.open && gt.open(s))) rows[gt.y][gt.x] = gt.tile || 'o'; });
+    MAP = { id, def: d, rows: rows.map(r => r.join('')), W: d.tiles[0].length, H: d.tiles.length, bld: [], items: [], signs: d.signs || [] };
     MAP.edge = d.edge || (d.inside ? '0' : 'T');
-    MAP.block = d.tiles.map(r => r.split('').map(ch => !!(TILES[ch] && TILES[ch].solid)));
+    MAP.block = MAP.rows.map(r => r.split('').map(ch => !!(TILES[ch] && TILES[ch].solid)));
     for (const b of d.bld || []) {
       const o = Object.assign({ img: building(b), dx: b.x + b.door, dy: b.y + b.h - 1 }, b);
       for (let j = 0; j < b.h; j++) for (let i = 0; i < b.w; i++) MAP.block[b.y + j][b.x + i] = true;
@@ -539,11 +544,43 @@
     s.flags['visto:' + id] = 1;
     if (d.check) s.check = { map: id, x: d.check[0], y: d.check[1] };
     setTrack(d.music || 'mondo');
-    grace = 2;
+    grace = 2; whisperAt = 0; whispers.length = 0;
     if (d.name && !d.inside) showPlace(d.name);
     save();
   }
   function refreshNpcs() { npcs = npcs.filter(n => visible(n.def)); }
+  // riapre i passaggi la cui condizione ora è vera (il masso si sposta)
+  function openGates() {
+    let any = false;
+    (MAP.def.gates || []).forEach(gt => {
+      if (!(gt.open && gt.open(s)) || MAP.rows[gt.y][gt.x] === MAP.def.tiles[gt.y][gt.x]) return;
+      MAP.rows[gt.y] = MAP.rows[gt.y].slice(0, gt.x) + MAP.def.tiles[gt.y][gt.x] + MAP.rows[gt.y].slice(gt.x + 1);
+      MAP.block[gt.y][gt.x] = !!(TILES[MAP.rows[gt.y][gt.x]] || {}).solid;
+      any = true;
+    });
+    return any;
+  }
+
+  // ------------------------------------------------------------ sussurri (Grotta dei Sussurri): grida vere, da una direzione
+  // map.whisper = { from: s => [x, y] | null, every: [min, max] ms, list: [[campione, scritta], ...] }
+  let whisperAt = 0;
+  const whispers = []; // le scritte che fluttuano verso chi sussurra
+  function whisper(name, text, at, o) {
+    const dx = at[0] - P.x, dy = at[1] - P.y, d = Math.hypot(dx, dy);
+    if (window.Sound && Sound.sample) Sound.sample(name, Object.assign({ pan: clamp(dx / 7, -0.9, 0.9), vol: clamp(1.15 - d / 16, 0.18, 1), echo: true }, o || {}));
+    whispers.push({ text, t: performance.now(), dx, dy, d });
+  }
+  function whisperTick(now) {
+    const wd = MAP.def.whisper;
+    if (!wd) return;
+    if (!whisperAt) { whisperAt = now + 1200; return; }
+    if (now < whisperAt) return;
+    whisperAt = now + wd.every[0] + Math.random() * (wd.every[1] - wd.every[0]);
+    const at = wd.from(s);
+    if (!at) return;
+    const [name, text] = pick(wd.list);
+    whisper(name, text, at);
+  }
   function free(x, y, who) {
     if (x < 0 || y < 0 || x >= MAP.W || y >= MAP.H || MAP.block[y][x]) return false;
     if (who !== P && P.x === x && P.y === y) return false;
@@ -636,6 +673,7 @@
     }
     // i png si muovono da soli quando non succede niente
     if (busy()) return;
+    whisperTick(now);
     for (const n of npcs) {
       const mv = n.def.move;
       if (!mv || n.mv || now < n.next) continue;
@@ -760,6 +798,21 @@
         const x = ((i * 97 + now * 0.12) % (cw / scale + 40) - 20) * scale, y = ((i * 53 + now * 0.45) % (chh / scale + 20) - 10) * scale;
         R(g, 'rgba(210,225,255,.55)', x, y, scale, 5 * scale); R(g, 'rgba(210,225,255,.55)', x - scale, y + 5 * scale, scale, 3 * scale);
       }
+    }
+    // le scritte dei sussurri: partono da te e vanno verso chi sussurra
+    const nowW = performance.now();
+    while (whispers.length && nowW - whispers[0].t > 2000) whispers.shift();
+    for (const w of whispers) {
+      const k = (nowW - w.t) / 2000, len = Math.min(w.d * TS, 54) * scale + 14 * scale;
+      const ux = w.d ? w.dx / w.d : 0, uy = w.d ? w.dy / w.d : -1;
+      const fs = Math.round(9 * scale);
+      g.font = `italic ${fs}px 'Jersey 15', sans-serif`;
+      const tw = g.measureText(w.text).width;
+      const x = clamp(sx + ux * len, tw / 2 + 6, cw - tw / 2 - 6), y = clamp(sy + uy * len - k * 22 * scale, fs + 4, chh - 6);
+      g.globalAlpha = Math.min(1, (1 - k) * 2);
+      g.textAlign = 'center'; g.lineWidth = Math.max(2, scale); g.strokeStyle = '#1a0c26'; g.fillStyle = '#e2c4ff';
+      g.strokeText(w.text, x, y); g.fillText(w.text, x, y);
+      g.globalAlpha = 1; g.textAlign = 'left';
     }
     if (!MAP.def.inside && !MAP.def.dark) {
       const h = new Date().getHours();
@@ -1072,7 +1125,7 @@
         s.money -= it.price;
         if (it.scrolls) { s.scrolls += it.scrolls; sfx('item'); }
         if (it.pool) {
-          const id = pick(S.CARDS.filter(c => c.rank === it.pool && !c.secret).map(c => c.id));
+          const id = pick(S.CARDS.filter(c => c.rank === it.pool && !c.secret && !c.story).map(c => c.id));
           addCard(id, it.lv ? it.lv(s) : 1); save(); hud();
           await nested(() => reveal(id, `Dalla bustina esce ${S.CARD[id].name}!`));
         }
@@ -1283,6 +1336,8 @@
     if (sg) { run(() => say(sg.text)); return; }
     const it = MAP.items.find(o => o.x === x && o.y === y);
     if (it) { run(() => takeItem(it)); return; }
+    const act = MAP.def.act && MAP.def.act(x, y, s);
+    if (act) { run(() => act(W)); return; }
     const look = (MAP.def.look || {})[tileAt(x, y)] || M.LOOK_AT[tileAt(x, y)];
     if (look) run(() => say(typeof look === 'function' ? look(s) : look));
   }
@@ -1292,6 +1347,7 @@
     MAP.block[it.y][it.x] = false;
     if (it.card) { await say('Per terra c\'è una carta luccicante!'); await gain(it.card, it.lv || 1, `Hai trovato ${S.CARD[it.card].name}!`); return; }
     sfx('item');
+    if (it.text) await say(it.text);
     if (it.scrolls) { s.scrolls += it.scrolls; await say(`Hai trovato ${it.scrolls > 1 ? it.scrolls + ' pergamene' : 'una pergamena'}!`); }
     if (it.money) { s.money += it.money; await say(`Hai trovato ${it.money} monete!`); }
   }
@@ -1334,6 +1390,11 @@
     xp: gainXp,
     name: id => (S.CARD[id] ? S.CARD[id].name : id),
     beat: id => { s.flags[`tr:${MAP.id}:${id}`] = 1; },
+    gates: () => { const any = openGates(); if (any) sfx('bighit'); return any; },
+    whisper: (name, text, at, o) => whisper(name, text, at || [P.x, P.y - 1], o),
+    sample: (name, o) => (window.Sound && Sound.sample ? Sound.sample(name, o) : Promise.resolve()),
+    voice: title => (S.UI && S.UI.voice ? S.UI.voice(title) : Promise.resolve(false)),
+    pos: () => [P.x, P.y],
     ending,
   };
 

@@ -1,6 +1,6 @@
 # Stone Temple Cards Game
 
-Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal telefono con i 23 personaggi della palestra e 2 Leggende del Taijiquan stile Chen.
+Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal telefono con 26 personaggi della palestra (tra cui il Maestro Liming Yue, Giulia Gagno e il Gatto Dorato) e 2 Leggende del Taijiquan stile Chen.
 
 - **Contro il computer**, con tre livelli di difficoltà: facile, normale e difficile.
 - **Torneo**: 5 incontri contro squadre sempre più forti, fino al Tempio dei Maestri.
@@ -20,13 +20,15 @@ Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal tele
 - **Velocità di gioco** regolabile in ogni momento (lenta, normale, veloce): pensata anche per chi ha bisogno di più tempo per leggere.
 - **Modalità Storia**: un viaggio a piedi in stile gioco di ruolo portatile, con città, percorsi, grotte e palestre (vedi sotto).
 - **Promemoria di accesso**: chi gioca senza account vede in home (e a fine partita) un invito ad accedere o registrarsi, che serve per le statistiche di gioco e per entrare in classifica. "Più tardi" lo nasconde fino alla prossima visita.
+- **Chat della palestra**: dalla home, "💬 Chat della palestra", tutti i giocatori con l'account si scrivono (fino a 300 caratteri, un messaggio ogni 3 secondi). Notifiche in app: quando arriva un messaggio compare un avviso in alto (toccandolo si apre la chat) e il pulsante della home mostra quanti messaggi non hai letto. Si cancellano i propri messaggi e si silenzia chi disturba (solo sul proprio telefono). Si attiva con `supabase/aggiornamento-5.sql` (vedi sotto).
+- **Il grido di Liming Yue**: la sua mossa *Onomotopia Disastrosa* si grida al microfono. Il gioco ascolta e riconosce «Shuaaa!», «Tinn!» o «Paaa!» dalla forma del suono (fruscio iniziale, vocale i o a), senza servizi su internet (`voce.js`). Chi non può o non vuole usare il microfono gioca a orecchio: il Maestro grida con la sua voce vera e bisogna riconoscere quale grido è. Il computer riesce 6 volte su 10.
 - **Novità**: dopo ogni aggiornamento, alla prima apertura compare un avviso con le novità (resta finché non si tocca "Ho capito"); tutte le novità si rileggono dal menu, in "📰 Novità". Chi gioca per la prima volta non lo vede. Le novità stanno in `novita.js`: a ogni aggiornamento si aggiunge una voce in cima alla lista.
 
 ## Modalità Storia
 
 Dal menu iniziale, "📖 Modalità Storia". Si crea il proprio personaggio (nome, capelli, colori di pelle, divisa, pantaloni e cintura; si cambia poi dalla Tessera) e si parte da casa, a Lancenigo.
 
-- **Il mondo**: Lancenigo, Percorso 1, Ponte della Priula, la Grotta del Montello (buia), Percorso 2, Treviso con l'aeroporto, l'Inghilterra (sotto la pioggia), Chenjiagou e il Tempio Ancestrale. Ci si muove a caselle con la croce direzionale (o le frecce/WASD), A parla ed esamina (Z, spazio, invio), B annulla e, tenuto premuto, fa correre (X), MENU apre carte, tessera e salvataggio (M o Esc). Le sporgenze si saltano solo verso il basso; di sera e di notte i luoghi all'aperto cambiano luce.
+- **Il mondo**: Lancenigo, Percorso 1, Ponte della Priula, la Grotta del Montello (buia), Percorso 2, Treviso con l'aeroporto, l'Inghilterra (sotto la pioggia) con la Grotta dei Sussurri, Chenjiagou e il Tempio Ancestrale. Ci si muove a caselle con la croce direzionale (o le frecce/WASD), A parla ed esamina (Z, spazio, invio), B annulla e, tenuto premuto, fa correre (X), MENU apre carte, tessera e salvataggio (M o Esc). Le sporgenze si saltano solo verso il basso; di sera e di notte i luoghi all'aperto cambiano luce.
 - **La trama**: il Maestro Samuele dà il primo compagno (Grazia, Alessandro o Annastella) e due allieve; il rivale Tommaso si ripresenta tre volte. Quattro sigilli: Federica (Palestrina delle medie), il Maestro Liming Yue (Inghilterra), Chen Delang (Piazza del Taiji), e infine Samuele alla Stone Temple Tao, dopo aver incontrato le Leggende nel Tempio Ancestrale.
 - **Musiche**: ogni tipo di incontro ha il suo tema chiptune originale, con intro a scala discendente: spiriti selvatici, allenatori, rivale, capopalestra, Leggende e sfida finale; la fanfara accompagna premi e livelli dopo una vittoria. Il tema parte già quando un allenatore ti vede. Fuori dalla storia: allenatore contro il computer, rivale in 2 e online, capopalestra all'ultimo incontro del torneo; nei menu resta la musica del tempio.
 - **Le sfide** si giocano con il motore e lo schermo di sempre. Gli allenatori ti sfidano quando ti vedono; chi perde paga il 10% delle monete e torna all'ultima città.
@@ -36,6 +38,7 @@ Dal menu iniziale, "📖 Modalità Storia". Si crea il proprio personaggio (nome
 - **Comprare, vendere, scambiare**: in bottega pergamene e bustine (Allievi, Istruttori, Maestri: più sigilli hai, più alto il livello della carta che esce) e si vendono le copie doppie. Alcuni abitanti propongono scambi di carte.
 - **Squadra**: 4 carte e 10 Punti Dojo come nel gioco normale; le carte trovate nella storia si sbloccano anche nel resto del gioco. Le carte segrete restano fuori dalla storia.
 - **Arena del Tempio** (Lancenigo, a destra della Stone Temple Tao): una torre di sfide senza fine, aperta dal primo sigillo. Al piano N una squadra a caso di livello 1 + N/2 (anche oltre il 10), sempre la stessa per lo stesso viaggio e piano; il computer passa da facile a normale (dal piano 6) e difficile (dal 16); la palestra cambia a ogni piano. Ogni 5 piani un campione (Tommaso, Federica, Liming Yue, Chen Delang, Samuele, le Leggende, poi da capo più forti): vale 3 pergamene e una carta (Istruttore, Maestro dal piano 15, Leggenda dal 30). Ogni 10 piani un traguardo: chi perde riparte dall'ultimo, senza perdere monete. La **sfida del giorno** ha una regola diversa ogni giorno, uguale per tutti (solo Allievi, tre Maestri nella Piazza del Taiji, squadra da 7 Punti Dojo...), avversari di un livello sopra la tua squadra e un premio in più una volta al giorno. Il record sta nella Tessera.
+- **La Grotta dei Sussurri** (sidestory in Inghilterra): dopo aver battuto il Maestro Liming Yue, lui confessa che lo spirito della sua carta è scappato e grida nella grotta del parco (il bobby all'ingresso ora ti lascia passare). Dentro si sentono le sue grida vere, registrate («Shuaaa», «Tinn», «Paaa», «Taaan», «Zsss»…), con le scritte che indicano da dove arrivano; con le cuffie si sente anche da che parte (audio stereo). Per raggiungerlo si risponde alle sue tre grida colpendo le lanterne di pietra nello stesso ordine (diverso per ogni viaggio). Lo spirito ti fa gridare con lui al microfono e poi ti sfida, con il remix delle sue grida come musica: vincendo, la carta di Liming Yue si unisce a te. Le mutande ritrovate nella grotta si riportano al Maestro in cambio di monete. Liming Yue si trova solo qui (non esce dalle vittorie a caso né dalle bustine); Gatto Dorato e Giulia Gagno si incontrano nella grotta e sul Percorso 2.
 - Il viaggio si salva da solo (a ogni porta, sfida e acquisto) sul telefono. Mappe e trama stanno in `mondo.js` (anche l'Arena), il motore del mondo in `storia.js`; `node tools/test-storia.js` controlla che le mappe siano percorribili e che le squadre dell'Arena siano valide.
 
 ## Come aprirlo
@@ -47,7 +50,7 @@ Il gioco è una pagina web statica (`index.html` + `engine.js` + `ui.js` + carte
 
 ### Animazioni
 
-Dalle impostazioni si accendono o spengono le **animazioni 3D**. La **velocità di gioco** (🐢 lenta, ▶ normale, 🐇 veloce) si sceglie dalle impostazioni e con i tre tasti sempre visibili in alto a destra durante la partita (e in basso a destra durante le scene 3D): rallenta o accelera le scene, le mosse del computer e le scritte. Toccando lo schermo durante una scena la si fa scorrere velocemente. Se il telefono non supporta la grafica 3D (WebGL) il gioco usa automaticamente le animazioni semplici.
+Dalle impostazioni si accendono o spengono le **animazioni 3D**. Nelle scene la squadra di chi tiene il telefono è sempre in primo piano e quella avversaria sullo sfondo, chiunque attacchi (in 2 sullo stesso telefono vale per chi ha il turno, online per ciascun telefono). La **velocità di gioco** (🐢 lenta, ▶ normale, 🐇 veloce) si sceglie dalle impostazioni e con i tre tasti sempre visibili in alto a destra durante la partita (e in basso a destra durante le scene 3D): rallenta o accelera le scene, le mosse del computer e le scritte. Toccando lo schermo durante una scena la si fa scorrere velocemente. Se il telefono non supporta la grafica 3D (WebGL) il gioco usa automaticamente le animazioni semplici.
 
 ### Account (Supabase)
 
@@ -63,6 +66,8 @@ Missioni, medaglie e classifica della settimana si attivano incollando anche `su
 La Modalità Storia si salva sul telefono a ogni passo, a ogni porta e quando l'app va in secondo piano. Per chi ha l'account si salva anche online incollando `supabase/aggiornamento-3.sql` (una volta, dopo `schema.sql`): così il viaggio si ritrova anche se il telefono cancella i dati del sito (succede su iPhone dopo qualche giorno senza aprirlo, nei browser dentro le app e in navigazione privata) o si cambia telefono. Finché non c'è, la storia resta solo sul telefono.
 
 Le sfide della Modalità Storia e dell'Arena del Tempio valgono punti dell'account incollando `supabase/aggiornamento-4.sql` (una volta, dopo `schema.sql`): la storia vale come il computer al livello dell'avversario, l'Arena come il torneo (40 punti a vittoria). Finché non c'è, per chi ha l'account queste sfide non danno punti (senza account i punti sul telefono arrivano lo stesso).
+
+La chat della palestra si attiva incollando `supabase/aggiornamento-5.sql` (una volta, dopo `schema.sql`): crea la tabella dei messaggi, visibile solo a chi ha l'account, e la funzione `scrivi_chat` che firma ogni messaggio con il nome del giocatore, controlla la lunghezza e frena le raffiche. Si tengono gli ultimi 1000 messaggi. Il gioco chiede i messaggi nuovi ogni 4 secondi con la chat aperta, ogni 20 altrimenti, e mai con l'app in secondo piano. Finché lo script non c'è, la chat dice che non è ancora attiva.
 
 ### Progressi
 
@@ -107,7 +112,7 @@ Sulle carte in campo i simboli in basso a sinistra mostrano le mosse speciali: �
 
 **Eventi in palestra.** Ogni 3 round capita qualcosa che vale per tutte le carte in campo, di entrambe le squadre, per un round: Lezione extra (+15 PV), Aria condizionata rotta (ATK −15%), Il Maestro osserva (+10 ATK a Maestri e Istruttori), Musica a palla (+10 ATK), Pulizie del tatami (via gli effetti negativi), Riscaldamento (+15 DEF). Si possono spegnere dalle impostazioni.
 
-**Gradi.** Il grado è quello stampato sulla carta: Maestri (Andrea, Chen Delang, Chicca Fossa, Elia Moretton, Katya), Istruttori (Samuele Contessa, Niccolò Cividini, Strahinja Crnic, Federica Siciliano, Lorenzo Signorello), Allievi (tutte le carte senza grado stampato). Le **Leggende** Chen Wangting (Fondatore Supremo) e Chen Zhenglei (Gran Maestro) costano 6 Punti Dojo, contano come Maestri e si sbloccano vincendo il torneo.
+**Gradi.** Il grado è quello stampato sulla carta: Maestri (Andrea, Chen Delang, Chicca Fossa, Elia Moretton, Katya, Liming Yue), Istruttori (Samuele Contessa, Niccolò Cividini, Strahinja Crnic, Federica Siciliano, Lorenzo Signorello), Allievi (tutte le carte senza grado stampato). Le **Leggende** Chen Wangting (Fondatore Supremo) e Chen Zhenglei (Gran Maestro) costano 6 Punti Dojo, contano come Maestri e si sbloccano vincendo il torneo.
 
 **Palestre (carte terreno).** Ogni sfida si combatte in una palestra, scelta prima della partita o a sorte; il suo effetto vale per entrambe le squadre e nell'arena 3D cambiano fondale e pavimento.
 - *Stone Temple Tao* (Lancenigo, sede principale): tutte le carte +15 PV e gli eventi in palestra capitano ogni 2 round invece di 3.
@@ -165,6 +170,7 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 | Chen Delang | Maestro | 4 | 155 | 100 → **80** | 100 → **70** |
 | Elia Moretton | Maestro | 4 | 140 | 90 → **85** | 90 → **75** |
 | Samuele Contessa | Istruttore | 4 | 165 | 100 → **90** | 90 → **70** |
+| Liming Yue | Maestro | 4 | 145 | 100 → **75** | 100 → **70** |
 | Chicca Fossa | Maestro | 3 | 140 | 70 → **65** | 60 |
 | Katya | Maestro | 3 | 130 | 60 → **65** | 80 → **70** |
 | Federica Siciliano | Istruttore | 3 | 135 | 50 → **60** | 50 → **55** |
@@ -176,6 +182,8 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 | Alessandro Rizzo | Allievo | 2 | 150 | 60 → **65** | 30 → **35** |
 | Annastella Bettiol | Allievo | 2 | 150 | 40 → **60** | 50 |
 | Celeste Brugnera | Allievo | 2 | 175 | 30 → **60** | 30 → **55** |
+| Gatto Dorato | Allievo | 2 | 125 | 10 → **45** | 0 → **35** |
+| Giulia Gagno | Allievo | 2 | 140 | 30 → **60** | 10 → **45** |
 | Christian Cecchin | Allievo | 2 | 115 | 40 → **50** | 50 |
 | Grazia Lecci | Allievo | 2 | 120 | 40 → **55** | 45 |
 | Remigio Spinazzè | Allievo | 2 | 140 | 70 → **65** | 70 → **60** |
@@ -243,6 +251,14 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 - *Dominio dell'Infante* (ricarica 3): Evoca bambini non-morti che attaccano tutti gli avversari da ogni direzione: impossibile schivare, ma l'attacco è dimezzato.
 - *Siculazione Distorta* (ricarica 4): Stordisce il nemico con frasi incomprensibili (1 turno) e attacca con +20 danni.
 
+**Gatto Dorato**
+- *Zampata Perpetua* (ricarica 3): Graffia e lascia un graffio che non guarisce più: l'avversario perde 1 PV al turno, poi 2, poi 3… per sempre (fino a 10 a turno). Nemmeno il tè lo toglie.
+- *Presenza Ammazzatempo* (una volta per partita): Si mette in posa e saluta con la zampa: gli avversari perdono un turno (stordimento di 1 turno a tutti).
+
+**Giulia Gagno**
+- *Squartatrice di Anime* (ricarica 3): Colpisce e squarta l'anima: per 3 turni l'avversario perde altri PV che ignorano la difesa, tanti più quanto è basso il suo grado (Allievo 15, Istruttore 10, Maestro e Leggenda 6 a turno).
+- *Pucciosità Illusoria* (ricarica 2): Fa la faccina tenera: l'avversario abbassa la guardia (DEF −20 per 2 turni) e lei si carica (+10 ATK per 3 turni).
+
 **Grazia Lecci**
 - *Peluche Ipercoccoloso* (ricarica 4): L'avversario si innamora del peluche: lo colpisce con la sua DEF dimezzata e lo stordisce per 1 turno.
 - *Pubblicità Fotogenica* (ricarica 1): Si mostra innocua per poi sferrare l'attacco con 10 punti extra.
@@ -250,6 +266,10 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 **Katya**
 - *Firma Urgente* (ricarica 3): Blocca le tecniche avversarie: per 1 turno nessun avversario può usare mosse speciali.
 - *Annotazione Omnidirezionale* (ricarica 2): Colpisce con precisione qualsiasi avversario (+15 danni): ignora schivate e invulnerabilità. Si può usare anche se Katya è stordita.
+
+**Liming Yue**
+- *Onomotopia Disastrosa* (ricarica 3): Grida «Shuaaa!», «Tinn!» o «Paaa!» al microfono: per la sorpresa stordisce l'avversario per 1 turno e lo colpisce con 10 danni in più. Se il grido non riesce, colpisce e basta.
+- *Vestiario Smemorato* (ricarica 3): Ruba le mutande a tutti gli avversari, che dalla vergogna abbassano la guardia: DEF −15 per 3 turni.
 
 **Lorenzo Pattaro**
 - *Berserker dell'Ingiustizia* (ricarica 3): Ottiene +20 ATK per 2 turni.
@@ -296,7 +316,7 @@ node tools/simulate.js 8000          # 8000 partite al livello "normale"
 node tools/livelli.js facile normale 300   # confronto tra livelli dell'IA
 ```
 
-Ultimo risultato su 12000 partite con le carte pubbliche, sinergie, eventi, carte effetto e armi come potenziamento (in `tools/ultimo-bilanciamento.txt`): le carte normali tra il **47% e il 55%** di vittorie, le due Leggende intorno al **62-63%** (volutamente sopra, perché vanno sbloccate), chi inizia vince il **51%** delle partite. `node tools/test-armi.js` controlla la regola delle armi.
+Ultimo risultato su 8000 partite con le carte pubbliche, sinergie, eventi, carte effetto e armi come potenziamento (in `tools/ultimo-bilanciamento.txt`): le carte normali tra il **45% e il 55%** di vittorie (Liming Yue 48%, Giulia Gagno 49%, Gatto Dorato 47%), le due Leggende intorno al **72-74%** (volutamente sopra, perché vanno sbloccate), chi inizia vince il **50%** delle partite. `node tools/test-armi.js` controlla la regola delle armi.
 
 Il boss del torneo (Andrea, Chen Delang e Katya a livello difficile, un po' potenziati) viene battuto da una squadra casuale giocata dal computer circa 1 volta su 4.
 
@@ -318,7 +338,9 @@ Il collegamento usa il server pubblico gratuito di PeerJS solo per far "incontra
 | `ui.js` | schermate, tocchi, animazioni |
 | `engine.js` | carte, regole, effetti e IA (funziona anche in Node) |
 | `arena3d.js` | arena e lottatori 3D, coreografia di ogni mossa (tabella `MOVES`) |
-| `audio.js` | effetti sonori, musica e vibrazione (Web Audio, nessun file audio) |
+| `audio.js` | effetti sonori, musica e vibrazione (Web Audio); suona anche le grida registrate di Liming Yue |
+| `voce.js` | ascolta il microfono e riconosce «Shuaaa», «Tinn» e «Paaa» (Onomotopia Disastrosa) |
+| `audio/liming/` | le grida originali del Maestro Liming Yue (tagliate dal LimingPack) e il remix `remix.mp3`, musica della sfida nella Grotta dei Sussurri |
 | `net.js` | partite online tra due telefoni (PeerJS) |
 | `vendor/peerjs.min.js` | PeerJS 1.5.4, collegamento diretto tra telefoni |
 | `sw.js`, `manifest.webmanifest` | app installabile e funzionamento offline |
@@ -326,6 +348,7 @@ Il collegamento usa il server pubblico gratuito di PeerJS solo per far "incontra
 | `img/` | carte originali ridimensionate (le teste 3D prendono il volto da qui, con le posizioni in `FACE` dentro `arena3d.js`); `img/volti/` i ritagli per le miniature |
 | `tools/simulate.js` | simulatore di bilanciamento |
 | `tools/livelli.js` | confronto tra i livelli di difficoltà |
+| `tools/test-voce.js` | prova il riconoscimento delle grida sui suoni originali (serve ffmpeg) |
 | `tools/volti.py` | ritaglio delle miniature dalle carte |
 | `tools/tune.py` | piccolo aiuto per ritoccare i valori delle carte |
 

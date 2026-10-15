@@ -376,6 +376,64 @@
           use(g, u, t) { if (addStatus(g, t, u, 'swap', 2)) { log(g, `🔄 ${nm(t)} si ritrova con ATK e DEF invertiti!`); ev(g, { type: 'status', uid: t.uid, text: 'INVERTITO' }); } } },
       ],
     },
+    // ---------------------------------------------------------------- carte aggiunte il 15 ottobre
+    {
+      // story: si trova solo nella Grotta dei Sussurri (Modalità Storia), non esce dalle vittorie a caso
+      id: 'liming', name: 'Liming Yue', rank: 'M', cost: 4, hp: 145, atk: 75, def: 70, story: true,
+      orig: { atk: 100, def: 100 },
+      moves: [
+        // voice: chi la usa dal telefono deve gridarla al microfono (ui.js); a.formula = il grido riuscito
+        { name: 'Onomotopia Disastrosa', target: 'enemy', cd: 3, hit: { flat: 10 }, voice: true, formula: 'Shuaaa Tinn Paaa',
+          desc: 'Grida «Shuaaa!», «Tinn!» o «Paaa!» (al microfono, se la usi tu): per la sorpresa stordisce l\'avversario per 1 turno e lo colpisce con 10 danni in più. Se il grido non riesce, colpisce e basta.',
+          use(g, u, t, a) {
+            const ok = !a || a.formula === undefined ? rand(g) < 0.6 : !!a.formula;
+            if (ok) {
+              const WORD = { shuaa: 'SHUAAA', tinn: 'TINN', paaa: 'PAAA' };
+              const word = WORD[a.formula] || (typeof a.formula === 'string' ? a.formula.toUpperCase() : ['SHUAAA', 'TINN', 'PAAA'][g.turnNo % 3]);
+              log(g, `🗣️ «${word}!» ${nm(t)} sobbalza per la sorpresa!`);
+              attack(g, u, t, { flat: 10 });
+              stun(g, t, u, 1);
+            } else {
+              log(g, `${nm(u)} si schiarisce la voce... niente sorpresa.`);
+              attack(g, u, t);
+            }
+          } },
+        { name: 'Vestiario Smemorato', target: 'enemies', cd: 3,
+          desc: 'Ruba le mutande a tutti gli avversari, che dalla vergogna abbassano la guardia: DEF −15 per 3 turni.',
+          use(g, u) { for (const f of enemies(g, u.owner)) addStatus(g, f, u, 'defAdd', 3, -15); log(g, `🩲 ${nm(u)} ha rubato le mutande a tutti! Che vergogna...`); } },
+      ],
+    },
+    {
+      id: 'gatto', name: 'Gatto Dorato', rank: 'A', cost: 2, hp: 125, atk: 45, def: 35,
+      orig: { atk: 10, def: 0 },
+      moves: [
+        { name: 'Zampata Perpetua', target: 'enemy', cd: 3, hit: {},
+          desc: 'Graffia e lascia un graffio che non guarisce più: l\'avversario perde 1 PV al turno, poi 2, poi 3… per sempre (fino a 10 a turno). Nemmeno il tè lo toglie.',
+          use(g, u, t) {
+            attack(g, u, t);
+            if (t.hp > 0 && addStatus(g, t, u, 'dot', 99, 1, false, true)) { t.st[t.st.length - 1].grow = 1; log(g, `🐾 ${nm(t)} ha un graffio perpetuo!`); }
+          } },
+        { name: 'Presenza Ammazzatempo', target: 'enemies', once: true,
+          desc: 'Una volta per partita: si mette in posa e saluta con la zampa. Gli avversari restano a guardarlo e perdono un turno (stordimento di 1 turno a tutti).',
+          use(g, u) { log(g, `🐱 ${nm(u)} saluta con la zampa... tutti si fermano a guardarlo!`); for (const f of enemies(g, u.owner)) stun(g, f, u, 1); } },
+      ],
+    },
+    {
+      id: 'giulia', name: 'Giulia Gagno', rank: 'A', cost: 2, hp: 140, atk: 60, def: 45,
+      orig: { atk: 30, def: 10 },
+      moves: [
+        { name: 'Squartatrice di Anime', target: 'enemy', cd: 3, hit: {},
+          desc: 'Colpisce e squarta l\'anima dell\'avversario: per 3 turni perde altri PV che ignorano la difesa, tanti più quanto è basso il suo grado (Allievo 15, Istruttore 10, Maestro e Leggenda 6 a turno).',
+          use(g, u, t) {
+            attack(g, u, t);
+            const n = t.rank === 'A' ? 15 : t.rank === 'I' ? 10 : 6;
+            if (t.hp > 0 && addStatus(g, t, u, 'dot', 3, n)) log(g, `🔪 ${nm(u)} squarta l'anima di ${nm(t)}: −${n} PV a turno!`);
+          } },
+        { name: 'Pucciosità Illusoria', target: 'enemy', cd: 2,
+          desc: 'Fa la faccina tenera: l\'avversario abbassa la guardia (DEF −20 per 2 turni) e intanto lei si carica (+10 ATK per 3 turni).',
+          use(g, u, t) { addStatus(g, t, u, 'defAdd', 2, -20); addStatus(g, u, u, 'atkAdd', 3, 10, true); log(g, `🥺 ${nm(u)} fa la faccina tenera: ${nm(t)} abbassa la guardia!`); } },
+      ],
+    },
     {
       id: 'wangting', name: 'Chen Wangting', rank: 'L', title: 'Fondatore Supremo', cost: 6, hp: 170, atk: 85, def: 90,
       orig: { atk: '∞', def: '∞' },
@@ -921,6 +979,7 @@
         if (f.hp <= 0) break;
         const n = damage(g, f, s.value, null);
         log(g, `${nm(f)} soffre: −${n} PV`);
+        if (s.grow) s.value = Math.min(10, s.value + s.grow); // la Zampata Perpetua fa sempre più male
       }
     }
     if (g.winner !== null) return;
