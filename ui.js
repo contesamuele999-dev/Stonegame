@@ -2123,12 +2123,24 @@
       ${!cloudOn() ? '<p class="hint">La chat ha bisogno di internet.</p>' : !ok ? `<p class="hint" style="text-align:left">Per leggere e scrivere in chat entra nel tuo account.</p><button class="btn primary" data-act="go" data-v="account">Entra o registrati</button>` : `
       <div class="chat-list" id="chat-list" aria-live="polite" aria-label="Messaggi"></div>
       <p class="chat-err" id="chat-err" role="status"></p>
+      <div class="chat-emoji" id="chat-emoji" hidden>${CHAT_EMOJI.map(x => `<button data-act="chat-emoji" data-v="${x}" aria-label="${x}">${x}</button>`).join('')}</div>
       <div class="chat-form">
+        <button class="btn emoji-btn" data-act="chat-emojis" aria-label="Emoji" aria-expanded="false" aria-controls="chat-emoji">😀</button>
         <input id="chat-in" maxlength="300" autocomplete="off" enterkeyhint="send" placeholder="${prof ? `Scrivi come ${esc(prof.nome)}…` : 'Scrivi a tutti…'}" aria-label="Messaggio">
         <button class="btn primary" data-act="chat-send">Invia</button>
       </div>
       <p class="hint" style="text-align:left">Sii gentile: i messaggi li leggono tutti. Tocca un tuo messaggio per cancellarlo, o quello di un altro per silenziarlo.${C.muted.length ? ` <button class="linkish" data-act="chat-unmute">Riattiva i ${C.muted.length} silenziati</button>` : ''}</p>`}
     </div>`;
+  }
+  const CHAT_EMOJI = ['😀', '😂', '🤣', '😊', '😍', '😎', '🤔', '😅', '😭', '😡', '🥺', '🙄', '😴', '🤯', '😱', '🤪',
+    '👍', '👎', '👏', '🙏', '💪', '👊', '✌️', '🤝', '🥋', '☯️', '🍵', '🔥', '💥', '⭐', '🏆', '🎉', '❤️', '💯', '🐱', '🩲'];
+  // l'emoji va dove c'è il cursore; il telefono non riapre la tastiera
+  function chatEmoji(x) {
+    const inp = document.getElementById('chat-in');
+    if (!inp || inp.value.length + x.length > 300) return;
+    const a = inp.selectionStart ?? inp.value.length, b = inp.selectionEnd ?? a;
+    inp.setRangeText(x, a, b, 'end');
+    if (!matchMedia('(pointer: coarse)').matches) inp.focus();
   }
   async function chatSend() {
     const inp = document.getElementById('chat-in');
@@ -2194,6 +2206,8 @@
       case 'news-ok': newsSeen(); closeLayer(); break;
       case 'chat-send': chatSend(); break;
       case 'chat-msg': chatMsgSheet(el.dataset.id); break;
+      case 'chat-emojis': { const p = document.getElementById('chat-emoji'); if (p) { p.hidden = !p.hidden; el.setAttribute('aria-expanded', String(!p.hidden)); el.scrollIntoView({ block: 'nearest' }); } break; }
+      case 'chat-emoji': chatEmoji(v); break;
       case 'chat-del': closeLayer(); Cloud.chatDelete(v).then(() => { C.msgs = C.msgs.filter(m => m.id !== +v); chatPaint(); }).catch(err => toastQuick(err.message)); break;
       case 'chat-mute': C.muted = C.muted.concat(v); store('chat_muti', C.muted); closeLayer(); render(); chatPaint(true); break;
       case 'chat-unmute': C.muted = []; store('chat_muti', C.muted); render(); chatPaint(true); break;

@@ -4,6 +4,16 @@
  */
 window.NOVITA = [
   {
+    data: '2026-10-16',
+    titolo: 'Emoji in chat e gradi in ordine',
+    testo: [
+      'Chat della palestra: il pulsante 😀 accanto al messaggio apre le emoji. Toccane una e finisce nel messaggio.',
+      'Ora i gradi contano davvero: nessun Allievo ha più PV, ATK o DEF di un Istruttore o di un Maestro. Celeste, Simone, Annastella, Alessandro, Lorenzo, Adriano, Annalisa, Ruben e Remigio scendono un po\'; Katya, Niccolò, Federica, Strahinja e Chen Zhenglei salgono.',
+      'Roberto Morini diventa Istruttore.',
+      'Per compensare: Lorenzo Pattaro costa 2 Punti Dojo, Celeste recupera 40 PV quando cambia aspetto, Giovinezza Apparente di Simone toglie 20 ATK e si ricarica prima, il Massaggio Illusorio di Ruben fa 15 danni in più. Un po\' meno forti Siculazione Distorta di Federica (+15) e Annotazione Omnidirezionale di Katya (+10).',
+    ],
+  },
+  {
     data: '2026-10-15',
     titolo: 'La Grotta dei Sussurri',
     testo: [

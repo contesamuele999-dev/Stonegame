@@ -20,7 +20,7 @@ Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal tele
 - **Velocità di gioco** regolabile in ogni momento (lenta, normale, veloce): pensata anche per chi ha bisogno di più tempo per leggere.
 - **Modalità Storia**: un viaggio a piedi in stile gioco di ruolo portatile, con città, percorsi, grotte e palestre (vedi sotto).
 - **Promemoria di accesso**: chi gioca senza account vede in home (e a fine partita) un invito ad accedere o registrarsi, che serve per le statistiche di gioco e per entrare in classifica. "Più tardi" lo nasconde fino alla prossima visita.
-- **Chat della palestra**: dalla home, "💬 Chat della palestra", tutti i giocatori con l'account si scrivono (fino a 300 caratteri, un messaggio ogni 3 secondi). Notifiche in app: quando arriva un messaggio compare un avviso in alto (toccandolo si apre la chat) e il pulsante della home mostra quanti messaggi non hai letto. Si cancellano i propri messaggi e si silenzia chi disturba (solo sul proprio telefono). Si attiva con `supabase/aggiornamento-5.sql` (vedi sotto).
+- **Chat della palestra**: dalla home, "💬 Chat della palestra", tutti i giocatori con l'account si scrivono (fino a 300 caratteri, un messaggio ogni 3 secondi). Il pulsante 😀 accanto al messaggio apre le emoji: toccandone una si aggiunge dove c'è il cursore. Notifiche in app: quando arriva un messaggio compare un avviso in alto (toccandolo si apre la chat) e il pulsante della home mostra quanti messaggi non hai letto. Si cancellano i propri messaggi e si silenzia chi disturba (solo sul proprio telefono). Si attiva con `supabase/aggiornamento-5.sql` (vedi sotto).
 - **Il grido di Liming Yue**: la sua mossa *Onomotopia Disastrosa* si grida al microfono. Il gioco ascolta e riconosce «Shuaaa!», «Tinn!» o «Paaa!» dalla forma del suono (fruscio iniziale, vocale i o a), senza servizi su internet (`voce.js`). Chi non può o non vuole usare il microfono gioca a orecchio: il Maestro grida con la sua voce vera e bisogna riconoscere quale grido è. Il computer riesce 6 volte su 10.
 - **Novità**: dopo ogni aggiornamento, alla prima apertura compare un avviso con le novità (resta finché non si tocca "Ho capito"); tutte le novità si rileggono dal menu, in "📰 Novità". Chi gioca per la prima volta non lo vede. Le novità stanno in `novita.js`: a ogni aggiornamento si aggiunge una voce in cima alla lista.
 
@@ -164,40 +164,42 @@ I **nomi delle mosse non sono stati toccati**. Sono cambiati i punti e, dove ser
 2. **Aggiungere i PV** (punti vita), che sulle carte non c'erano.
 3. **Bilanciare.** Ho fatto giocare il computer contro sé stesso per migliaia di partite con squadre casuali e ho corretto i valori finché ogni carta vinceva più o meno quanto le altre, tenendo conto del suo costo.
 
+**Regola dei gradi.** Un Allievo non ha mai PV, ATK o DEF più alti di quelli di un Istruttore, di un Maestro o di una Leggenda: oggi il tetto è 140 PV, 65 ATK e 55 DEF. Gli Allievi si bilanciano con il costo e con le mosse. `tools/test-combattimento.js` lo controlla, carte segrete comprese.
+
 Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 
 | Carta | Grado | Costo | PV | ATK | DEF |
 |---|---|---|---|---|---|
 | Chen Wangting | Fondatore Supremo | 6 | 170 | ∞ → **85** | ∞ → **90** |
-| Chen Zhenglei | Gran Maestro | 6 | 135 | 1000 → **85** | 1000 → **70** |
+| Chen Zhenglei | Gran Maestro | 6 | 140 | 1000 → **85** | 1000 → **70** |
 | Andrea | Maestro | 4 | 145 | 120 → **85** | 95 → **75** |
 | Chen Delang | Maestro | 4 | 155 | 100 → **80** | 100 → **70** |
 | Elia Moretton | Maestro | 4 | 140 | 90 → **85** | 90 → **75** |
 | Samuele Contessa | Istruttore | 4 | 165 | 100 → **90** | 90 → **70** |
 | Liming Yue | Maestro | 4 | 145 | 100 → **75** | 100 → **70** |
 | Chicca Fossa | Maestro | 3 | 140 | 70 → **65** | 60 |
-| Katya | Maestro | 3 | 130 | 60 → **65** | 80 → **70** |
-| Federica Siciliano | Istruttore | 3 | 135 | 50 → **60** | 50 → **55** |
+| Katya | Maestro | 3 | 140 | 60 → **65** | 80 → **70** |
+| Federica Siciliano | Istruttore | 3 | 140 | 50 → **65** | 50 → **55** |
 | Lorenzo Signorello | Istruttore | 3 | 145 | 100 → **80** | 90 → **65** |
-| Niccolò Cividini | Istruttore | 3 | 135 | 70 | 65 |
-| Strahinja Crnic | Istruttore | 3 | 140 | 80 → **75** | 50 |
-| Lorenzo Pattaro | Allievo | 3 | 145 | 90 → **80** | 80 → **55** |
-| Roberto Morini | Allievo | 3 | 140 | 60 → **65** | 50 |
-| Adriano Rossetto | Allievo | 2 | 145 | 30 → **50** | 90 → **80** |
-| Alessandro Rizzo | Allievo | 2 | 150 | 60 → **65** | 30 → **35** |
-| Annastella Bettiol | Allievo | 2 | 150 | 40 → **60** | 50 |
-| Celeste Brugnera | Allievo | 2 | 175 | 30 → **60** | 30 → **55** |
+| Niccolò Cividini | Istruttore | 3 | 140 | 70 | 65 |
+| Strahinja Crnic | Istruttore | 3 | 140 | 80 → **75** | 50 → **55** |
+| Lorenzo Pattaro | Allievo | 2 | 140 | 90 → **65** | 80 → **55** |
+| Roberto Morini | Istruttore | 3 | 140 | 60 → **65** | 50 → **55** |
+| Adriano Rossetto | Allievo | 2 | 140 | 30 → **50** | 90 → **55** |
+| Alessandro Rizzo | Allievo | 2 | 140 | 60 → **65** | 30 → **35** |
+| Annastella Bettiol | Allievo | 2 | 140 | 40 → **60** | 50 |
+| Celeste Brugnera | Allievo | 2 | 140 | 30 → **60** | 30 → **55** |
 | Gatto Dorato | Allievo | 2 | 125 | 10 → **45** | 0 → **35** |
 | Giulia Gagno | Allievo | 2 | 140 | 30 → **60** | 10 → **45** |
 | Christian Cecchin | Allievo | 2 | 115 | 40 → **50** | 50 |
 | Grazia Lecci | Allievo | 2 | 120 | 40 → **55** | 45 |
-| Remigio Spinazzè | Allievo | 2 | 140 | 70 → **65** | 70 → **60** |
-| Ruben Rossi | Allievo | 2 | 145 | 30 → **55** | 40 → **50** |
-| Simone Squizzato | Allievo | 2 | 150 | 55 → **60** | 45 → **55** |
+| Remigio Spinazzè | Allievo | 2 | 140 | 70 → **65** | 70 → **55** |
+| Ruben Rossi | Allievo | 2 | 140 | 30 → **55** | 40 → **50** |
+| Simone Squizzato | Allievo | 2 | 140 | 55 → **60** | 45 → **55** |
 | Margherita Carli | Allievo | 2 | 135 | 20 → **50** | 40 → **50** |
 | Viola Donadi | Allievo | 2 | 125 | 40 → **50** | 50 |
 | Vittorio Buosi | Allievo | 2 | 100 | 50 → **40** | 30 → **35** |
-| Annalisa Brino | Allievo | 1 | 145 | 20 → **45** | 50 → **55** |
+| Annalisa Brino | Allievo | 1 | 140 | 20 → **45** | 50 → **55** |
 | Caterina Fighera | Allievo | 1 | 125 | 35 → **45** | 35 |
 | Nicole Fava | Allievo | 1 | 130 | 30 → **35** | 35 |
 
@@ -228,7 +230,7 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 - *Intenditrice Seriale* (una volta per partita): Una volta per partita: mette subito in tavola la carta di riserva (la squadra avrà 4 carte in campo).
 
 **Celeste Brugnera**
-- *Chioma Rinata* (una volta per partita): Una volta per partita: cambia aspetto trasformandosi in un'altra carta in campo (ne copia ATK, DEF, grado e mosse; mantiene i suoi PV).
+- *Chioma Rinata* (una volta per partita): Una volta per partita: cambia aspetto trasformandosi in un'altra carta in campo (ne copia ATK, DEF, grado e mosse; mantiene i suoi PV e ne recupera 40).
 - *Presenza Eterea* (passiva): Passiva: schiva automaticamente il primo attacco subito, poi si ricarica per 4 turni.
 
 **Chen Delang**
@@ -257,7 +259,7 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 
 **Federica Siciliano**
 - *Dominio dell'Infante* (ricarica 3): Evoca bambini non-morti che attaccano tutti gli avversari da ogni direzione: impossibile schivare, ma l'attacco è dimezzato.
-- *Siculazione Distorta* (ricarica 4): Stordisce il nemico con frasi incomprensibili (1 turno) e attacca con +20 danni.
+- *Siculazione Distorta* (ricarica 4): Stordisce il nemico con frasi incomprensibili (1 turno) e attacca con +15 danni.
 
 **Gatto Dorato**
 - *Zampata Perpetua* (ricarica 3): Graffia e lascia un graffio che non guarisce più: l'avversario perde 1 PV al turno, poi 2, poi 3… per sempre (fino a 10 a turno). Nemmeno il tè lo toglie.
@@ -273,7 +275,7 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 
 **Katya**
 - *Firma Urgente* (ricarica 3): Blocca le tecniche avversarie: per 1 turno nessun avversario può usare mosse speciali.
-- *Annotazione Omnidirezionale* (ricarica 2): Colpisce con precisione qualsiasi avversario (+15 danni): ignora schivate e invulnerabilità. Si può usare anche se Katya è stordita.
+- *Annotazione Omnidirezionale* (ricarica 2): Colpisce con precisione qualsiasi avversario (+10 danni): ignora schivate e invulnerabilità. Si può usare anche se Katya è stordita.
 
 **Liming Yue**
 - *Onomotopia Disastrosa* (ricarica 3): Grida «Shuaaa!», «Tinn!» o «Paaa!» al microfono: per la sorpresa stordisce l'avversario per 1 turno e lo colpisce con 10 danni in più. Se il grido non riesce, colpisce e basta.
@@ -308,7 +310,7 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 - *Forma con VR* (ricarica 4): Copia e usa subito una mossa speciale di un avversario in campo, ma con il 75% della forza.
 
 **Ruben Rossi**
-- *Massaggio Illusorio* (ricarica 2): Propone un massaggio tuina e attacca a sorpresa con 10 danni in più: impossibile schivarlo.
+- *Massaggio Illusorio* (ricarica 2): Propone un massaggio tuina e attacca a sorpresa con 15 danni in più: impossibile schivarlo.
 - *Istinto Meridiano* (ricarica 3): Colpisce solo gli agopunti: +10 ATK e +10 DEF per 3 turni.
 
 **Samuele Contessa**
@@ -317,7 +319,7 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 
 **Simone Squizzato**
 - *Tuta Immanente* (ricarica 4): Il Qi accumulato in anni di pratica con la stessa tuta: +50 DEF per 2 turni.
-- *Giovinezza Apparente* (ricarica 3): Sembra così giovane che gli avversari si sentono in svantaggio: tutti −15 ATK per 2 turni.
+- *Giovinezza Apparente* (ricarica 2): Sembra così giovane che gli avversari si sentono in svantaggio: tutti −20 ATK per 2 turni.
 
 **Strahinja Crnic**
 - *Dolori Omnidirezionali* (ricarica 4): Dolori che nessuno nota: ogni avversario in campo subisce 10 danni per 3 turni (ignorano la difesa).

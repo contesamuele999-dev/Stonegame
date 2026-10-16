@@ -2,6 +2,12 @@
 const assert = require('assert');
 const S = require('../engine.js');
 
+// gradi: nessun Allievo ha PV, ATK o DEF più alti dell'Istruttore o del Maestro più debole
+for (const k of ['hp', 'atk', 'def']) {
+  const tetto = Math.min(...S.CARDS.filter(c => c.rank !== 'A').map(c => c[k]));
+  for (const c of S.CARDS) if (c.rank === 'A') assert.ok(c[k] <= tetto, `${c.name}: ${k} ${c[k]} oltre ${tetto}`);
+}
+
 const players = [{ name: 'A', cards: ['samuele', 'grazia', 'caterina', 'katya'] }, { name: 'B', cards: ['vittorio', 'annastella', 'adriano', 'remigio'] }];
 const make = (extra) => S.createGame(Object.assign({ seed: 7, first: 0, gymEvents: false, players }, extra));
 const basic = (g, u, t) => ({ actor: u.uid, move: -1, target: t.uid });

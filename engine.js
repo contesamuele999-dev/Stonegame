@@ -89,15 +89,15 @@
       ],
     },
     {
-      id: 'katya', name: 'Katya', rank: 'M', cost: 3, hp: 130, atk: 65, def: 70,
+      id: 'katya', name: 'Katya', rank: 'M', cost: 3, hp: 140, atk: 65, def: 70,
       orig: { atk: 60, def: 80 },
       moves: [
         { name: 'Firma Urgente', target: 'enemies', cd: 3,
           desc: 'Blocca le tecniche avversarie: per 1 turno nessun avversario può usare mosse speciali.',
           use(g, u) { for (const f of enemies(g, u.owner)) addStatus(g, f, u, 'block', 1); log(g, `${nm(u)} fa firmare un modulo urgente: tecniche avversarie bloccate!`); } },
-        { name: 'Annotazione Omnidirezionale', target: 'enemy', cd: 2, pierce: true, whileStunned: true, hit: { flat: 15 },
-          desc: 'Colpisce con precisione qualsiasi avversario (+15 danni): ignora schivate e invulnerabilità. Si può usare anche se Katya è stordita.',
-          use(g, u, t) { attack(g, u, t, { pierce: true, flat: 15 }); } },
+        { name: 'Annotazione Omnidirezionale', target: 'enemy', cd: 2, pierce: true, whileStunned: true, hit: { flat: 10 },
+          desc: 'Colpisce con precisione qualsiasi avversario (+10 danni): ignora schivate e invulnerabilità. Si può usare anche se Katya è stordita.',
+          use(g, u, t) { attack(g, u, t, { pierce: true, flat: 10 }); } },
       ],
     },
     {
@@ -130,7 +130,7 @@
       ],
     },
     {
-      id: 'niccolo', name: 'Niccolò Cividini', rank: 'I', cost: 3, hp: 135, atk: 70, def: 65,
+      id: 'niccolo', name: 'Niccolò Cividini', rank: 'I', cost: 3, hp: 140, atk: 70, def: 65,
       orig: { atk: 70, def: 65 },
       moves: [
         { name: 'Terza Persona Colloquiale', target: 'enemy', cd: 4,
@@ -142,7 +142,7 @@
       ],
     },
     {
-      id: 'strahinja', name: 'Strahinja Crnic', rank: 'I', cost: 3, hp: 140, atk: 75, def: 50,
+      id: 'strahinja', name: 'Strahinja Crnic', rank: 'I', cost: 3, hp: 140, atk: 75, def: 55,
       orig: { atk: 80, def: 50 },
       moves: [
         { name: 'Dolori Omnidirezionali', target: 'enemies', cd: 4,
@@ -154,19 +154,19 @@
       ],
     },
     {
-      id: 'federica', name: 'Federica Siciliano', rank: 'I', cost: 3, hp: 135, atk: 60, def: 55,
+      id: 'federica', name: 'Federica Siciliano', rank: 'I', cost: 3, hp: 140, atk: 65, def: 55,
       orig: { atk: 50, def: 50 },
       moves: [
         { name: 'Dominio dell\'Infante', target: 'enemies', cd: 3, pierce: true, hit: { mul: 0.5 },
           desc: 'Evoca bambini non-morti che attaccano tutti gli avversari da ogni direzione: impossibile schivare, ma l\'attacco è dimezzato.',
           use(g, u) { for (const f of enemies(g, u.owner)) attack(g, u, f, { mul: 0.5, pierce: true }); } },
-        { name: 'Siculazione Distorta', target: 'enemy', cd: 4, hit: { flat: 20 },
-          desc: 'Stordisce il nemico con frasi incomprensibili (1 turno) e attacca con +20 danni.',
-          use(g, u, t) { attack(g, u, t, { flat: 20 }); stun(g, t, u, 1); } },
+        { name: 'Siculazione Distorta', target: 'enemy', cd: 4, hit: { flat: 15 },
+          desc: 'Stordisce il nemico con frasi incomprensibili (1 turno) e attacca con +15 danni.',
+          use(g, u, t) { attack(g, u, t, { flat: 15 }); stun(g, t, u, 1); } },
       ],
     },
     {
-      id: 'lorenzo', name: 'Lorenzo Pattaro', rank: 'A', cost: 3, hp: 145, atk: 80, def: 55,
+      id: 'lorenzo', name: 'Lorenzo Pattaro', rank: 'A', cost: 2, hp: 140, atk: 65, def: 55,
       orig: { atk: 90, def: 80 },
       moves: [
         { name: 'Berserker dell\'Ingiustizia', target: 'self', cd: 3,
@@ -181,7 +181,7 @@
       ],
     },
     {
-      id: 'annastella', name: 'Annastella Bettiol', rank: 'A', cost: 2, hp: 150, atk: 60, def: 50,
+      id: 'annastella', name: 'Annastella Bettiol', rank: 'A', cost: 2, hp: 140, atk: 60, def: 50,
       orig: { atk: 40, def: 50 },
       moves: [
         { name: 'Che Voglia di Vivere', target: 'any', cd: 2,
@@ -231,15 +231,16 @@
       ],
     },
     {
-      id: 'celeste', name: 'Celeste Brugnera', rank: 'A', cost: 2, hp: 175, atk: 60, def: 55,
+      id: 'celeste', name: 'Celeste Brugnera', rank: 'A', cost: 2, hp: 140, atk: 60, def: 55,
       orig: { atk: 30, def: 30 },
       moves: [
         { name: 'Chioma Rinata', target: 'anyOther', once: true, nocopy: true,
-          desc: 'Una volta per partita: cambia aspetto trasformandosi in un\'altra carta in campo (ne copia ATK, DEF, grado e mosse; mantiene i suoi PV).',
+          desc: 'Una volta per partita: cambia aspetto trasformandosi in un\'altra carta in campo (ne copia ATK, DEF, grado e mosse; mantiene i suoi PV e ne recupera 40).',
           use(g, u, t) {
             const c = cardOf(t);
             u.form = c.id; u.baseAtk = c.atk; u.baseDef = c.def; u.rank = c.rank;
             u.cds = [1, 1]; u.used = {};
+            heal(g, u, 40);
             log(g, `${nm(u)} cambia aspetto e diventa ${c.name}!`);
             ev(g, { type: 'transform', uid: u.uid });
           } },
@@ -294,7 +295,7 @@
       ],
     },
     {
-      id: 'alessandro', name: 'Alessandro Rizzo', rank: 'A', cost: 2, hp: 150, atk: 65, def: 35,
+      id: 'alessandro', name: 'Alessandro Rizzo', rank: 'A', cost: 2, hp: 140, atk: 65, def: 35,
       orig: { atk: 60, def: 30 },
       moves: [
         { name: 'Sudorazione Esplosiva', target: 'enemy', cd: 2, hit: {},
@@ -306,7 +307,7 @@
       ],
     },
     {
-      id: 'adriano', name: 'Adriano Rossetto', rank: 'A', cost: 2, hp: 145, atk: 50, def: 80,
+      id: 'adriano', name: 'Adriano Rossetto', rank: 'A', cost: 2, hp: 140, atk: 50, def: 55,
       orig: { atk: 30, def: 90 },
       moves: [
         { name: 'Vibrazione Ineluttabile', passive: true,
@@ -335,7 +336,7 @@
       ],
     },
     {
-      id: 'remigio', name: 'Remigio Spinazzè', rank: 'A', cost: 2, hp: 140, atk: 65, def: 60,
+      id: 'remigio', name: 'Remigio Spinazzè', rank: 'A', cost: 2, hp: 140, atk: 65, def: 55,
       orig: { atk: 70, def: 70 },
       moves: [
         { name: 'Potenziamento Tysoniano', target: 'self', cd: 2, maxUses: 3,
@@ -365,7 +366,7 @@
       ],
     },
     {
-      id: 'annalisa', name: 'Annalisa Brino', rank: 'A', cost: 1, hp: 145, atk: 45, def: 55,
+      id: 'annalisa', name: 'Annalisa Brino', rank: 'A', cost: 1, hp: 140, atk: 45, def: 55,
       orig: { atk: 20, def: 50 },
       moves: [
         { name: 'Saluto Caritatevole', target: 'enemies', cd: 3,
@@ -435,31 +436,31 @@
       ],
     },
     {
-      id: 'ruben', name: 'Ruben Rossi', rank: 'A', cost: 2, hp: 145, atk: 55, def: 50,
+      id: 'ruben', name: 'Ruben Rossi', rank: 'A', cost: 2, hp: 140, atk: 55, def: 50,
       orig: { atk: 30, def: 40 },
       moves: [
-        { name: 'Massaggio Illusorio', target: 'enemy', cd: 2, pierce: true, hit: { flat: 10 },
-          desc: 'Si avvicina proponendo un massaggio tuina, ma ne approfitta e attacca a sorpresa con 10 danni in più: impossibile schivarlo.',
-          use(g, u, t) { log(g, `💆 ${nm(u)} propone un massaggio tuina a ${nm(t)}...`); attack(g, u, t, { flat: 10, pierce: true }); } },
+        { name: 'Massaggio Illusorio', target: 'enemy', cd: 2, pierce: true, hit: { flat: 15 },
+          desc: 'Si avvicina proponendo un massaggio tuina, ma ne approfitta e attacca a sorpresa con 15 danni in più: impossibile schivarlo.',
+          use(g, u, t) { log(g, `💆 ${nm(u)} propone un massaggio tuina a ${nm(t)}...`); attack(g, u, t, { flat: 15, pierce: true }); } },
         { name: 'Istinto Meridiano', target: 'self', cd: 3,
           desc: 'Colpisce solo gli agopunti avversari: +10 ATK e +10 DEF per 3 turni.',
           use(g, u) { addStatus(g, u, u, 'atkAdd', 3, 10, true); addStatus(g, u, u, 'defAdd', 3, 10, true); log(g, `🪡 ${nm(u)} trova i meridiani: +10 ATK e +10 DEF!`); } },
       ],
     },
     {
-      id: 'simone', name: 'Simone Squizzato', rank: 'A', cost: 2, hp: 150, atk: 60, def: 55,
+      id: 'simone', name: 'Simone Squizzato', rank: 'A', cost: 2, hp: 140, atk: 60, def: 55,
       orig: { atk: 55, def: 45 },
       moves: [
         { name: 'Tuta Immanente', target: 'self', cd: 4,
           desc: 'Il Qi accumulato in anni di pratica con la stessa tuta: +50 DEF per 2 turni.',
           use(g, u) { addStatus(g, u, u, 'defAdd', 2, 50, true); log(g, `🥋 ${nm(u)} indossa la tuta di sempre: +50 DEF!`); } },
-        { name: 'Giovinezza Apparente', target: 'enemies', cd: 3,
-          desc: 'Sembra così giovane che gli avversari si sentono in svantaggio: tutti −15 ATK per 2 turni.',
-          use(g, u) { for (const f of enemies(g, u.owner)) addStatus(g, f, u, 'atkAdd', 2, -15); log(g, `😎 ${nm(u)} sfoggia la sua giovinezza: gli avversari si sentono vecchi!`); } },
+        { name: 'Giovinezza Apparente', target: 'enemies', cd: 2,
+          desc: 'Sembra così giovane che gli avversari si sentono in svantaggio: tutti −20 ATK per 2 turni.',
+          use(g, u) { for (const f of enemies(g, u.owner)) addStatus(g, f, u, 'atkAdd', 2, -20); log(g, `😎 ${nm(u)} sfoggia la sua giovinezza: gli avversari si sentono vecchi!`); } },
       ],
     },
     {
-      id: 'roberto', name: 'Roberto Morini', rank: 'A', cost: 3, hp: 140, atk: 65, def: 50,
+      id: 'roberto', name: 'Roberto Morini', rank: 'I', cost: 3, hp: 140, atk: 65, def: 55,
       orig: { atk: 60, def: 50 },
       moves: [
         { name: 'Accento Inclusivo', target: 'enemy', cd: 2, hit: { mul: 1.25 },
@@ -496,7 +497,7 @@
       ],
     },
     {
-      id: 'zhenglei', name: 'Chen Zhenglei', rank: 'L', title: 'Gran Maestro', cost: 6, hp: 135, atk: 85, def: 70,
+      id: 'zhenglei', name: 'Chen Zhenglei', rank: 'L', title: 'Gran Maestro', cost: 6, hp: 140, atk: 85, def: 70,
       orig: { atk: 1000, def: 1000 },
       moves: [
         { name: 'Ciuffata Cosmica', target: 'enemies', once: true, offensive: true, nocopy: true,
