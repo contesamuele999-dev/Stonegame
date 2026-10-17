@@ -1,5 +1,5 @@
 /* Service worker: salva il gioco sul telefono per aprirlo anche senza internet. */
-const CACHE = 'stonetao-v31';
+const CACHE = 'stonetao-v32';
 const FILES = [
   "./",
   "index.html",
@@ -91,7 +91,6 @@ const FILES = [
   "audio/liming/bum.mp3",
   "audio/liming/iii.mp3",
   "audio/liming/iii2.mp3",
-  "audio/liming/paaa.mp3",
   "audio/liming/pah.mp3",
   "audio/liming/richiamo.mp3",
   "audio/liming/shuaa1.mp3",
@@ -101,7 +100,6 @@ const FILES = [
   "audio/liming/sus2.mp3",
   "audio/liming/taaan.mp3",
   "audio/liming/tin.mp3",
-  "audio/liming/tinn.mp3",
   "audio/liming/vuum.mp3",
   "audio/liming/yah.mp3",
   "audio/liming/zss.mp3",

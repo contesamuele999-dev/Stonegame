@@ -33,7 +33,7 @@ function frames(x, gain) {
   return out;
 }
 
-const expect = { shuaa1: 'shuaa', shuaa2: 'shuaa', tinn: 'tinn', tin: 'tinn', paaa: 'paaa', pah: 'paaa' };
+const expect = { shuaa1: 'shuaa', shuaa2: 'shuaa', iii: 'tinn', iii2: 'tinn', tin: 'tinn', pah: 'paaa' }; // 'tinn' è il grido «Iiii»
 let ok = 0, tot = 0;
 for (const [name, want] of Object.entries(expect)) {
   for (const gain of [1, 0.3]) {

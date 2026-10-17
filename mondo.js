@@ -197,7 +197,7 @@
             W.scrolls(5); W.sfx('item');
             return W.say('Hai ricevuto 5 pergamene!');
           }
-          if (W.flag('sussurri:via') && !W.flag('sussurri:fine')) return W.say(['Da tre notti, dalla grotta del parco: «Shuaaa!», «Tinn!», «Paaa!».', 'Ho provato con i tappi per le orecchie e con la camomilla. Niente. Il tè risolve tutto, tranne questo.'], who);
+          if (W.flag('sussurri:via') && !W.flag('sussurri:fine')) return W.say(['Da tre notti, dalla grotta del parco: «Shuaaa!», «Iiii!», «Paaa!».', 'Ho provato con i tappi per le orecchie e con la camomilla. Niente. Il tè risolve tutto, tranne questo.'], who);
           if (W.flag('sussurri:fine')) return W.say('Finalmente dormo! Stanotte ho sognato solo un piccolo «shuaa». Molto educato.', who);
           return W.say('Anche il Tè del Maestro, nelle sfide, toglie gli effetti negativi. Il tè risolve tutto.', who);
         } },
@@ -766,7 +766,7 @@
             await W.say([
               'Ottima sfida, {n}. Ora però... devo confessarti una cosa imbarazzante.',
               'Stamattina mi allenavo con i ventagli nella grotta del parco. Ho gridato «SHUAAA!» così forte che lo spirito della mia carta è saltato fuori.',
-              'Ora vaga là dentro e ripete le mie grida: «Shuaaa! Tinn! Paaa!». I vicini pensano che la grotta sia infestata. Mrs. Brown non dorme da tre notti.',
+              'Ora vaga là dentro e ripete le mie grida: «Shuaaa! Iiii! Paaa!». I vicini pensano che la grotta sia infestata. Mrs. Brown non dorme da tre notti.',
               'E non è tutto. È uno spirito dispettoso: ruba le mutande a chi entra. Lo chiamo Vestiario Smemorato. Non chiedermi perché lo so.',
               'Io senza voce non posso insegnare. Vai tu: segui i sussurri, ascolta da che parte arrivano. Se riesci a calmarlo, viaggerà con te.',
               'Ho avvisato il bobby davanti alla grotta: ti lascerà passare. E se trovi delle mutande... riportamele. Non sono mie. Sono dei miei allievi. Davvero.',
@@ -789,7 +789,7 @@
   // ------------------------------------------------------------ SIDESTORY: la Grotta dei Sussurri (Inghilterra)
   // Lo spirito della carta di Liming Yue è scappato e grida nella grotta. Si segue la voce (stereo: da che parte arriva),
   // si risponde ai suoi gridi colpendo le lanterne nell'ordine giusto e lo si sfida: vincendo arriva la carta di Liming Yue.
-  const SUS_WORD = { shuaa: ['shuaa1', 'Shuaaa…'], tinn: ['tinn', 'Tinn…'], paaa: ['paaa', 'Paaa…'] };
+  const SUS_WORD = { shuaa: ['shuaa1', 'Shuaaa…'], tinn: ['iii', 'Iiii…'], paaa: ['pah', 'Paaa…'] };
   const SUS_LANTERN = { '5,7': 'shuaa', '10,7': 'tinn', '14,7': 'paaa' };
   // l'ordine dei gridi: sempre lo stesso per lo stesso viaggio
   const susSeq = s => { const w = ['shuaa', 'tinn', 'paaa']; let h = 7; for (const c of String(s.id || s.name || 'x')) h = (h * 31 + c.charCodeAt(0)) | 0; h = Math.abs(h); return [w.splice(h % 3, 1)[0], w.splice((h >> 3) % 2, 1)[0], w[0]]; };
@@ -828,8 +828,8 @@
     whisper: {
       every: [2600, 5200],
       from: s => (s.flags['sussurri:fine'] ? null : [10, 2]),
-      list: [['shuaa1', 'Shuaaa…'], ['shuaa2', 'Shuaaa…'], ['tinn', 'Tinn…'], ['tin', 'Tin!'], ['paaa', 'Paaa…'], ['pah', 'Pah!'], ['shuum', 'Shuuum…'],
-        ['vuum', 'Vuuum…'], ['yah', 'Yah!'], ['taaan', 'Taaan…'], ['zss', 'Zsss…'], ['iii', 'Iiih…'], ['bum', 'Bum…'], ['aquila', 'Kiii!'], ['sus1', '…'], ['sus2', '…']],
+      list: [['shuaa1', 'Shuaaa…'], ['shuaa2', 'Shuaaa…'], ['iii2', 'Iiii…'], ['tin', 'Tin!'], ['pah', 'Pah!'], ['shuum', 'Shuuum…'],
+        ['vuum', 'Vuuum…'], ['yah', 'Yah!'], ['taaan', 'Taaan…'], ['zss', 'Zsss…'], ['bum', 'Bum…'], ['aquila', 'Kiii!'], ['sus1', '…'], ['sus2', '…']],
     },
     look: {
       u: 'Una lanterna di pietra con un ventaglio inciso. Sembra fatta per essere colpita.',
@@ -880,7 +880,7 @@
           await W.sample('shuaa2', { echo: true });
           await W.say([
             'SHUAAA! ...Oh. Ciao.',
-            'Scusa, è più forte di me: qui l\'eco è perfetta. TINN! Senti che bello?',
+            'Scusa, è più forte di me: qui l\'eco è perfetta. IIII! Senti che bello?',
             'Sono lo spirito della carta del Maestro Liming Yue. Stamattina ha gridato così forte che sono saltato fuori.',
             'Le mutande? Ah, sì. Vestiario Smemorato: le prendo in prestito. Per sempre.',
             'Vuoi riportarmi dal Maestro? Prima fammi sentire la tua voce. Grida con me!',
@@ -891,7 +891,7 @@
           const win = await W.challenge({ name: 'Spirito di Liming Yue', cards: ['liming', 'federica', 'niccolo', 'strahinja'], lv: [9, 8, 8, 8], cpu: 'normale', terrain: 'liming', music: 'liming',
             intro: 'Onomotopia Disastrosa! SHUAAA!',
             win: ['...shuaa. Hai vinto tu.', 'Va bene, viaggerò con te. Prometto di gridare solo in sfida. Quasi sempre.'],
-            lose: 'TINN! Torna quando avrai più fiato.' }, who);
+            lose: 'IIII! Torna quando avrai più fiato.' }, who);
           if (!win) return;
           W.set('sussurri:fine');
           await W.gain('liming', 8, 'Liming Yue si unisce a te!');

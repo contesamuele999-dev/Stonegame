@@ -1,8 +1,8 @@
 /* STONE TEMPLE TAO — la voce di Liming Yue
- * L'Onomotopia Disastrosa si grida al microfono: «Shuaaa!», «Tinn!» o «Paaa!».
+ * L'Onomotopia Disastrosa si grida al microfono: «Shuaaa!», «Iiii!» o «Paaa!».
  * Niente riconoscimento vocale su internet: si ascolta il suono e se ne guarda la forma.
  *   - «Shuaaa» comincia con un fruscio (sh): tanta energia sopra i 2500 Hz, prima della vocale.
- *   - «Tinn» ha la i: la seconda formante è alta (sopra i 2000 Hz) e la prima bassa.
+ *   - «Iiii» ha la i: la seconda formante è alta (sopra i 2000 Hz) e la prima bassa.
  *   - «Paaa» ha la a: energia tra i 500 e i 1800 Hz, attacco secco.
  * API: Voce.supported() · Voce.listen({ ms, onLevel }) → Promise<frames> · Voce.analyze(frames) → { word, scores, loud, ok }
  *      Voce.check(frames, target) → { ok, word, loud }. analyze/check funzionano anche in Node (tools/test-voce.js).

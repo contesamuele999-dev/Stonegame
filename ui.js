@@ -1624,8 +1624,11 @@
   }
 
   // ------------------------------------------------------------ la voce di Liming Yue (Onomotopia Disastrosa)
-  const SHOUT = { shuaa: ['shuaa1', 'shuaa2'], tinn: ['tinn', 'tin'], paaa: ['paaa', 'pah'] };
-  const SHOUT_TXT = { shuaa: 'SHUAAA', tinn: 'TINN', paaa: 'PAAA' };
+  // la chiave 'tinn' resta per i replay salvati, ma il grido è «Iiii» (su Drive non c'è nessun «Tinn» di Liming)
+  // «Tin» è il grido raro: se riesce, Caduta della Pineale (engine.js). Al microfono vale come «Iiii» (stessa vocale).
+  const SHOUT = { shuaa: ['shuaa1', 'shuaa2'], tinn: ['iii', 'iii2'], paaa: ['pah'], tin: ['tin'] };
+  const SHOUT_TXT = { shuaa: 'SHUAAA', tinn: 'IIII', paaa: 'PAAA', tin: 'TIN' };
+  const pickShout = () => (Math.random() < 0.15 ? 'tin' : ['shuaa', 'tinn', 'paaa'][Math.floor(Math.random() * 3)]);
   // il grido riuscito: quello detto al microfono, oppure (computer, replay vecchi) quello scelto dal motore
   function voiceWord(g, a) { return typeof a.formula === 'string' ? a.formula : ['shuaa', 'tinn', 'paaa'][g.turnNo % 3]; }
   // quando la mossa riesce si sente il grido vero del Maestro
@@ -1640,7 +1643,7 @@
   // Grida al microfono la parola chiesta. Senza microfono: si indovina quale grido sta facendo il Maestro.
   // Restituisce la parola (stringa) se riesce, false se no.
   function voicePrompt(m) {
-    const target = ['shuaa', 'tinn', 'paaa'][Math.floor(Math.random() * 3)];
+    const target = pickShout();
     const example = w => { const l = SHOUT[w]; return window.Sound && Sound.sample ? Sound.sample(l[Math.floor(Math.random() * l.length)]) : Promise.resolve(); };
     return new Promise(resolve => {
       let done = false;
@@ -1680,23 +1683,23 @@
             guess();
             return;
           }
-          const r = Voce.check(frames, target);
+          const r = Voce.check(frames, target === 'tin' ? 'tinn' : target);
           if (!r.ok && r.loud < 0.03) finish(false, 'Troppo piano! Il Maestro non ha sentito niente.');
-          else if (!r.ok && r.word && r.word !== target) finish(false, `Sembrava «${SHOUT_TXT[r.word]}», non «${SHOUT_TXT[target]}»: niente sorpresa.`);
+          else if (!r.ok && r.word && r.word !== target && !(target === 'tin' && r.word === 'tinn')) finish(false, `Sembrava «${SHOUT_TXT[r.word]}», non «${SHOUT_TXT[target]}»: niente sorpresa.`);
           else if (!r.ok) finish(false, 'Un po\' troppo corto: niente sorpresa.');
           else finish(target, r.loud > 0.25 ? 'Che grido! Anche il Maestro si è spaventato.' : 'Sorpresa riuscita!');
         };
       };
       // senza microfono: il Maestro grida e tu riconosci quale grido è
       const guess = () => {
-        const w = ['shuaa', 'tinn', 'paaa'][Math.floor(Math.random() * 3)];
+        const w = pickShout();
         let left = 8;
         openLayer(`<div class="overlay voce" role="dialog" aria-label="${esc(m.name)}">
           <div class="eyebrow">${esc(m.name)} · Liming Yue</div>
           <div class="grido" id="vgrido">?!</div>
           <p id="vmsg">Il Maestro grida: quale grido senti? Indovina per la sorpresa!</p>
           <div class="timer num" id="vtimer">${left}</div>
-          <div class="scelte">${['shuaa', 'tinn', 'paaa'].map(k => `<button class="btn" data-w="${k}">${SHOUT_TXT[k]}</button>`).join('')}</div>
+          <div class="scelte">${['shuaa', 'tinn', 'paaa', 'tin'].map(k => `<button class="btn" data-w="${k}">${SHOUT_TXT[k]}</button>`).join('')}</div>
           <button class="btn ghost" id="vhear">🔊 Riascolta</button>
         </div>`);
         example(w);

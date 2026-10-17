@@ -74,7 +74,7 @@
     },
     {
       id: 'elia', name: 'Elia Moretton', rank: 'M', cost: 4, hp: 140, atk: 85, def: 75,
-      orig: { atk: 90, def: 90 },
+      orig: { atk: 105, def: 95 },
       moves: [
         { name: 'Perfezionismo Compulsivo', target: 'enemy', cd: 3,
           desc: 'Fa notare gli errori di tecnica: l\'avversario dimezza il suo ATK per 2 turni.',
@@ -267,7 +267,7 @@
       ],
     },
     {
-      id: 'christian', name: 'Christian Cecchin', rank: 'A', cost: 2, hp: 115, atk: 50, def: 50,
+      id: 'christian', name: 'Christian Checchin', rank: 'A', cost: 2, hp: 115, atk: 50, def: 50,
       orig: { atk: 40, def: 50 },
       moves: [
         { name: 'Apprendimento Fulmineo', target: 'copy', cd: 4, nocopy: true,
@@ -384,16 +384,18 @@
       orig: { atk: 100, def: 100 },
       moves: [
         // voice: chi la usa dal telefono deve gridarla al microfono (ui.js); a.formula = il grido riuscito
-        { name: 'Onomotopia Disastrosa', target: 'enemy', cd: 3, hit: { flat: 10 }, voice: true, formula: 'Shuaaa Tinn Paaa',
-          desc: 'Grida «Shuaaa!», «Tinn!» o «Paaa!» (al microfono, se la usi tu): per la sorpresa stordisce l\'avversario per 1 turno e lo colpisce con 10 danni in più. Se il grido non riesce, colpisce e basta.',
+        { name: 'Onomotopia Disastrosa', target: 'enemy', cd: 3, hit: { flat: 10 }, voice: true, formula: 'Shuaaa Iiii Paaa',
+          desc: 'Grida «Shuaaa!», «Iiii!» o «Paaa!» (al microfono, se la usi tu): per la sorpresa stordisce l\'avversario per 1 turno e lo colpisce con 10 danni in più. Se il grido non riesce, colpisce e basta.',
           use(g, u, t, a) {
             const ok = !a || a.formula === undefined ? rand(g) < 0.6 : !!a.formula;
             if (ok) {
-              const WORD = { shuaa: 'SHUAAA', tinn: 'TINN', paaa: 'PAAA' };
-              const word = WORD[a.formula] || (typeof a.formula === 'string' ? a.formula.toUpperCase() : ['SHUAAA', 'TINN', 'PAAA'][g.turnNo % 3]);
+              const WORD = { shuaa: 'SHUAAA', tinn: 'IIII', paaa: 'PAAA', tin: 'TIN' };
+              const word = WORD[a.formula] || (typeof a.formula === 'string' ? a.formula.toUpperCase() : ['SHUAAA', 'IIII', 'PAAA'][g.turnNo % 3]);
               log(g, `🗣️ «${word}!» ${nm(t)} sobbalza per la sorpresa!`);
               attack(g, u, t, { flat: 10 });
               stun(g, t, u, 1);
+              // «Tin!», il grido raro (solo dal telefono): potenziamento in più
+              if (a.formula === 'tin' && addStatus(g, u, u, 'atkAdd', 2, 20, true)) log(g, `🧠 Caduta della Pineale! ${nm(u)}: ATK +20 per 2 turni.`);
             } else {
               log(g, `${nm(u)} si schiarisce la voce... niente sorpresa.`);
               attack(g, u, t);
