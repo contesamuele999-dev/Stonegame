@@ -955,10 +955,13 @@
     const guest = c.start ? '<button class="btn ghost" data-act="acc-guest">Gioca senza account</button>' : '';
     const mode = c.mode || 'login';
     if (Cloud.signedIn() && mode === 'newpass') {
-      body = `<h2>Nuova password</h2>
+      // dal profilo (c.change) serve anche quella attuale; dal link dell'email no
+      const old = c.change ? `<label class="field-label" for="acc-old"><span class="eyebrow">Password attuale</span><input id="acc-old" type="password" autocomplete="current-password"></label>` : '';
+      body = `<h2>${c.change ? 'Cambia password' : 'Nuova password'}</h2>
         <p class="hint" style="text-align:left">Scegli la nuova password per il tuo account (almeno 6 caratteri).</p>
-        ${passF('Nuova password', 'new-password')}${msg}
-        <button class="btn primary" data-act="acc-newpass" ${dis}>Salva la password</button>`;
+        ${old}${passF('Nuova password', 'new-password')}${msg}
+        <button class="btn primary" data-act="acc-newpass" ${dis}>${c.busy ? 'Un attimo…' : 'Salva la password'}</button>
+        ${c.change ? '<button class="btn ghost" data-act="acc-mode" data-v="login">Annulla</button>' : ''}`;
     } else if (!Cloud.signedIn()) {
       if (mode === 'signup') body = `<h2>Crea il tuo account</h2>
         <p class="hint" style="text-align:left">Con un account entri nella classifica generale, sali di livello vincendo le sfide e ritrovi le tue carte anche su un altro telefono.</p>
@@ -997,8 +1000,9 @@
         </div>
         <p class="hint" style="text-align:left">Punti a ogni sfida: vittoria contro il computer 20 / 30 / 45 (facile, normale, difficile), torneo 40, online 50; anche una sconfitta vale 10.</p>
         ${msg}
-        <details class="syn-box"><summary>Cambia nome o esci</summary>
+        <details class="syn-box"><summary>Cambia nome, password o esci</summary>
           <div class="acc-edit"><input id="acc-name" maxlength="20" value="${esc(p.nome)}" aria-label="Nuovo nome"><button class="btn small" data-act="acc-rename" ${dis}>Cambia nome</button></div>
+          <button class="btn" data-act="acc-chpass">Cambia password</button>
           <button class="btn ghost" data-act="acc-logout">Esci dall'account</button>
         </details>`;
     }
@@ -2264,7 +2268,8 @@
       case 'live-back': A.liveMatch = null; A.game = null; go('live'); break;
       case 'live-reset': confirmBox('Chiudere il torneo?', 'Il tabellone verrà cancellato. I nomi restano per il prossimo.', 'live-reset-yes', 'Chiudi il torneo'); break;
       case 'live-reset-yes': drop('live'); closeLayer(); render(); break;
-      case 'acc-mode': A.acc.mode = v; A.acc.msg = ''; A.acc.info = ''; render(); break;
+      case 'acc-mode': A.acc.mode = v; A.acc.msg = ''; A.acc.info = ''; A.acc.change = false; render(); break;
+      case 'acc-chpass': Object.assign(A.acc, { mode: 'newpass', change: true, msg: '', info: '', pw: '' }); render(); break;
       case 'nudge-login':
         A.game = null; A.acc = Object.assign(A.acc || {}, { mode: 'login', msg: '', info: '' }); go('account'); break;
       case 'nudge-later': try { sessionStorage.setItem('stt_promemoria', '1'); } catch (err) { /* niente */ } render(); break;
@@ -2286,8 +2291,12 @@
       }
       case 'acc-newpass': {
         const pw = (document.getElementById('acc-pass') || {}).value || '';
+        const old = (document.getElementById('acc-old') || {}).value || '';
+        if (A.acc.change && !old) { A.acc.msg = 'Scrivi la password attuale.'; render(); break; }
         if (pw.length < 6) { A.acc.msg = 'La password deve avere almeno 6 caratteri.'; render(); break; }
-        accDo(Cloud.setPassword(pw), () => { A.acc.mode = 'login'; toastQuick('Password cambiata!'); A.acc.loaded = false; accountLoad(); });
+        // dal profilo controllo prima la password attuale rientrando con quella
+        const check = A.acc.change ? Cloud.signIn(Cloud.email(), old).catch(() => { throw new Error('La password attuale è sbagliata.'); }) : Promise.resolve();
+        accDo(check.then(() => Cloud.setPassword(pw)), () => { A.acc.mode = 'login'; A.acc.change = false; toastQuick('Password cambiata!'); A.acc.loaded = false; accountLoad(); });
         break;
       }
       case 'acc-create': case 'acc-rename': {
@@ -2487,7 +2496,7 @@
   // mostra la password
   document.addEventListener('change', e => {
     if (!e.target.dataset || e.target.dataset.change !== 'showpw') return;
-    const p = document.getElementById('acc-pass'); if (p) p.type = e.target.checked ? 'text' : 'password';
+    for (const p of document.querySelectorAll('#acc-pass, #acc-old')) p.type = e.target.checked ? 'text' : 'password';
   });
   document.addEventListener('keydown', e => {
     if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('[role="button"][data-act]')) { e.preventDefault(); handle(e); }

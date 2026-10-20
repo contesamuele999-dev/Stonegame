@@ -4,6 +4,15 @@
  */
 window.NOVITA = [
   {
+    data: '2026-10-20',
+    titolo: 'Cambia la tua password',
+    testo: [
+      'Account: in «Cambia nome, password o esci» ora puoi cambiare la password. Ti chiediamo prima quella attuale.',
+      'Password dimenticata? Dalla schermata di accesso ti mandiamo un link per sceglierne una nuova (guarda anche nella posta indesiderata).',
+      'Una carta segreta ha imparato una mossa nuova. Chi l\'ha sbloccata la trova già nel mazzo.',
+    ],
+  },
+  {
     data: '2026-10-17',
     titolo: 'Le grida vere di Liming Yue',
     testo: [

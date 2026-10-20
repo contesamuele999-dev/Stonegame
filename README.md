@@ -9,7 +9,7 @@ Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal tele
 - **Tutorial** guidato dal Maestro Samuele per la prima partita.
 - **Carte da sbloccare**: si parte con 10 carte, ogni vittoria ne sblocca una (o tutte subito dalle impostazioni).
 - **Classifica** di giocatori e carte, salvata sul telefono (comprese le partite online).
-- **Account e classifica generale**: all'apertura si entra con email e password (o si gioca senza account); livelli con punti esperienza a ogni sfida, classifica di tutti i giocatori e carte sbloccate salvate online, da ritrovare su un altro telefono.
+- **Account e classifica generale**: all'apertura si entra con email e password (o si gioca senza account), con «Password dimenticata?» per riceverne una nuova via email e «Cambia password» dal profilo; livelli con punti esperienza a ogni sfida, classifica di tutti i giocatori e carte sbloccate salvate online, da ritrovare su un altro telefono.
 - **Suoni e musica** sintetizzati nel browser, **vibrazione** sui colpi forti, **partita salvata** in automatico e **installabile come app**, anche offline.
 - **Collezione** con tutte le carte originali e i valori usati in gioco.
 - **Animazioni 3D**: a ogni azione parte una scena in un'arena 3D. I lottatori hanno il volto preso dalla propria carta, la divisa nei colori della carta e la cintura del grado (oro Maestro, nera Istruttore, bianca Allievo). Ogni mossa ha il suo gesto e il suo effetto, e il bersaglio reagisce al risultato vero: danni, schivata, immunità, stordimento, confusione, K.O.
