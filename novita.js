@@ -5,6 +5,13 @@
 window.NOVITA = [
   {
     data: '2026-10-20',
+    titolo: 'Il tasto «indietro» funziona',
+    testo: [
+      'Il tasto «indietro» del telefono (o del browser) ora ti riporta al menu (in partita chiede se vuoi abbandonare) invece di chiudere il gioco.',
+    ],
+  },
+  {
+    data: '2026-10-20',
     titolo: 'Cambia la tua password',
     testo: [
       'Account: in «Cambia nome, password o esci» ora puoi cambiare la password. Ti chiediamo prima quella attuale.',

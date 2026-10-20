@@ -230,7 +230,27 @@
     document.body.style.setProperty('--terrain', ter ? `url(${terrainBg(ter)})` : 'none');
     if (A.screen === 'online') focusOnline();
     if (A.screen === 'chat') chatPaint(true);
+    syncBack();
   }
+  // tasto "indietro" del telefono o del browser: fuori dal menu c'è una voce in cronologia,
+  // così "indietro" torna al menu invece di uscire dal sito (su Firefox chiudeva la pagina)
+  function syncBack() {
+    const marked = !!(history.state && history.state.stt);
+    if (A.screen !== 'home' && !marked) history.pushState({ stt: 1 }, '');
+    else if (A.screen === 'home' && marked) history.back();
+  }
+  window.addEventListener('popstate', () => {
+    if (A.screen === 'home') return;
+    if (A.screen === 'storia') { if (window.Storia) Storia.close(); return; }
+    if ($layer.innerHTML || A.screen === 'battle') {
+      // finestra aperta o partita in corso: resto qui, chiudo la finestra o chiedo se abbandonare
+      history.pushState({ stt: 1 }, '');
+      if ($layer.innerHTML) closeLayer();
+      else if (!A.busy && !document.body.classList.contains('arena-open')) { const q = $app.querySelector('[data-act="quit"]'); if (q) q.click(); }
+      return;
+    }
+    go('home');
+  });
 
   // ------------------------------------------------------------ HOME
   let installEvt = null;
