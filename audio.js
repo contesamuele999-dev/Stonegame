@@ -1,5 +1,5 @@
 /* STONE TEMPLE TAO — suoni, musica e vibrazione
- * Tutto è sintetizzato al volo con Web Audio, tranne la canzone della lobby (Stone Game Song.mp3) e le grida di Liming Yue (audio/liming/).
+ * Tutto è sintetizzato al volo con Web Audio, tranne la canzone della lobby (audio/lobby.mp3) e le grida di Liming Yue (audio/liming/).
  * API: Sound.unlock() · Sound.play(nome, forza) · Sound.sample(nome, {pan, vol, rate, echo}) · Sound.setSfx(bool) · Sound.setMusic(bool)
  *      Sound.setVibration(bool) · Sound.buzz(pattern) · Sound.prodigy() · Sound.setTrack(nome)
  */
@@ -279,13 +279,16 @@
   });
   // la lobby suona la canzone vera, da file: parte e si ferma insieme alla musica, riprende da dove era rimasta.
   // Anche il remix del Maestro Liming Yue (le sue grida originali) è un file: suona nella sfida della Grotta dei Sussurri.
-  const FILES = { lobby: ['Stone%20Game%20Song.mp3', 0.6], liming: ['audio/liming/remix.mp3', 0.55] };
+  // La lobby è un <audio preload="auto"> in cima a index.html: comincia a scaricarsi prima degli script.
+  const FILES = { lobby: ['audio/lobby.mp3', 0.6], liming: ['audio/liming/remix.mp3', 0.55] };
   Object.keys(FILES).forEach(k => { TRACKS[k] = { beat: 0.5, step() {} }; });
   const songs = {};
+  const early = document.getElementById('canzone-lobby');
+  if (early) { songs.lobby = early; early.loop = true; early.volume = FILES.lobby[1]; }
   function syncSong() {
     for (const k of Object.keys(FILES)) {
       const want = musicOn && track === k && !document.hidden;
-      if (want && !songs[k]) { songs[k] = new Audio(FILES[k][0]); songs[k].loop = true; songs[k].volume = FILES[k][1]; }
+      if (want && !songs[k]) { songs[k] = new Audio(FILES[k][0]); songs[k].preload = 'auto'; songs[k].loop = true; songs[k].volume = FILES[k][1]; }
       const song = songs[k];
       if (!song) continue;
       if (want) song.play().catch(() => { /* il browser aspetta un tocco */ }); else song.pause();

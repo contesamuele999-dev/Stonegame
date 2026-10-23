@@ -4,6 +4,14 @@
  */
 window.NOVITA = [
   {
+    data: '2026-10-23',
+    titolo: 'Nuova canzone della lobby',
+    testo: [
+      'Nei menu ora suona «Stone Temple Tao», la nuova canzone del gioco.',
+      'Parte prima di tutto il resto e pesa meno, così si sente quasi subito anche con una connessione lenta.',
+    ],
+  },
+  {
     data: '2026-10-20',
     titolo: 'Il tasto «indietro» funziona',
     testo: [
