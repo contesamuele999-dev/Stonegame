@@ -78,8 +78,9 @@
 
   // ------------------------------------------------------------ carte segrete (easter egg)
   // Stanno cifrate in segreto.dat: senza la frase giusta nessuno può leggerle, nemmeno aprendo il codice.
-  let secretOwned = false; // sbloccate su questo telefono (non solo prestate per una partita online)
-  let secretKey = null;    // chiave (base64), da passare all'avversario online se le usi
+  // La chiave non lascia mai il telefono: online le carte segrete si usano solo se le ha sbloccate anche l'avversario.
+  let secretOwned = false; // sbloccate su questo telefono
+  let secretKey = null;    // chiave (base64), salvata solo qui
   const shown = () => S.CARDS.filter(c => !c.secret || secretOwned);
   const normPhrase = s => s.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().replace(/[^a-z0-9]/g, '');
   const toB64 = u8 => btoa(String.fromCharCode.apply(null, u8));
@@ -107,7 +108,6 @@
     }
     if (opt.persist) { secretOwned = true; store('chiave', secretKey); if (award('segreto')) toastQuick('🏅 Medaglia segreta: Custode del segreto'); }
   }
-  const secretFor = ids => (secretKey && ids.some(id => S.CARD[id] && S.CARD[id].secret) ? secretKey : undefined);
   function secretPrompt() {
     openLayer(`<div class="overlay formula" role="dialog" aria-label="Pergamena segreta">
       <div class="eyebrow">Pergamena segreta</div>
@@ -130,6 +130,8 @@
     if (u.length < S.TEAM_SIZE) u = STARTERS.slice();
     if ((torneo().titles || 0) > 0) u = u.concat(LEGENDS.filter(id => !u.includes(id)));
     if (secretOwned) u = u.concat(S.CARDS.filter(c => c.secret && !u.includes(c.id)).map(c => c.id));
+    // online con chi non le ha sbloccate le carte segrete restano fuori (lui non potrebbe vederle)
+    if (A.mode === 'online' && !(A.on && A.on.oppSeg)) u = u.filter(id => !S.CARD[id].secret);
     return u;
   }
   function unlockRandom(n) {
@@ -789,7 +791,7 @@
     return NEWS.slice(0, i < 0 ? 3 : i);
   }
   const newsHtml = n => `<div class="acc-card news"><div class="eyebrow">${new Date(n.data + 'T12:00').toLocaleDateString('it-IT', { day: 'numeric', month: 'long', year: 'numeric' })}</div>
-    <h3>${esc(n.titolo)}</h3><ul>${n.testo.map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>`;
+    <h3>${esc(n.titolo)}</h3><ul>${n.testo.concat(secretOwned ? n.segrete || [] : []).map(t => `<li>${esc(t)}</li>`).join('')}</ul></div>`;
   function newsPopup() {
     if (!newsReady || A.screen !== 'home' || $layer.innerHTML) return;
     const list = unseenNews();
@@ -1888,7 +1890,7 @@
     const o = A.on || (A.on = { phase: 'menu' });
     if (e.type === 'connected') {
       o.connected = true;
-      Net.send({ t: 'hello', name: A.names[0] || 'Giocatore', have: A.mode === 'online' && A.game ? A.log.length : -1 });
+      Net.send({ t: 'hello', name: A.names[0] || 'Giocatore', seg: secretOwned, have: A.mode === 'online' && A.game ? A.log.length : -1 });
       if (o.lost) { o.lost = false; closeLayer(); }
     } else if (e.type === 'disconnected') {
       o.connected = false;
@@ -1896,16 +1898,7 @@
       else if (o.phase === 'lobby') { o.phase = 'menu'; o.error = 'L\'altro giocatore si è scollegato.'; Net.close(); go('online'); }
     } else if (e.type === 'error') {
       if (A.screen === 'online') { o.error = e.message; o.phase = 'menu'; render(); }
-    } else if (e.type === 'data') queueMessage(e.data);
-  }
-
-  // i messaggi si elaborano in ordine; se portano la chiave delle carte segrete, prima si aprono quelle
-  let msgChain = Promise.resolve();
-  function queueMessage(m) {
-    msgChain = msgChain.then(async () => {
-      if (m && typeof m.key === 'string') { try { await openSecret({ key: m.key }); } catch (err) { /* chiave non valida */ } }
-      onMessage(m);
-    });
+    } else if (e.type === 'data') onMessage(e.data);
   }
 
   function onMessage(m) {
@@ -1913,9 +1906,10 @@
     if (!m || typeof m !== 'object' || !o) return;
     if (m.t === 'hello') {
       o.oppName = String(m.name || 'Avversario').slice(0, 16);
+      o.oppSeg = m.seg === true && secretOwned;
       if (A.mode === 'online' && A.game) {
         // si è ricollegato durante la partita: gli mando lo stato
-        if (Net.role === 'host') Net.send({ t: 'sync', setup: A.setup, log: A.log, key: secretFor(A.setup.players.flatMap(p => p.cards)) });
+        if (Net.role === 'host') Net.send({ t: 'sync', setup: A.setup, log: A.log });
         return;
       }
       if (o.phase !== 'lobby') {
@@ -1937,7 +1931,7 @@
       (o.queue = o.queue || []).push(m);
       processRemote();
     } else if (m.t === 'sync-req') {
-      Net.send({ t: 'sync', setup: A.setup, log: A.log, key: secretFor(A.setup.players.flatMap(p => p.cards)) });
+      Net.send({ t: 'sync', setup: A.setup, log: A.log });
     } else if (m.t === 'sync') {
       applySync(m);
     } else if (m.t === 'rematch') {
@@ -1965,7 +1959,7 @@
       Object.assign({ name: A.names[0] || 'Giocatore 1', cards: o.myTeam }, evIf(o.myEv)),
       Object.assign({ name: o.oppName || 'Giocatore 2', cards: o.oppTeam }, evIf(o.oppEv)),
     ]);
-    Net.send({ t: 'start', setup, key: secretFor(setup.players.flatMap(p => p.cards)) });
+    Net.send({ t: 'start', setup });
     startOnline(setup);
   }
 
@@ -2046,7 +2040,7 @@
     if (!o.oppRematch || !o.myRematch) return;
     if (Net.role === 'host') {
       const setup = newSetup(A.setup.players.map(p => Object.assign({ name: p.name, cards: p.cards }, p.ev ? { ev: p.ev } : {})));
-      Net.send({ t: 'start', setup, key: secretFor(setup.players.flatMap(p => p.cards)) });
+      Net.send({ t: 'start', setup });
       startOnline(setup);
     }
   }
@@ -2380,7 +2374,7 @@
         else if (A.mode === 'online') {
           A.on.myTeam = A.teams[0].slice();
           A.on.myEv = evsOf(A.on.myTeam);
-          Net.send({ t: 'team', cards: A.on.myTeam, ev: A.on.myEv, key: secretFor(A.on.myTeam) });
+          Net.send({ t: 'team', cards: A.on.myTeam, ev: A.on.myEv });
           openLayer(`<div class="overlay" role="dialog"><div class="eyebrow">Squadra pronta</div><h2>In attesa di ${esc(A.on.oppName || 'avversario')}</h2><p>La partita parte quando anche l'altra squadra è pronta.</p><button class="btn ghost" data-act="close">Cambia squadra</button></div>`);
           maybeStartOnline();
         } else startGame();

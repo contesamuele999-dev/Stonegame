@@ -1,6 +1,7 @@
 /* STONE TEMPLE TAO — le novità del gioco, la più recente in cima.
  * A ogni aggiornamento si aggiunge una voce qui sopra le altre: chi apre il gioco la vede in un avviso
  * (finché non tocca "Ho capito") e la ritrova nel menu, in "Novità".
+ * Le righe in "segrete" le vede solo chi ha sbloccato le carte segrete.
  */
 window.NOVITA = [
   {
@@ -24,6 +25,8 @@ window.NOVITA = [
     testo: [
       'Account: in «Cambia nome, password o esci» ora puoi cambiare la password. Ti chiediamo prima quella attuale.',
       'Password dimenticata? Dalla schermata di accesso ti mandiamo un link per sceglierne una nuova (guarda anche nella posta indesiderata).',
+    ],
+    segrete: [
       'Una carta segreta ha imparato una mossa nuova. Chi l\'ha sbloccata la trova già nel mazzo.',
     ],
   },
