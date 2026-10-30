@@ -22,7 +22,7 @@ function play(seed, level) {
   const terrain = pick([null].concat(S.TERRAINS.map(t => t.id)));
   const g = S.createGame({ seed, silent: true, first: seed % 2, terrain, effects: true, armory: true, combat2: !!process.env.STT_C2, players: [{ name: 'A', cards: t0 }, { name: 'B', cards: t1 }] });
   let n = 0;
-  const used = {};
+  const used = {}, duos = [0, 0], fused = [0, 0];
   let firstKo = null;
   while (g.winner === null && n < 400) {
     if (firstKo === null) firstKo = g.players[0].ko.length ? 0 : g.players[1].ko.length ? 1 : null;
@@ -32,11 +32,13 @@ function play(seed, level) {
     const f = S.byUid(g, a.actor);
     const key = S.cardOf(f).id + ':' + a.move;
     used[key] = (used[key] || 0) + 1;
+    if (a.move <= -10) duos[g.turn]++;
+    if (a.move === S.FUSE_I) fused[g.turn] = 1;
     S.doAction(g, a);
     n++;
   }
   // mosse usate
-  return { t0, t1, w: g.players.map(p => p.armsUsed || []), terrain, winner: g.winner, turns: g.turnNo, first: seed % 2, used, firstKo };
+  return { t0, t1, w: g.players.map(p => p.armsUsed || []), terrain, winner: g.winner, turns: g.turnNo, first: seed % 2, used, firstKo, duos, fused };
 }
 
 if (isMainThread) {
@@ -73,7 +75,13 @@ function report(rs, ms) {
   const rows = S.CARDS.map(c => ({ id: c.id, cost: c.cost, games: st[c.id].g, win: st[c.id].g ? st[c.id].w / st[c.id].g : 0 }))
     .sort((a, b) => b.win - a.win);
   const swaps = Object.keys(used).filter(k => k.endsWith(':-2')).reduce((s, k) => s + used[k], 0);
-  if (process.env.STT_C2) console.log(`per partita: Qi ${((used.qi || 0) / rs.length).toFixed(2)} · Cambi ${(swaps / rs.length).toFixed(2)}`);
+  if (process.env.STT_C2) {
+    console.log(`per partita: Qi ${((used.qi || 0) / rs.length).toFixed(2)} · Cambi ${(swaps / rs.length).toFixed(2)}`);
+    // chi le usa vince quanto? (la squadra che usa la tecnica o la fusione, quando l'altra no)
+    const pct = k => { const x = rs.filter(r => r.winner !== null && !r[k][0] !== !r[k][1]); return `${(100 * x.filter(r => r[k][r.winner]).length / (x.length || 1)).toFixed(1)}% su ${x.length} partite`; };
+    console.log(`tecniche di coppia: ${(rs.reduce((s, r) => s + r.duos[0] + r.duos[1], 0) / rs.length).toFixed(2)} a partita, chi le usa vince il ${pct('duos')}`);
+    console.log(`fusioni: ${(rs.reduce((s, r) => s + r.fused[0] + r.fused[1], 0) / rs.length).toFixed(2)} a partita, chi si fonde vince il ${pct('fused')}`);
+  }
   console.log(`partite ${rs.length} in ${(ms / 1000).toFixed(1)}s | turni medi ${(turns / rs.length).toFixed(1)} | vince chi inizia ${(100 * firstWins / rs.length).toFixed(1)}% | senza esito ${draws}`);
   for (const r of rows) {
     const u = [-1, 0, 1].map(i => used[r.id + ':' + i] || 0);

@@ -5,6 +5,15 @@
  */
 window.NOVITA = [
   {
+    data: '2026-10-30',
+    titolo: 'Tecniche di coppia e Fusione',
+    testo: [
+      'Tecniche di coppia: ogni Allievo ha un elemento (🔥 Fuoco, 🌪️ Vento, 🌳 Foresta, ⛰️ Montagna). Due Allievi in campo uniscono le azioni in una tecnica con gli ATK sommati: 10 tecniche, una per ogni coppia di elementi.',
+      'Fusione: una volta per partita due carte qualsiasi uniscono gli indici e diventano una sola, con i PV sommati e tutte le mosse. Il posto libero lo prende la riserva, ma se la fusione va K.O. le perdi entrambe.',
+      'Tocca una tua carta per trovarle tra le mosse. Tutti i dettagli nel Regolamento.',
+    ],
+  },
+  {
     data: '2026-10-23',
     titolo: 'Nuova canzone della lobby',
     testo: [

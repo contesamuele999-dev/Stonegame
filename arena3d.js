@@ -94,6 +94,17 @@
     'Forma con VR': { anim: 'cast', fx: 'orb', e: '🥽', c: '#38d6ff' },
     'Parlantina Competente': { anim: 'shout', fx: 'bubble', t: 'BLA BLA', c: '#eadbc0' },
     'Discernimento Occulto': { anim: 'palm', fx: 'burst', e: '🔮', c: '#b04cff' },
+    // tecniche di coppia (duoScene): cambiano colore ed emoji
+    'Drago Gemello': { anim: 'cast', e: '🐉', c: '#ff5a1f' },
+    'Tifone Invisibile': { anim: 'cast', e: '🌪️', c: '#9fe8ff' },
+    'Grande Muraglia': { anim: 'cast', e: '🏯', c: '#d4ae62' },
+    'Albero del Tao': { anim: 'cast', e: '🌳', c: '#7bd87b' },
+    'Tornado di Fiamme': { anim: 'cast', e: '🔥', c: '#ff8a3a' },
+    'Eruzione Marziale': { anim: 'cast', e: '🌋', c: '#ff3b30' },
+    'Fenice del Bosco': { anim: 'cast', e: '🪶', c: '#ffb347' },
+    'Valanga Sospesa': { anim: 'cast', e: '🏔️', c: '#dff3ff' },
+    'Danza delle Mille Foglie': { anim: 'cast', e: '🍃', c: '#55b98a' },
+    'Radici Eterne': { anim: 'cast', e: '🌱', c: '#a3c94f' },
   };
 
   // ------------------------------------------------------------ stato
@@ -243,6 +254,26 @@
     img.onerror = () => { if (tries++ < 2) setTimeout(() => { img.src = url.startsWith('blob:') ? url : `${url}?r=${tries}`; }, 800); };
     img.src = url;
     faceCache[card] = info;
+    return info;
+  }
+
+  // volto della fusione: metà viso per parte
+  function fusedTex(a, b) {
+    const k = a + '+' + b;
+    if (faceCache[k]) return faceCache[k];
+    const c = document.createElement('canvas'); c.width = c.height = 256;
+    const info = { tex: new T.CanvasTexture(c), skin: '#d9a47f', hair: '#2a1d16' };
+    const A = faceTex(a), B = faceTex(b), x = c.getContext('2d');
+    const draw = () => {
+      x.clearRect(0, 0, 256, 256);
+      x.drawImage(A.tex.image, 0, 0, 128, 256, 0, 0, 128, 256);
+      x.drawImage(B.tex.image, 128, 0, 128, 256, 128, 0, 128, 256);
+      info.skin = A.skin; info.hair = B.hair; info.tex.needsUpdate = true;
+      (info.onLoad || []).forEach(f => f(info));
+    };
+    [A, B].forEach(f => (f.onLoad = f.onLoad || []).push(draw));
+    draw();
+    faceCache[k] = info;
     return info;
   }
 
@@ -692,13 +723,14 @@
   const lathe = (pts, seg) => new T.LatheGeometry(pts.map(([r, y]) => new T.Vector2(r, y)), seg || 22);
 
   function fighter(d) {
-    if (STYLE[d.card]) return skinnedFighter(d); // lottatori con il corpo vero (per ora solo Samuele)
-    const look = LOOK[d.card] || ['#444', '#e8631c'];
+    if (STYLE[d.card] && !d.fusion) return skinnedFighter(d); // lottatori con il corpo vero (per ora solo Samuele)
+    let look = LOOK[d.card] || ['#444', '#e8631c'];
+    if (d.fusion) look = [look[0], (LOOK[d.fusion] || look)[0]]; // la fusione porta la divisa di uno bordata del colore dell'altro
     const g = new T.Group();
     const gi = cloth(look[0]);
     const pants = cloth(new T.Color(look[0]).multiplyScalar(0.72));
     const trim = cloth(look[1], 0.6);
-    const face = faceTex(d.card);
+    const face = d.fusion ? fusedTex(d.card, d.fusion) : faceTex(d.card);
     const skin = cloth(face.skin, 0.55);
     const hairM = cloth(face.hair, 0.9);
     (face.onLoad = face.onLoad || []).push(f => { skin.color.set(f.skin); hairM.color.set(f.hair); });
@@ -1432,6 +1464,152 @@
     return { home };
   }
 
+  // ------------------------------------------------------------ tecnica di coppia (stile Inazuma Eleven)
+  // I due saltano girandosi intorno, uniscono l'energia in una sfera sopra le teste e la scagliano insieme.
+  async function duoScene(A, B, tgs, M, spec, focus) {
+    B.ki = ki(B, auraOf(spec.partner), 1);
+    const both = f => Promise.all([f(A), f(B)]);
+    const homes = [A, B].map(c => c.g.position.clone());
+    const cx = (homes[0].x + homes[1].x) / 2, cz = homes[0].z;
+    A.idle = B.idle = false;
+    // la camera si allarga: la sfera nasce sopra le teste
+    const cam0 = camBase.clone(), look0 = camLook.clone();
+    await Promise.all([camTo(cam0.clone().add(new T.Vector3(0, 0.7, 1.9)), look0.clone().add(new T.Vector3(0, 0.75, 0)), 0.3), both(c => toPose(c, 'shoutWind', 0.25))]);
+    // spirale verso l'alto, con la scia del colore della tecnica
+    sfx('whoosh');
+    const trail = () => [A, B].forEach(c => burst(chestPos(c), M.c, 1, 0.6, 0.06));
+    updaters.push(trail);
+    const r0 = Math.abs(homes[1].x - homes[0].x) / 2, f = [A.facing, B.facing];
+    await Promise.all([both(c => toPose(c, 'flex', 0.5)), tween(0.85, t => {
+      [A, B].forEach((c, i) => {
+        const a = (i ? 0 : Math.PI) + t * Math.PI * 3, r = lerp(r0, 0.7, t);
+        c.g.position.set(cx + Math.cos(a) * r, t * 1.5, cz + Math.sin(a) * r * 0.6);
+        c.g.rotation.y = f[i] + t * Math.PI * 6;
+      });
+    }, ease.io)]);
+    updaters.splice(updaters.indexOf(trail), 1);
+    [A, B].forEach((c, i) => { c.g.position.set(cx + (i ? 0.7 : -0.7), 1.5, cz); stage(c, cx, cz, 0.5); });
+    // la sfera cresce tra i due, con i fulmini che partono dalle mani
+    await both(c => toPose(c, 'castWind', 0.2));
+    const core = new T.Mesh(geo('orb', () => new T.SphereGeometry(0.16, 16, 12)), new T.MeshBasicMaterial({ color: M.c, transparent: true, opacity: 0.9, blending: T.AdditiveBlending }));
+    const icon = sprite(emojiTex(M.e), 0.2);
+    const ball = new T.Group(); ball.add(core, icon); ball.position.set(cx, 3, cz); root.add(ball);
+    sfx('magic');
+    for (let k = 0; k < 4; k++) { lightning(handPos(A), ball.position.clone(), M.c, 0.18); lightning(handPos(B), ball.position.clone(), '#ffffff', 0.18); await wait(0.07); }
+    await tween(0.4, t => { core.scale.setScalar(1 + t * 4.5); icon.scale.setScalar(0.2 + t * 1.2); }, ease.back);
+    screenFlash(M.c, 0.4); buzz([40, 30, 80]);
+    await both(c => toPose(c, 'cast', 0.12, ease.out));
+    const foes = tgs.filter(t => !t.ally);
+    // verso i bersagli; le tecniche di squadra scendono sul tatami
+    const to = foes.length ? new T.Vector3(focus.x, 0.9, focus.z) : new T.Vector3(cx, 0.1, cz);
+    const from = ball.position.clone();
+    sfx('whoosh');
+    await tween(0.34, t => { ball.position.lerpVectors(from, to, t); burst(ball.position, M.c, 2, 1.2, 0.09); }, ease.in);
+    root.remove(ball);
+    [1.6, 3, 4.6].forEach((s, k) => ring(to, k === 1 ? '#ffffff' : M.c, s, 0.5 + k * 0.1, !foes.length));
+    burst(to, M.c, 40, 5, 0.1); burst(to, '#ffffff', 16, 3.5, 0.07);
+    for (let k = 0; k < 6; k++) pop(to.clone().add(new T.Vector3((Math.random() - 0.5) * 2.4, Math.random() * 1.3, (Math.random() - 0.5) * 1.2)), emojiTex(M.e), 0.5, 0.8, 0.4);
+    screenFlash(foes.length ? '#ffffff' : M.c, 0.75); shake(0.24, 0.45);
+    sfx('bighit'); buzz([90, 40, 140]);
+    // atterrano mentre il colpo arriva
+    const fall = both(c => {
+      const i = c === A ? 0 : 1, p0 = c.g.position.clone();
+      return Promise.all([toPose(c, 'guard', 0.3), tween(0.32, t => { c.g.position.lerpVectors(p0, homes[i], t); }, ease.in)]);
+    });
+    await Promise.all([fall, ...tgs.map(t => react(t.ch, t.out, M.c))]);
+    if (spec.self && (spec.self.heal || spec.self.buff)) await react(A, spec.self);
+    if (spec.partner.out) await react(B, spec.partner.out, M.c);
+    await Promise.all([camTo(cam0, look0, 0.3), both(c => stage(c, focus.x, focus.z, 0.6, 0.2))]);
+    A.idle = B.idle = true;
+  }
+
+  // ------------------------------------------------------------ fusione (stile Dragon Ball)
+  // Pose di chi sta a sinistra (l'altro le fa a specchio): braccia verso l'esterno, braccia verso il compagno, indici uniti.
+  const FUSE_POSE = {
+    out: { hy: -0.1, lsx: -1.45, le: 0, rsx: -0.75, rs: 1.25, re: 0.9, lh: 0.25, lk: -0.45, rh: -0.15, rk: -0.3 },
+    in: { hy: -0.1, rsx: 1.45, re: 0, lsx: 0.75, ls: 1.25, le: 0.9, lh: 0.9, lk: -1.35, rh: -0.15, rk: -0.3 },
+    touch: { hy: -0.12, rsx: 1.56, re: 0, lsx: -2.2, le: 0.15, lh: 1.05, lk: -1.5, rh: -0.1, rk: -0.2 },
+  };
+  const fusePose = (k, mirrored) => {
+    const p = Object.assign({}, POSE0, FUSE_POSE[k]);
+    return mirrored ? Object.assign({}, p, { ls: p.rs, rs: p.ls, lsx: -p.rsx, rsx: -p.lsx, le: p.re, re: p.le, lh: p.rh, rh: p.lh, lk: p.rk, rk: p.lk }) : p;
+  };
+  // l'indice teso sulla mano; restituisce la punta
+  function indexFinger(hand, color) {
+    const f = new T.Mesh(new T.CylinderGeometry(0.017, 0.023, 0.15, 10), new T.MeshStandardMaterial({ color, roughness: 0.55 }));
+    f.position.y = -0.13; f.castShadow = true; hand.add(f);
+    const tip = new T.Object3D(); tip.position.y = -0.21; hand.add(tip);
+    return tip;
+  }
+  function camTo(pos, look, dur) {
+    const p0 = camBase.clone(), l0 = camLook.clone();
+    return tween(dur, t => {
+      camBase = p0.clone().lerp(pos, t); camLook = l0.clone().lerp(look, t);
+      camera.position.copy(camBase); camera.lookAt(camLook);
+    }, ease.io);
+  }
+  async function fusionScene(A, B, spec, all) {
+    const both = f => Promise.all([f(A, false), f(B, true)]);
+    const say = (c, text) => pop(headPos(c).add(new T.Vector3(0, 0.75, 0)), textTex(text, '#ffd24a'), 0.42, 0.9, 0.15);
+    const words = text => { sfx('whoosh'); buzz(20); say(A, text); say(B, text); };
+    subEl.textContent = `${A.d.name} + ${B.d.name}`;
+    A.idle = B.idle = false;
+    padOff(A); padOff(B);
+    [A, B].forEach(c => { c.g.rotation.order = 'YXZ'; face(c, camBase.x, camBase.z); });
+    const tipA = indexFinger(A.J.rf, faceTex(A.d.card).skin), tipB = indexFinger(B.J.lf, faceTex(B.d.card).skin);
+    // tre passi verso il centro, con le braccia verso l'esterno
+    words('FU...');
+    await both((c, m) => toPose(c, fusePose('out', m), 0.3));
+    for (const x of [1.3, 1.15, 1]) await both((c, m) => moveTo(c, m ? x : -x, c.g.position.z, 0.2, ease.io, 0.1));
+    // le braccia passano dall'altra parte
+    words('SIO...');
+    await both((c, m) => toPose(c, fusePose('in', m), 0.32));
+    await both((c, m) => toPose(c, fusePose('out', m), 0.28));
+    // e si piegano uno verso l'altro: la telecamera va sugli indici
+    words('NE!');
+    await both((c, m) => Promise.all([toPose(c, fusePose('touch', m), 0.26, ease.out), tween(0.26, t => { c.g.rotation.x = (m ? 1 : -1) * 0.16 * t; })]));
+    root.updateMatrixWorld(true);
+    const a = new T.Vector3(), b = new T.Vector3();
+    tipA.getWorldPosition(a); tipB.getWorldPosition(b);
+    const gap = (b.x - a.x) / 2, mid = a.clone().add(b).multiplyScalar(0.5);
+    const near = new T.Vector3(mid.x, mid.y + 0.12, mid.z + 2);
+    await camTo(near, mid, 0.5);
+    const x0 = [A.g.position.x, B.g.position.x];
+    await tween(0.3, t => { A.g.position.x = x0[0] + gap * t; B.g.position.x = x0[1] - gap * t; }, ease.in);
+    // contatto: scintilla che cresce fino a coprire lo schermo
+    sfx('event'); buzz([60, 40, 120]);
+    burst(mid, '#ffffff', 30, 2.4, 0.04); ring(mid, '#ffd24a', 1.2, 0.5);
+    shake(0.05, 0.6);
+    const star = new T.Mesh(geo('orb', () => new T.SphereGeometry(0.16, 16, 12)), new T.MeshBasicMaterial({ color: '#fff3b0', transparent: true, blending: T.AdditiveBlending }));
+    star.position.copy(mid); root.add(star);
+    flashEl.style.background = '#ffffff';
+    await tween(0.65, t => { star.scale.setScalar(0.1 + t * t * 7); flashEl.style.opacity = String(t * t); if (Math.random() < 0.5) lightning(mid, mid.clone().add(rv(1.6)), '#fff3b0', 0.1); }, ease.in);
+    // dietro il lampo i due diventano uno
+    root.remove(star); A.g.visible = false; B.g.visible = false;
+    const C = fighter(spec.fusion);
+    equip(C, spec.fusion.weapon);
+    C.g.position.set(0, 0, A.g.position.z); root.add(C.g); all.push(C);
+    face(C, camBase.x, camBase.z);
+    C.pose = pose('power'); C.apply();
+    C.ki = ki(C, auraOf(spec.fusion), 1); ki(C, 'X', 0.6);
+    camBase = new T.Vector3(0, 1.5, 3.6); camLook = new T.Vector3(0, 1.15, 0.2);
+    camera.position.copy(camBase); camera.lookAt(camLook);
+    subEl.textContent = 'FUSIONE!';
+    titleEl.textContent = spec.fusion.name;
+    overlay.classList.remove('show'); void overlay.offsetWidth; overlay.classList.add('show');
+    await tween(0.45, t => { flashEl.style.opacity = String(1 - t); }, ease.out);
+    sfx('bighit'); buzz([90, 40, 160]); shake(0.2, 0.5);
+    const g0 = new T.Vector3(0, 0.05, C.g.position.z);
+    [2, 3.4, 5].forEach((s, k) => ring(g0, k === 1 ? '#ffffff' : '#ffd24a', s, 0.5 + k * 0.15, true));
+    burst(chestPos(C), '#ffd24a', 40, 4.5, 0.09);
+    for (let k = 0; k < 5; k++) { const c = chestPos(C); lightning(c, c.clone().add(rv(2.4)), '#fff3b0', 0.3); await wait(0.07); }
+    await toPose(C, 'flex', 0.3, ease.back);
+    await Promise.all([camTo(new T.Vector3(0, 1.9, 4.8), new T.Vector3(0, 1.1, 0.2), 1.1), toPose(C, 'guard', 0.8)]);
+    C.idle = true;
+    await wait(0.4);
+    return finish();
+  }
+
   // se una scena va storta si chiude comunque, e l'errore resta visibile in console
   async function play(spec) {
     try { return await playScene(spec); } catch (e) { console.error(e); return finish(); }
@@ -1464,6 +1642,9 @@
     const A = fighter(spec.attacker);
     equip(A, spec.attacker.weapon);
     root.add(A.g);
+    // tecnica di coppia e fusione: in scena c'è anche il compagno
+    const B = spec.partner ? fighter(spec.partner) : null;
+    if (B) { equip(B, spec.partner.weapon); root.add(B.g); }
     const tlist = spec.targets.slice(0, 5);
     const tgs = tlist.map(t => {
       const ch = fighter(t);
@@ -1490,10 +1671,12 @@
     // in primo piano si sta più stretti: in due o tre restano dentro lo schermo del telefono
     row(near, near.length > 1 ? -0.1 : -0.55, 1.3, -0.4);
     row(far, far.length > 1 ? 0.45 : 0.55, -1.5, -1);
+    if (B) { const z = A.g.position.z; A.g.position.set(-0.55, 0, z); B.g.position.set(0.55, 0, z); }
+    if (spec.fusion) { A.g.position.set(-1.45, 0, 0.55); B.g.position.set(1.45, 0, 0.55); }
     const focus = tgs.length ? tgs.map(t => t.ch.g.position).reduce((a, b) => a.clone().add(b)).multiplyScalar(1 / tgs.length) : new T.Vector3(1, 0, -1);
     stage(A, focus.x, focus.z, 0.6);
     tgs.forEach(t => stage(t.ch, A.g.position.x, A.g.position.z, 0.3));
-    const all = [A].concat(tgs.map(t => t.ch));
+    const all = (B ? [A, B] : [A]).concat(tgs.map(t => t.ch));
     const idle = (dt) => all.forEach(c => { c.t += dt; c.apply(); });
     updaters.push(idle);
 
@@ -1504,12 +1687,13 @@
     // ingresso: i lottatori si materializzano dalle carte
     overlay.classList.remove('show'); void overlay.offsetWidth; overlay.classList.add('show');
     await Promise.all(all.map((c, i) => summon(c, i * 0.04)));
+    if (spec.fusion) return fusionScene(A, B, spec, all);
     // aure di energia: chi agisce si carica, Maestri e Leggende coinvolti restano accesi
     A.ki = ki(A, auraOf(spec.attacker), 1);
     tgs.forEach(t => { const au = auraOf(t.ch.d); if (au === 'M' || au === 'L' || au === 'X') t.ch.ki = ki(t.ch, au, 0.35); });
     await wait(spec.move === 'Attacco' ? 0.15 : 0.3);
     // le mosse speciali attivano la carta di chi le usa
-    if (spec.move !== 'Attacco' && !(spec.flags && spec.flags.confused)) await activate(A, M.c);
+    if (spec.move !== 'Attacco' && !(spec.flags && spec.flags.confused)) await Promise.all(B ? [activate(A, M.c), activate(B, M.c)] : [activate(A, M.c)]);
 
     const impactAll = async () => {
       await Promise.all(tgs.map(t => react(t.ch, t.out, M.c)));
@@ -1528,7 +1712,8 @@
     }
 
     const melees = ['punch', 'kick', 'palm', 'spin', 'charge'];
-    if (melees.includes(kind) && tgs.length) {
+    if (B) await duoScene(A, B, tgs, M, spec, focus);
+    else if (melees.includes(kind) && tgs.length) {
       const main = tgs[0];
       const { home } = await melee(A, main, kind, spec, M);
       const hitPos = chestPos(main.ch);

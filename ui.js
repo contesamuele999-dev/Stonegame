@@ -71,6 +71,8 @@
 
   function moveMeta(m) {
     if (m.passive) return m.cd ? `Passiva · si ricarica in ${m.cd} turni` : 'Passiva';
+    if (m.duo) return 'Tecnica di coppia';
+    if (m.fuse) return 'Una volta per partita';
     if (m.once) return 'Una volta per partita';
     if (m.free) return `Non usa il turno · ricarica ${m.cd} turni`;
     return m.cd ? `Ricarica ${m.cd} turn${m.cd > 1 ? 'i' : 'o'}` : '';
@@ -404,7 +406,7 @@
     const locked = !unlocked().includes(id);
     const st = stats().cards[id];
     openLayer(`<div class="sheet-wrap" data-act="close"><div class="sheet" role="dialog" aria-label="${esc(c.name)}" data-stop>
-      <div class="sheet-head"><div><h3>${esc(c.name)}${locked ? ' 🔒' : ''}</h3><p>${esc(c.title || RANK_SHORT[c.rank])} · costo ${c.cost} Punti Dojo${st ? ` · vinte ${st.w} su ${st.p}` : ''}</p></div></div>
+      <div class="sheet-head"><div><h3>${esc(c.name)}${locked ? ' 🔒' : ''}</h3><p>${esc(c.title || RANK_SHORT[c.rank])} · costo ${c.cost} Punti Dojo${c.rank === 'A' ? ` · ${S.ELEMENTS[S.elementOf(id)].e} ${S.ELEMENTS[S.elementOf(id)].name}` : ''}${st ? ` · vinte ${st.w} su ${st.p}` : ''}</p></div></div>
       ${locked ? `<p class="hint" style="text-align:left">${c.rank === 'L' ? 'Leggenda: si sblocca vincendo il torneo.' : c.story ? 'Si trova solo nella Modalità Storia: cercala nella Grotta dei Sussurri, in Inghilterra.' : 'Carta da sbloccare: vinci una partita per ottenerne una nuova.'}</p>` : ''}
       <div class="statline num"><span>PV <b>${c.hp}</b></span><span>ATK ${diff('atk')}<b>${c.atk}</b></span><span>DEF ${diff('def')}<b>${c.def}</b></span></div>
       ${locked ? '' : evoLine(id)}
@@ -888,6 +890,11 @@
       <h3>Armi</h3>
       <p>Le armi dello stile Chen sono potenziamenti: ogni volta che una tua carta va K.O. ne ricevi una a caso. Nel tuo turno toccala e scegli a quale tua carta in campo darla (una sola arma per carta): non costa l'azione.</p>
       <ul>${S.WEAPONS.map(w => `<li><b>${esc(w.name)}</b> (${esc(w.cn)}): ${esc(w.desc)}</li>`).join('')}</ul>
+      <h3>Tecniche di coppia</h3>
+      <p>Ogni Allievo ha un elemento: 🔥 Fuoco, 🌪️ Vento, 🌳 Foresta o ⛰️ Montagna (lo vedi sulla sua scheda). Due Allievi in campo che non hanno ancora agito possono unire le azioni: tocca uno dei due e scegli la tecnica, che dipende dalla coppia di elementi. I loro ATK si sommano. Costa l'azione di entrambi, e la squadra deve aspettare 4 turni prima di farne un'altra.</p>
+      <ul>${Object.keys(S.DUO).map(k => `<li><b>${esc(S.DUO[k].name)}</b> (${k.split('+').map(x => S.ELEMENTS[x].e).join(' + ')}): ${esc(S.DUO[k].desc)}</li>`).join('')}</ul>
+      <h3>Fusione</h3>
+      <p>Una volta per partita due tue carte in campo che non hanno ancora agito si fondono, unendo gli indici: tocca una delle due, scegli <code>Fusione</code> e poi tocca l'altra. Nasce una carta sola, per sempre: PV sommati, ATK e DEF della più forte più una parte dell'altra, tutte le mosse (non le passive dell'altra carta). Costa l'azione di entrambe, e il posto libero lo prende la riserva. Attenzione: se la fusione va K.O. perdi entrambe.</p>
       <h3>Carte effetto</h3>
       <p>All'inizio ognuno pesca 2 carte effetto (si vedono sotto la propria squadra). Dal secondo turno se ne può giocare una per turno, senza usare l'azione di una carta; ognuna vale una volta sola. Si possono spegnere dalle impostazioni.</p>
       <ul>${S.EFFECTS.map(x => `<li>${x.e} <b>${esc(x.name)}</b>: ${esc(x.desc)}</li>`).join('')}</ul>
@@ -1088,7 +1095,7 @@
       pv = `<span class="pv num ${hi >= f.hp ? 'ko' : ''}">${lo === 0 && hi === 0 ? 'Bloccato' : lo >= f.hp ? 'K.O.!' : hi >= f.hp ? `K.O.? −${lo}–${hi}` : `−${lo}–${hi}`}</span>`;
     }
     return `<button class="${classes.join(' ')}" data-act="tile" data-v="${f.uid}" aria-label="${esc(f.name)}, ${f.hp} PV su ${f.maxHp}">
-      <span class="face" style="${face(f.card)}"><span class="rank ${f.rank}">${RANK_SHORT[f.rank]}${f.lv ? ` · Lv${f.lv}` : ''}${f.ev ? ` ${stars(f.ev)}` : ''}</span>${f.weapon ? `<span class="wpn" title="${esc(S.WEAPON[f.weapon].name)}">⚔️</span>` : ''}${cdsHtml(f)}${pv}</span>
+      <span class="face" style="${face(f.card)}">${fuseHalf(f)}<span class="rank ${f.rank}">${RANK_SHORT[f.rank]}${f.lv ? ` · Lv${f.lv}` : ''}${f.ev ? ` ${stars(f.ev)}` : ''}</span>${f.weapon ? `<span class="wpn" title="${esc(S.WEAPON[f.weapon].name)}">⚔️</span>` : ''}${cdsHtml(f)}${pv}</span>
       <span class="body">
         <span class="nm">${esc(f.name)}</span>
         <span class="hp"><i class="${cls}" style="width:${(pct * 100).toFixed(1)}%"></i></span>
@@ -1098,6 +1105,8 @@
     </button>`;
   }
 
+  // carta fusa: mezza faccia dell'altra carta
+  const fuseHalf = f => (f.fusion ? `<i class="fuse-half" style="${face(f.fusion)}"></i>` : '');
   function cdsHtml(f) {
     const dots = S.movesOf(f).map((m, i) => {
       if (m.passive) return '';
@@ -1236,6 +1245,7 @@
   }
 
   // ------------------------------------------------------------ schede in partita
+  const elementTag = f => (f.rank === 'A' && !f.fusion ? `${S.ELEMENTS[S.elementOf(S.cardOf(f).id)].e} ` : '');
   function actorSheet(f) {
     const g = A.game;
     const mine = isLocalTurn() && f.owner === g.turn && !A.busy;
@@ -1246,13 +1256,13 @@
       const m = o.move;
       const disabled = !mine || !o.ok;
       const meta = o.ok ? moveMeta(m) : o.why;
-      return `<button class="move ${m.basic ? '' : 'special'}" data-act="move" data-uid="${f.uid}" data-i="${o.i}" ${disabled ? 'disabled' : ''}>
+      return `<button class="move ${m.basic ? '' : 'special'} ${m.duo ? 'duo' : m.fuse ? 'fuse' : ''}" data-act="move" data-uid="${f.uid}" data-i="${o.i}" ${disabled ? 'disabled' : ''}>
         <span class="mh"><span class="mn">${esc(m.name)}</span><span class="why">${esc(mine || m.basic ? meta : moveMeta(m))}</span></span>
         <span class="md">${esc(m.desc)}</span></button>`;
     }).join('');
     openLayer(`<div class="sheet-wrap" data-act="close"><div class="sheet" role="dialog" aria-label="${esc(f.name)}" data-stop>
-      <div class="sheet-head"><span class="face" style="${face(f.card)}"></span><div><h3>${esc(f.name)}</h3>
-        <p class="num">${RANK_SHORT[f.rank]}${f.ev ? ` · ${stars(f.ev)} ${esc(S.EVO[f.ev].name)}` : ''} · PV ${f.hp}/${f.maxHp} · ATK ${Math.round(S.effAtk(g, f))} · DEF ${Math.round(S.effDef(g, f))}${f.form ? ` · come ${esc(c.name)}` : ''}</p></div></div>
+      <div class="sheet-head"><span class="face" style="${face(f.card)}">${fuseHalf(f)}</span><div><h3>${esc(f.name)}</h3>
+        <p class="num">${elementTag(f)}${RANK_SHORT[f.rank]}${f.ev ? ` · ${stars(f.ev)} ${esc(S.EVO[f.ev].name)}` : ''} · PV ${f.hp}/${f.maxHp} · ATK ${Math.round(S.effAtk(g, f))} · DEF ${Math.round(S.effDef(g, f))}${f.form ? ` · come ${esc(c.name)}` : ''}</p></div></div>
       ${f.weapon ? `<p class="wline">⚔️ <b>${esc(S.WEAPON[f.weapon].name)}</b> · ${esc(S.WEAPON[f.weapon].desc)}</p>` : ''}
       ${chips.length ? `<div class="chips">${chipsHtml(chips)}</div>` : ''}
       ${list}
@@ -1283,7 +1293,7 @@
     if (S.needsTarget(inner)) {
       const targets = S.targetsFor(g, f, inner).map(t => t.uid);
       A.sel = { actor: uid, move: i, pick, targets, inner };
-      A.banner = `${inner.name}: tocca il bersaglio`;
+      A.banner = inner.fuse ? 'Fusione: tocca la carta da unire' : `${inner.name}: tocca il bersaglio`;
       if (A.mode === 'tutorial' && A.tut === 1) A.tut = 2;
       render();
     } else {
@@ -1322,13 +1332,16 @@
     const opt = S.actorOptions(g, u).find(o => o.i === a.move);
     const m = opt ? opt.move : S.BASIC;
     const exec = (m.target === 'copy' || m.target === 'bottle') ? S.refMove(a.pick || g.lastSpecial) : m;
-    const info = uid => { const f = S.byUid(g, uid); return { uid, card: f.card, name: f.name, rank: f.rank, ev: f.ev || 0, owner: f.owner, weapon: f.weapon || null, variant: f.owner === mySide() ? variantOf(f.card) : '' }; };
+    const info = uid => { const f = S.byUid(g, uid); return { uid, card: f.card, fusion: f.fusion || null, name: f.name, rank: f.rank, ev: f.ev || 0, owner: f.owner, weapon: f.weapon || null, variant: f.owner === mySide() ? variantOf(f.card) : '' }; };
+    const partner = opt && opt.partner ? info(opt.partner) : m.fuse ? info(a.target) : null;
     let tg = [];
-    if (a.target) tg = [a.target];
+    if (m.fuse) tg = [];
+    else if (a.target) tg = [a.target];
     else if (exec.target === 'enemies') tg = S.enemies(g, u.owner).map(f => f.uid);
     else if (exec.target === 'allies') tg = S.team(g, u.owner).map(f => f.uid).filter(x => x !== u.uid);
     else if (exec.target === 'none' && exec.offensive) tg = S.field(g).map(f => f.uid).filter(x => x !== u.uid);
-    return { actor: info(u.uid), move: exec.name, label: exec !== m ? `${m.name} → ${exec.name}` : m.name, targets: tg.map(info), info, formula: a.formula ? (exec.voice ? SHOUT_TXT[voiceWord(g, a)] || voiceWord(g, a) : typeof exec.formula === 'string' ? exec.formula : null) : null };
+    if (partner) tg = tg.filter(x => x !== partner.uid);
+    return { actor: info(u.uid), partner, fuse: !!m.fuse, move: exec.name, label: exec !== m ? `${m.name} → ${exec.name}` : m.name, targets: tg.map(info), info, formula: a.formula ? (exec.voice ? SHOUT_TXT[voiceWord(g, a)] || voiceWord(g, a) : typeof exec.formula === 'string' ? exec.formula : null) : null };
   }
 
   function buildSpec(d, evs) {
@@ -1355,13 +1368,14 @@
       }
     }
     const ids = d.targets.map(t => t.uid);
-    const extra = Object.keys(out).filter(uid => uid !== d.actor.uid && !ids.includes(uid));
+    const pid = d.partner ? d.partner.uid : null;
+    const extra = Object.keys(out).filter(uid => uid !== d.actor.uid && uid !== pid && !ids.includes(uid));
     const targets = d.targets.concat(extra.map(uid => d.info(uid)))
       .map(t => Object.assign({}, t, { ally: t.owner === d.actor.owner, out: out[t.uid] }));
     const self = out[d.actor.uid];
     if (self && flags.confused) self.confuse = false;
     if (d.formula) flags.formula = d.formula;
-    return { attacker: d.actor, move: d.move, label: d.label, targets, self, flags, speed: speedK(), controls: speedHtml(), terrain: A.game.terrain, viewer: A.view,
+    return { attacker: d.actor, partner: d.partner && Object.assign({}, d.partner, { out: out[pid] }), fusion: d.fuse ? d.info(d.actor.uid) : null, move: d.move, label: d.label, targets, self, flags, speed: speedK(), controls: speedHtml(), terrain: A.game.terrain, viewer: A.view,
       finisher: A.game.winner !== null && A.game.winner === d.actor.owner };
   }
 
@@ -1462,6 +1476,8 @@
       else if (e.type === 'gymevent') { if (fx) { await sleep(pace(500)); fx = false; } await showToast(e.name, e.desc); }
       else if (e.type === 'arm') await showToast(`⚔️ ${S.WEAPON[e.id].name}`, S.WEAPON[e.id].desc, `Potenziamento · ${A.game.players[e.player].name}`);
       else if (e.type === 'equip') { floatOn(e.uid, `⚔️ ${S.WEAPON[e.id].name}`, 'st'); sfx('shield'); fx = true; }
+      else if (e.type === 'duo') await showToast(`💫 ${e.name}`, e.desc, `Tecnica di coppia · ${A.game.players[e.player].name}`);
+      else if (e.type === 'fuse') await showToast(`🤝 Fusione: ${e.name}`, 'Due carte diventano una sola: PV sommati e tutte le mosse.', A.game.players[e.player].name);
       else if (e.type === 'qi') { if (window.Sound) Sound.buzz([60, 40, 60, 40, 200]); await showToast(`${S.QI_MOVE.e} ${S.QI_MOVE.name}`, S.QI_MOVE.desc, `Qi pieno · ${A.game.players[e.player].name}`); }
       else if (e.type === 'fatigue' && e.pct === 10) await showToast('😮‍💨 Fatica', 'Da questo round ogni colpo fa il 10% di danni in più, e così ogni round che passa.', `Round ${S.FATIGUE_ROUND}`);
       else if (e.type === 'effect') { const x = S.EFFECT[e.id]; await showToast(`${x.e} ${x.name}`, x.desc, `🃏 Carta effetto · ${A.game.players[e.player].name}`); }

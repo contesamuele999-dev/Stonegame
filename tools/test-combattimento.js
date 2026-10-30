@@ -86,4 +86,65 @@ assert.strictEqual(e0.baseAtk, Math.round(b0.baseAtk * (1 + S.EVO[2].k)));
 assert.strictEqual(evo.players[0].field[1].maxHp, base.players[0].field[1].maxHp);
 assert.strictEqual(S.teamCost(players[0].cards, [2, 0, 0, 1]), S.teamCost(players[0].cards) + 3);
 assert.ok(qi > 0, 'il computer non usa mai il Qi');
-console.log(`ok · in 30 partite il computer ha usato il Qi ${qi} volte e il Cambio ${swaps}`);
+
+// ogni coppia di elementi ha la sua tecnica
+const els = Object.keys(S.ELEMENTS);
+for (const a of els) for (const b of els) assert.ok(S.DUO[[a, b].sort().join('+')], `manca ${a}+${b}`);
+for (const c of S.CARDS) if (c.rank === 'A') assert.ok(els.includes(S.elementOf(c.id)));
+
+// tecnica di coppia: due Allievi (fuoco + foresta), costa l'azione di entrambi, ATK sommati, poi ricarica di squadra
+const duoPlayers = [{ name: 'A', cards: ['lorenzo', 'nicole', 'katya', 'grazia'] }, { name: 'B', cards: ['andrea', 'chen', 'elia', 'katya'] }];
+const mk = () => { const x = S.createGame({ seed: 5, first: 0, gymEvents: false, combat2: true, players: duoPlayers }); S.passTurn(x); S.passTurn(x); return x; };
+const dg = mk(), [la, ni, ka] = dg.players[0].field, nem = dg.players[1].field[0];
+const opt = S.actorOptions(dg, la).find(o => o.partner === ni.uid);
+assert.strictEqual(opt.move.name, 'Fenice del Bosco');
+assert.ok(opt.ok);
+assert.ok(!S.actorOptions(dg, ka).some(o => o.partner), 'solo gli Allievi');
+const pv = S.previewDamage(dg, la, opt.move, nem), solo = S.previewDamage(dg, la, S.BASIC, nem);
+assert.ok(pv[0] > solo[1] * 1.4, `tecnica ${pv} contro attacco ${solo}`);
+la.hp -= 30;
+const nemHp = nem.hp;
+assert.ok(S.doAction(dg, { actor: la.uid, move: opt.i, target: nem.uid }));
+assert.ok(nem.hp < nemHp && la.acted && ni.acted && la.hp > la.maxHp - 30);
+assert.strictEqual(dg.actions, 2);
+S.passTurn(dg); S.passTurn(dg);
+assert.ok(!S.actorOptions(dg, la).find(o => o.partner).ok, 'in ricarica');
+for (let i = 0; i < 8; i++) S.passTurn(dg);
+assert.ok(S.actorOptions(dg, la).find(o => o.partner).ok, 'ricarica finita');
+
+// fusione: PV sommati, tutte le mosse, entra la riserva, una volta sola, K.O. = perse entrambe
+const fg = mk(), [fa, fb, fc] = fg.players[0].field, res = fg.players[0].reserve[0];
+const hpSum = fa.hp + fb.hp, atkMax = Math.max(fa.baseAtk, fb.baseAtk);
+assert.ok(S.actorOptions(fg, fa).find(o => o.i === S.FUSE_I).ok);
+assert.ok(S.targetsFor(fg, fa, S.FUSE).includes(fb));
+assert.ok(S.doAction(fg, { actor: fa.uid, move: S.FUSE_I, target: fb.uid }));
+assert.strictEqual(fa.fusion, 'nicole');
+assert.strictEqual(fa.name, 'Loreole');
+assert.strictEqual(fa.hp, hpSum);
+assert.ok(fa.baseAtk > atkMax);
+assert.strictEqual(S.movesOf(fa).length, 4);
+assert.strictEqual(fa.cds.length, 4);
+assert.ok(fg.players[0].field.includes(res) && !fg.players[0].field.includes(fb) && res.acted);
+assert.strictEqual(fg.actions, 2);
+assert.ok(!S.actorOptions(fg, fc).find(o => o.i === S.FUSE_I).ok, 'una fusione per partita');
+S.passTurn(fg); S.passTurn(fg);
+const mi = S.actorOptions(fg, fa).find(o => o.i === 2 && o.ok);
+assert.ok(mi, 'la mossa del secondo si usa');
+assert.ok(S.doAction(fg, { actor: fa.uid, move: 2, target: fg.players[1].field[0].uid }) && fa.cds[2] > 0);
+const clonato = S.clone(fg);
+assert.strictEqual(S.movesOf(clonato.players[0].field[0]).length, 4);
+
+// il computer finisce le partite anche con tecniche e fusioni
+let duos = 0, fus = 0;
+for (let s = 0; s < 20; s++) {
+  const c = S.createGame({ seed: s, combat2: true, armory: true, effects: true, silent: true, players: [{ name: 'A', cards: ['lorenzo', 'nicole', 'adriano', 'gatto'] }, { name: 'B', cards: ['vittorio', 'annastella', 'celeste', 'remigio'] }] });
+  for (let n = 0; c.winner === null && n < 400; n++) {
+    const x = S.chooseAction(c, 'normale');
+    if (!x) { S.passTurn(c); continue; }
+    if (x.move <= -10) duos++; if (x.move === S.FUSE_I) fus++;
+    assert.ok(S.doAction(c, x), 'mossa rifiutata');
+  }
+  assert.ok(c.winner !== null, 'partita senza esito');
+}
+assert.ok(duos > 0, 'il computer non usa mai le tecniche di coppia');
+console.log(`ok · in 30 partite il computer ha usato il Qi ${qi} volte e il Cambio ${swaps}; in 20 partite di Allievi ${duos} tecniche e ${fus} fusioni`);

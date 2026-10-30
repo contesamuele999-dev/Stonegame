@@ -701,6 +701,113 @@
     return true;
   }
 
+  // ---------------------------------------------------------------- TECNICHE DI COPPIA (stile Inazuma Eleven)
+  // Ogni Allievo ha un elemento dei quattro di Sun Tzu (风林火山: vento, foresta, fuoco, montagna).
+  // Due Allievi in campo che non hanno ancora agito uniscono le azioni: la coppia di elementi decide la tecnica,
+  // i loro ATK si sommano. Una tecnica per squadra ogni DUO_WAIT turni. mate = l'altro Allievo.
+  const ELEMENTS = {
+    fuoco: { name: 'Fuoco', e: '🔥' }, vento: { name: 'Vento', e: '🌪️' },
+    foresta: { name: 'Foresta', e: '🌳' }, montagna: { name: 'Montagna', e: '⛰️' },
+  };
+  const ELEMENT_OF = {
+    lorenzo: 'fuoco', caterina: 'fuoco', alessandro: 'fuoco', remigio: 'fuoco', giulia: 'fuoco',
+    vittorio: 'vento', celeste: 'vento', christian: 'vento', margherita: 'vento',
+    viola: 'montagna', adriano: 'montagna', simone: 'montagna', annastella: 'montagna',
+    nicole: 'foresta', annalisa: 'foresta', ruben: 'foresta', grazia: 'foresta', gatto: 'foresta',
+  };
+  const elementOf = id => ELEMENT_OF[id] || 'vento'; // carte segrete senza elemento
+  const DUO_WAIT = 4;
+  const combined = (g, u, t, mate, opts) => attack(g, u, t, Object.assign({ atkAdd: effAtk(g, mate) }, opts));
+  // chiave: i due elementi in ordine alfabetico
+  const DUO = {
+    'fuoco+fuoco': { name: 'Drago Gemello', target: 'enemy', hit: { mul: 1.1 },
+      desc: 'Due fiamme si avvitano in un drago: colpisce con gli ATK sommati e brucia per 15 danni a turno per 3 turni.',
+      use(g, u, t, a, mate) { combined(g, u, t, mate, { mul: 1.1 }); if (t.hp > 0 && addStatus(g, t, u, 'dot', 3, 15)) log(g, `🐉 ${nm(t)} brucia nelle spire del drago!`); } },
+    'vento+vento': { name: 'Tifone Invisibile', target: 'enemies', pierce: true, hit: { mul: 0.55 },
+      desc: 'Un vortice che nessuno vede arrivare: colpisce tutti gli avversari (impossibile schivare) e li confonde per 2 turni.',
+      use(g, u, t, a, mate) { for (const f of enemies(g, u.owner).slice()) { combined(g, u, f, mate, { mul: 0.55, pierce: true }); confuse(g, f, u, 2); } } },
+    'montagna+montagna': { name: 'Grande Muraglia', target: 'allies',
+      desc: 'Una muraglia si alza dal tatami: tutta la squadra +30 DEF per 2 turni e i due Allievi invulnerabili per 1 turno.',
+      use(g, u, t, a, mate) {
+        for (const f of team(g, u.owner)) addStatus(g, f, u, 'defAdd', 2, 30, true);
+        [u, mate].forEach(f => addStatus(g, f, u, 'invuln', 1, 0, true));
+        log(g, `🏯 ${nm(u)} e ${nm(mate)} alzano la Grande Muraglia!`);
+      } },
+    'foresta+foresta': { name: 'Albero del Tao', target: 'allies',
+      desc: 'Un albero millenario spunta in palestra: tutta la squadra recupera 40 PV e perde ogni effetto negativo.',
+      use(g, u, t, a, mate) { for (const f of team(g, u.owner)) { cleanse(g, f); heal(g, f, 40); } log(g, `🌳 ${nm(u)} e ${nm(mate)} fanno crescere l'Albero del Tao!`); } },
+    'fuoco+vento': { name: 'Tornado di Fiamme', target: 'enemies', hit: { mul: 0.55 },
+      desc: 'Il vento alza il fuoco: tutti gli avversari sono colpiti e bruciano per 10 danni a turno per 2 turni.',
+      use(g, u, t, a, mate) { for (const f of enemies(g, u.owner).slice()) { combined(g, u, f, mate, { mul: 0.55 }); if (f.hp > 0) addStatus(g, f, u, 'dot', 2, 10); } } },
+    'fuoco+montagna': { name: 'Eruzione Marziale', target: 'enemy', hit: { mul: 1.15, defMul: 0.5 },
+      desc: 'La montagna esplode sotto i piedi del bersaglio: ATK sommati contro metà della sua DEF, e resta stordito per 1 turno.',
+      use(g, u, t, a, mate) { combined(g, u, t, mate, { mul: 1.15, defMul: 0.5 }); stun(g, t, u, 1); } },
+    'foresta+fuoco': { name: 'Fenice del Bosco', target: 'enemy', hit: { mul: 1.2 },
+      desc: 'Dalle ceneri rinasce la fenice: ATK sommati e i due Allievi recuperano ognuno metà dei danni inflitti.',
+      use(g, u, t, a, mate) { const n = combined(g, u, t, mate, { mul: 1.2 }); [u, mate].forEach(f => { if (f.hp > 0) heal(g, f, Math.round(n / 2)); }); } },
+    'montagna+vento': { name: 'Valanga Sospesa', target: 'enemies', hit: { mul: 0.55 },
+      desc: 'La neve resta sospesa, poi crolla su tutti gli avversari: danni e DEF −25 per 2 turni.',
+      use(g, u, t, a, mate) { for (const f of enemies(g, u.owner).slice()) { combined(g, u, f, mate, { mul: 0.55 }); if (f.hp > 0) addStatus(g, f, u, 'defAdd', 2, -25); } } },
+    'foresta+vento': { name: 'Danza delle Mille Foglie', target: 'enemy', pierce: true, hit: { mul: 1.2 },
+      desc: 'Mille foglie taglienti da ogni lato: impossibile schivare, ATK sommati, e le mosse speciali dei due Allievi tornano pronte.',
+      use(g, u, t, a, mate) { combined(g, u, t, mate, { mul: 1.2, pierce: true }); [u, mate].forEach(f => { f.cds = f.cds.map(() => 0); }); } },
+    'foresta+montagna': { name: 'Radici Eterne', target: 'enemy', hit: { mul: 0.9 },
+      desc: 'Le radici afferrano il bersaglio e lo stritolano: resta immobile per 2 turni.',
+      use(g, u, t, a, mate) { combined(g, u, t, mate, { mul: 0.9 }); stun(g, t, u, 2); } },
+  };
+  Object.values(DUO).forEach(d => { d.duo = true; d.nocopy = true; });
+  const duoOf = (a, b) => DUO[[elementOf(a), elementOf(b)].sort().join('+')];
+  // la mossa vista dalla carta u: sa con chi si fa, così anteprima dei danni e descrizione sono quelle vere
+  function duoMove(g, u, mate) {
+    const d = duoOf(cardOf(u).id, cardOf(mate).id);
+    return Object.assign({}, d, { desc: `Con ${nm(mate)}: ${d.desc}`, hit: d.hit && Object.assign({}, d.hit, { atkAdd: effAtk(g, mate) }) });
+  }
+
+  // ---------------------------------------------------------------- FUSIONE (stile Dragon Ball)
+  // Due carte in campo si fondono per sempre: PV sommati, ATK e DEF della più forte più una parte dell'altra, tutte le mosse.
+  // Una volta per partita a squadra. Il posto che si libera lo prende la riserva, ma se la fusione va K.O. si perdono entrambe.
+  const FUSE_ATK = 0.5, FUSE_DEF = 0.3;
+  const RANK_ORDER = 'AIML';
+  // Lorenzo + Nicole = Loreole: metà del primo nome, metà del secondo
+  function fusionName(a, b) {
+    const x = a.split(' ')[0], y = b.split(' ')[0];
+    return x.slice(0, Math.ceil(x.length / 2)) + y.slice(Math.ceil(y.length / 2));
+  }
+  function fuse(g, u, m) {
+    const p = g.players[u.owner], i = p.field.indexOf(m);
+    p.field.splice(i, 1);
+    const name = fusionName(nm(u), nm(m));
+    log(g, `🤝 ${nm(u)} e ${nm(m)} uniscono gli indici... FUSIONE! Nasce ${name}!`);
+    // le mosse dell'altra carta si accodano alle sue, con le loro ricariche; le passive si perdono
+    movesOf(m).forEach((x, k) => {
+      if (x.passive) return;
+      u.cds.push(m.cds[k]);
+      if (m.used[k]) u.used[u.cds.length - 1] = m.used[k];
+    });
+    u.fusion = cardOf(m).id;
+    u.name = name;
+    u.hp += m.hp; u.maxHp += m.maxHp;
+    u.baseAtk = Math.round(Math.max(u.baseAtk, m.baseAtk) + Math.min(u.baseAtk, m.baseAtk) * FUSE_ATK);
+    u.baseDef = Math.round(Math.max(u.baseDef, m.baseDef) + Math.min(u.baseDef, m.baseDef) * FUSE_DEF);
+    if (RANK_ORDER.indexOf(m.rank) > RANK_ORDER.indexOf(u.rank)) u.rank = m.rank;
+    if (m.ev > (u.ev || 0)) u.ev = m.ev;
+    if (!u.weapon) u.weapon = m.weapon; // il bonus dell'arma è già nei valori
+    u.st = u.st.concat(m.st).filter(s => s.perm);
+    p.fused = true;
+    ev(g, { type: 'fuse', uid: u.uid, name, player: u.owner });
+    if (p.reserve.length && p.field.length < FIELD_SIZE) {
+      const r = p.reserve.shift();
+      p.field.splice(i, 0, r);
+      r.acted = true;
+      log(g, `${nm(r)} entra in campo!`);
+      ev(g, { type: 'enter', uid: r.uid });
+    }
+  }
+  const FUSE = { name: 'Fusione', target: 'fuse', cd: 0, nocopy: true, fuse: true,
+    desc: 'Scegli una tua carta che non ha ancora agito: uniscono gli indici e diventano una sola, con i PV sommati e tutte le mosse. Una volta per partita e per sempre: se va K.O. le perdi entrambe.',
+    use(g, u, t) { fuse(g, u, t); } };
+  const FUSE_I = -3, DUO_I = -10; // tecnica di coppia con la carta al posto k del campo: mossa DUO_I - k
+
   const CARD = {};
   CARDS.forEach(c => { CARD[c.id] = c; c.moves.forEach((m, i) => { m.ref = { card: c.id, i }; }); });
 
@@ -764,7 +871,7 @@
   function byUid(g, uid) { return allFighters(g).find(f => f.uid === uid) || g.players[0].ko.concat(g.players[1].ko).find(f => f.uid === uid); }
   function has(f, type) { return f.st.some(s => s.type === type); }
   function get(f, type) { return f.st.find(s => s.type === type); }
-  function movesOf(f) { return cardOf(f).moves; }
+  function movesOf(f) { return f.fusion ? cardOf(f).moves.concat(CARD[f.fusion].moves.filter(m => !m.passive)) : cardOf(f).moves; }
 
   function statusImmune(f) {
     if (has(f, 'immune')) return true;
@@ -1065,6 +1172,7 @@
     }
     // ricariche delle mosse: scalano a fine turno del proprietario
     for (const f of g.players[me].field.concat(g.players[me].reserve)) f.cds = f.cds.map(c => Math.max(0, c - 1));
+    if (g.players[me].duoCd) g.players[me].duoCd--;
     g.turn = 1 - me;
     g.turnNo++;
     startTurn(g);
@@ -1108,6 +1216,18 @@
       const ok = !done && !stunned && g.turnNo > 1 && g.players[f.owner].reserve.length > 0;
       out.push({ i: SWAP_I, move: SWAP, ok,
         why: done ? 'Ha già agito' : stunned ? 'Stordimento' : g.turnNo === 1 ? 'Primo turno: solo attacchi' : ok ? '' : 'Nessuna riserva' });
+      const pl = g.players[f.owner];
+      const why = done ? 'Ha già agito' : stunned ? 'Stordimento' : g.turnNo === 1 ? 'Primo turno: solo attacchi' : '';
+      if (f.rank === 'A' && !f.fusion) pl.field.forEach((m, k) => {
+        if (m === f || m.rank !== 'A' || m.fusion) return;
+        const move = duoMove(g, f, m);
+        const busy = why || (blocked ? 'Tecniche bloccate' : pl.duoCd ? `Ricarica: ${pl.duoCd}` : m.acted ? `${nm(m)} ha già agito` : isStunned(m) ? `${nm(m)} è stordito` : has(m, 'block') ? `${nm(m)} è bloccato` : needsTarget(move) && !targetsFor(g, f, move).length ? 'Nessun bersaglio' : '');
+        out.push({ i: DUO_I - k, move, partner: m.uid, ok: !busy, why: busy });
+      });
+      if (!f.fusion) {
+        const busy = why || (pl.fused ? 'Già usata' : !targetsFor(g, f, FUSE).length ? 'Nessuna carta libera' : '');
+        out.push({ i: FUSE_I, move: FUSE, ok: !busy, why: busy });
+      }
     }
     return out;
   }
@@ -1119,7 +1239,7 @@
     return true;
   }
 
-  function needsTarget(m) { return ['enemy', 'ally', 'any', 'anyOther', 'unfaced', 'enemyWeak'].includes(m.target); }
+  function needsTarget(m) { return ['enemy', 'ally', 'any', 'anyOther', 'unfaced', 'enemyWeak', 'fuse'].includes(m.target); }
 
   function targetsFor(g, u, m) {
     const pierce = m.pierce;
@@ -1131,6 +1251,7 @@
       case 'ally': return team(g, u.owner).filter(f => !(m.notRank && m.notRank.includes(f.rank)));
       case 'any': return field(g).filter(f => f.owner === u.owner || visible(f));
       case 'anyOther': return field(g).filter(f => f !== u && (f.owner === u.owner || visible(f)));
+      case 'fuse': return team(g, u.owner).filter(f => f !== u && !f.acted && !f.fusion && !isStunned(f));
       default: return [];
     }
   }
@@ -1192,7 +1313,9 @@
     if (!opt || !opt.ok) return false;
     const m = opt.move;
     const t = a.target ? byUid(g, a.target) : null;
+    const mate = opt.partner ? byUid(g, opt.partner) : null;
     ev(g, { type: 'act', uid: u.uid, move: m.name, target: t ? t.uid : null });
+    if (m.duo) ev(g, { type: 'duo', name: m.name, desc: m.desc, player: u.owner });
 
     // mossa effettivamente eseguita (copia / bottiglia)
     let exec = m, label = m.name;
@@ -1200,7 +1323,7 @@
       exec = refMove(a.pick);
       label = `${m.name} → ${exec.name}`;
     }
-    if (!m.basic && !m.swap) log(g, `✨ ${nm(u)} usa ${label}!`);
+    if (!m.basic && !m.swap && !m.fuse) log(g, m.duo ? `💫 ${nm(u)} e ${nm(mate)}: ${label}!` : `✨ ${nm(u)} usa ${label}!`);
 
     // confusione: può colpirsi da solo invece di agire (solo azioni offensive)
     const offensive = ['enemy', 'enemies', 'unfaced', 'enemyWeak'].includes(exec.target) || exec.basic || exec.offensive;
@@ -1225,7 +1348,7 @@
       u.st = u.st.filter(x => x !== weak);
       if (!exec.nocopy) g.lastSpecial = { card: exec.ref.card, i: exec.ref.i };
     } else {
-      exec.use(g, u, t, a);
+      exec.use(g, u, t, a, mate);
       // la bottiglia di Carla cattura l'ultima mossa speciale usata
       if (!exec.nocopy) g.lastSpecial = { card: exec.ref.card, i: exec.ref.i };
     }
@@ -1234,6 +1357,9 @@
       if (m.cd) u.cds[a.move] = m.cd + 1 - ((TERRAIN[g.terrain] || {}).cdBonus || 0);
     }
     if (!m.free) { u.acted = true; g.actions++; }
+    // le tecniche di coppia e la fusione costano l'azione di entrambe le carte
+    if (m.duo) { mate.acted = true; g.actions++; g.players[u.owner].duoCd = DUO_WAIT + 1; }
+    if (m.fuse) g.actions++;
     checkWin(g);
     if (g.winner === null && !canAct(g)) endTurn(g);
     return true;
@@ -1426,7 +1552,7 @@
     needsTarget, effAtk, effDef, team, enemies, field, byUid, cardOf, movesOf, isStunned, isNegative,
     teamCost, randomTeam, EVO, clone, canAct, passTurn, expectedHit, SWAP, SWAP_I, QI_MOVE, QI_MAX, qiReady, fatigue, FATIGUE_ROUND,
     SYNERGIES, synergiesFor, GYM_EVENTS, EVENT_EVERY, previewDamage, isMaster,
-    TERRAINS, TERRAIN, WEAPONS, WEAPON, H, addCards, IMG, img, EFFECTS, EFFECT, effectOptions, effectTargets, armOptions, armTargets, RULES,
+    ELEMENTS, elementOf, DUO, FUSE, FUSE_I, TERRAINS, TERRAIN, WEAPONS, WEAPON, H, addCards, IMG, img, EFFECTS, EFFECT, effectOptions, effectTargets, armOptions, armTargets, RULES,
   };
   if (typeof module !== 'undefined' && module.exports) module.exports = api;
   else root.STT = api;

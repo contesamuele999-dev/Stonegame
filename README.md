@@ -104,6 +104,10 @@ La chat della palestra si attiva incollando `supabase/aggiornamento-5.sql` (una 
 
 **Qi di squadra.** Ogni squadra ha una barra di Qi che si carica perdendo PV (0,3 punti per PV perso). Piena, nel tuo turno si libera il 🔥 *Colpo del Tempio*: tutta la tua squadra in campo recupera 20 PV e ogni avversario in campo subisce 25 danni che ignorano la difesa. Non usa l'azione di una carta. Aiuta chi sta perdendo a rimontare.
 
+**Tecniche di coppia.** Ogni Allievo ha un elemento: 🔥 Fuoco (Lorenzo Pattaro, Caterina, Alessandro, Remigio, Giulia), 🌪️ Vento (Vittorio, Celeste, Christian, Margherita), ⛰️ Montagna (Viola, Adriano, Simone, Annastella), 🌳 Foresta (Nicole, Annalisa, Ruben, Grazia, Gatto Dorato). Due Allievi in campo che non hanno ancora agito uniscono le azioni in una tecnica decisa dalla coppia di elementi, con gli ATK sommati. Costa l'azione di entrambi e la squadra aspetta 4 turni prima di farne un'altra. Le tecniche sono 10 e stanno nella tabella `DUO` di `engine.js`.
+
+**Fusione.** Una volta per partita due carte qualsiasi in campo che non hanno ancora agito si fondono per sempre, unendo gli indici: PV sommati, la più forte tra ATK e DEF più una parte dell'altra (50% e 30%), tutte le mosse (non le passive della seconda carta). Il nome è metà di ciascuno (Lorenzo + Nicole = Loreole). Costa l'azione di entrambe, il posto libero lo prende la riserva, e se la fusione va K.O. si perdono entrambe. Nell'arena 3D i due fanno il balletto e la telecamera stringe sugli indici che si toccano; la carta fusa ha mezza faccia per parte.
+
 **Fatica.** Dal round 8 ogni colpo fa il 10% di danni in più, e così ogni round che passa (+20% al 9, +30% al 10...): le sfide non si trascinano.
 
 Sulle carte in campo i simboli in basso a sinistra mostrano le mosse speciali: ✦ pronta, il numero sono i turni di ricarica, – già usata. Nell'anteprima dei danni "K.O.?" vuol dire che il colpo può mandare K.O. con un buon tiro.
@@ -374,6 +378,7 @@ Il collegamento usa il server pubblico gratuito di PeerJS solo per far "incontra
 | `img/` | carte originali ridimensionate (le teste 3D prendono il volto da qui, con le posizioni in `FACE` dentro `arena3d.js`); `img/volti/` i ritagli per le miniature |
 | `tools/simulate.js` | simulatore di bilanciamento |
 | `tools/livelli.js` | confronto tra i livelli di difficoltà |
+| `tools/fusione.js` | quanto valgono tecniche di coppia e fusione (stessa squadra, una sola può usarle) |
 | `tools/test-voce.js` | prova il riconoscimento delle grida sui suoni originali (serve ffmpeg) |
 | `tools/volti.py` | ritaglio delle miniature dalle carte |
 | `tools/tune.py` | piccolo aiuto per ritoccare i valori delle carte |
