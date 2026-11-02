@@ -16,6 +16,7 @@ window.NOVITA = [
       'Nicole Fava molto meno forte: ATK 30 come sulla carta, Cameraman Improvvisato prende al massimo 15 DEF e dà +25% (ricarica 4), Gentilezza Ultrapremurosa dà +5 ATK e +5 DEF (ricarica 5).',
       'Le Leggende stanno sopra tutti: Chen Wangting (300 PV, ATK 95, DEF 90) e sotto di lui Chen Zhenglei (295 PV, ATK 95, DEF 80).',
       'Andrea: ATK 90 come Samuele ma 205 PV; Calma Sovrastante ricarica 4, Rimprovero Costruttivo assorbe fino a 25 DEF.',
+      'Sotto le Leggende le carte più forti in ATK+DEF sono Elia, Andrea, Chen Delang, Samuele e Strahinja. Strahinja sale a ATK 80 e DEF 70 (Dolori Omnidirezionali 5 danni a turno, Organizzazione Confusionaria confonde 1 turno, ricarica 4); John Higginson scende a ATK 75.',
       'Elia Moretton meno forte: Perfezionismo Compulsivo toglie il 30% di ATK (ricarica 4), Disallineamento Temporale cura 30 PV e dà +10 ATK.',
       'Annalisa Brino meno forte: ATK 35 e DEF 50, Saluto Caritatevole toglie 15 DEF invece di 25.',
     ],

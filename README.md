@@ -168,7 +168,7 @@ I **nomi delle mosse non sono stati toccati**. Sono cambiati i punti e, dove ser
 2. **Aggiungere i PV** (punti vita), che sulle carte non c'erano.
 3. **Bilanciare.** Ho fatto giocare il computer contro sé stesso per migliaia di partite con squadre casuali e ho corretto i valori finché ogni carta vinceva più o meno quanto le altre, tenendo conto del suo costo.
 
-**Regola dei gradi.** Un Allievo non ha mai PV, ATK o DEF più alti di quelli di un Istruttore, di un Maestro o di una Leggenda: oggi il tetto è 140 PV, 65 ATK e 55 DEF. I PV di Istruttori, Maestri e Leggende li calcola `hpFor` in `engine.js`, molto sopra gli Allievi (da 175 a 300): si parte da 180 (Istruttori, costo 3), 235 (Maestri, costo 4) e 300 (Leggende, costo 6), ogni 2 punti di ATK+DEF sopra la media del grado tolgono 1 PV e ogni Punto Dojo di costo in più ne aggiunge 30. Chicca Fossa (190, sotto Samuele), Andrea (205) e Chen Wangting (300) hanno PV fissi (`hpFix`). Le Leggende hanno PV, ATK e DEF più alti di qualunque altra carta; Chen Zhenglei non supera mai Chen Wangting e Andrea non sta mai sotto Samuele. Gli Allievi si bilanciano con il costo e con le mosse. `tools/test-combattimento.js` lo controlla, carte segrete comprese.
+**Regola dei gradi.** Un Allievo non ha mai PV, ATK o DEF più alti di quelli di un Istruttore, di un Maestro o di una Leggenda: oggi il tetto è 140 PV, 65 ATK e 55 DEF. I PV di Istruttori, Maestri e Leggende li calcola `hpFor` in `engine.js`, molto sopra gli Allievi (da 175 a 300): si parte da 180 (Istruttori, costo 3), 235 (Maestri, costo 4) e 300 (Leggende, costo 6), ogni 2 punti di ATK+DEF sopra la media del grado tolgono 1 PV e ogni Punto Dojo di costo in più ne aggiunge 30. Chicca Fossa (190, sotto Samuele), Andrea (205) e Chen Wangting (300) hanno PV fissi (`hpFix`). Le Leggende hanno PV, ATK e DEF più alti di qualunque altra carta; Chen Zhenglei non supera mai Chen Wangting e Andrea non sta mai sotto Samuele. Sotto le Leggende, le carte con ATK+DEF più alti sono Elia, Andrea, Chen Delang, Samuele e Strahinja. Gli Allievi si bilanciano con il costo e con le mosse. `tools/test-combattimento.js` lo controlla, carte segrete comprese.
 
 Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 
@@ -179,7 +179,7 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 | Andrea | Maestro | 4 | 205 | 120 → **90** | 95 → **75** |
 | Chen Delang | Maestro | 4 | 235 | 100 → **80** | 100 → **70** |
 | Elia Moretton | Maestro | 4 | 230 | 105 → **85** | 95 → **75** |
-| John Higginson | Maestro | 4 | 235 | 95 → **80** | 90 → **70** |
+| John Higginson | Maestro | 4 | 240 | 95 → **75** | 90 → **70** |
 | Samuele Contessa | Istruttore | 4 | 200 | 100 → **90** | 90 → **70** |
 | Liming Yue | Maestro | 4 | 240 | 100 → **75** | 100 → **70** |
 | Chicca Fossa | Maestro | 3 | 190 | 70 → **65** | 60 |
@@ -187,7 +187,7 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 | Federica Siciliano | Istruttore | 3 | 190 | 50 → **65** | 50 → **55** |
 | Lorenzo Signorello | Istruttore | 3 | 175 | 100 → **80** | 90 → **65** |
 | Niccolò Cividini | Istruttore | 3 | 180 | 70 | 65 |
-| Strahinja Crnic | Istruttore | 3 | 185 | 80 → **75** | 50 → **55** |
+| Strahinja Crnic | Istruttore | 3 | 175 | 80 | 50 → **70** |
 | Lorenzo Pattaro | Allievo | 2 | 140 | 90 → **65** | 80 → **55** |
 | Roberto Morini | Istruttore | 3 | 190 | 60 → **65** | 50 → **55** |
 | Adriano Rossetto | Allievo | 2 | 140 | 30 → **50** | 90 → **55** |
@@ -356,8 +356,8 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 - *Attesa Scomoda* (ricarica 4): Fissa i nemici quando pensano che se ne sia andata: tutti confusi per 2 turni.
 
 **Strahinja Crnic**
-- *Dolori Omnidirezionali* (ricarica 4): Dolori che nessuno nota: ogni avversario in campo subisce 10 danni per 3 turni (ignorano la difesa).
-- *Organizzazione Confusionaria* (ricarica 3): Attacca e confonde l'avversario per 2 turni (può colpirsi per sbaglio).
+- *Dolori Omnidirezionali* (ricarica 4): Dolori che nessuno nota: ogni avversario in campo subisce 5 danni per 3 turni (ignorano la difesa).
+- *Organizzazione Confusionaria* (ricarica 4): Attacca e confonde l'avversario per 1 turno (può colpirsi per sbaglio).
 
 **Viola Donadi**
 - *Volto Marmoreo* (ricarica 3): Annulla qualsiasi effetto ricevuto e diventa immune agli effetti per 2 turni. Recupera 20 PV.

@@ -15,6 +15,12 @@ for (const k of ['hp', 'atk', 'def']) {
     assert.ok(a[k] >= b[k], `${b.name}: ${k} ${b[k]} sopra ${a.name} (${a[k]})`);
   }
 }
+// sotto le Leggende, le più forti per ATK+DEF sono queste cinque
+{
+  const forti = ['elia', 'andrea', 'chen', 'samuele', 'strahinja'], somma = c => c.atk + c.def;
+  const resto = Math.max(...S.CARDS.filter(c => c.rank !== 'L' && !forti.includes(c.id)).map(somma));
+  for (const id of forti) { const c = S.CARDS.find(x => x.id === id); assert.ok(somma(c) > resto, `${c.name}: ATK+DEF ${somma(c)} non sopra ${resto}`); }
+}
 
 const players = [{ name: 'A', cards: ['samuele', 'grazia', 'caterina', 'katya'] }, { name: 'B', cards: ['vittorio', 'annastella', 'adriano', 'remigio'] }];
 const make = (extra) => S.createGame(Object.assign({ seed: 7, first: 0, gymEvents: false, players }, extra));

@@ -142,15 +142,15 @@
       ],
     },
     {
-      id: 'strahinja', name: 'Strahinja Crnic', rank: 'I', cost: 3, hp: 140, atk: 75, def: 55,
+      id: 'strahinja', name: 'Strahinja Crnic', rank: 'I', cost: 3, hp: 140, atk: 80, def: 70,
       orig: { atk: 80, def: 50 },
       moves: [
         { name: 'Dolori Omnidirezionali', target: 'enemies', cd: 4,
-          desc: 'Dolori che nessuno nota: ogni avversario in campo subisce 10 danni per 3 turni (ignorano la difesa).',
-          use(g, u) { for (const f of enemies(g, u.owner)) addStatus(g, f, u, 'dot', 3, 10); log(g, `${nm(u)} semina dolori omnidirezionali...`); } },
-        { name: 'Organizzazione Confusionaria', target: 'enemy', cd: 3, hit: {},
-          desc: 'Attacca e confonde l\'avversario per 2 turni (può colpirsi per sbaglio).',
-          use(g, u, t) { attack(g, u, t); confuse(g, t, u, 2); } },
+          desc: 'Dolori che nessuno nota: ogni avversario in campo subisce 5 danni per 3 turni (ignorano la difesa).',
+          use(g, u) { for (const f of enemies(g, u.owner)) addStatus(g, f, u, 'dot', 3, 5); log(g, `${nm(u)} semina dolori omnidirezionali...`); } },
+        { name: 'Organizzazione Confusionaria', target: 'enemy', cd: 4, hit: {},
+          desc: 'Attacca e confonde l\'avversario per 1 turno (può colpirsi per sbaglio).',
+          use(g, u, t) { attack(g, u, t); confuse(g, t, u, 1); } },
       ],
     },
     {
@@ -512,7 +512,7 @@
       ],
     },
     {
-      id: 'john', name: 'John Higginson', rank: 'M', title: 'British Master', cost: 4, hp: 145, atk: 80, def: 70,
+      id: 'john', name: 'John Higginson', rank: 'M', title: 'British Master', cost: 4, hp: 145, atk: 75, def: 70,
       orig: { atk: 95, def: 90 },
       moves: [
         { name: 'Panza Ruspante', target: 'self', cd: 4,
