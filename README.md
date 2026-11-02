@@ -168,15 +168,15 @@ I **nomi delle mosse non sono stati toccati**. Sono cambiati i punti e, dove ser
 2. **Aggiungere i PV** (punti vita), che sulle carte non c'erano.
 3. **Bilanciare.** Ho fatto giocare il computer contro sé stesso per migliaia di partite con squadre casuali e ho corretto i valori finché ogni carta vinceva più o meno quanto le altre, tenendo conto del suo costo.
 
-**Regola dei gradi.** Un Allievo non ha mai PV, ATK o DEF più alti di quelli di un Istruttore, di un Maestro o di una Leggenda: oggi il tetto è 140 PV, 65 ATK e 55 DEF. I PV di Istruttori, Maestri e Leggende li calcola `hpFor` in `engine.js`, molto sopra gli Allievi (da 175 a 295): si parte da 180 (Istruttori, costo 3), 235 (Maestri, costo 4) e 300 (Leggende, costo 6), ogni 2 punti di ATK+DEF sopra la media del grado tolgono 1 PV e ogni Punto Dojo di costo in più ne aggiunge 30. Chicca Fossa ha PV fissi (`hpFix`, 190, sotto Samuele). Le Leggende hanno PV, ATK e DEF più alti di qualunque altra carta. Gli Allievi si bilanciano con il costo e con le mosse. `tools/test-combattimento.js` lo controlla, carte segrete comprese.
+**Regola dei gradi.** Un Allievo non ha mai PV, ATK o DEF più alti di quelli di un Istruttore, di un Maestro o di una Leggenda: oggi il tetto è 140 PV, 65 ATK e 55 DEF. I PV di Istruttori, Maestri e Leggende li calcola `hpFor` in `engine.js`, molto sopra gli Allievi (da 175 a 300): si parte da 180 (Istruttori, costo 3), 235 (Maestri, costo 4) e 300 (Leggende, costo 6), ogni 2 punti di ATK+DEF sopra la media del grado tolgono 1 PV e ogni Punto Dojo di costo in più ne aggiunge 30. Chicca Fossa (190, sotto Samuele) e Chen Wangting (300) hanno PV fissi (`hpFix`). Le Leggende hanno PV, ATK e DEF più alti di qualunque altra carta; Chen Zhenglei non supera mai Chen Wangting e Andrea non sta mai sotto Samuele. Gli Allievi si bilanciano con il costo e con le mosse. `tools/test-combattimento.js` lo controlla, carte segrete comprese.
 
 Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 
 | Carta | Grado | Costo | PV | ATK | DEF |
 |---|---|---|---|---|---|
-| Chen Wangting | Fondatore Supremo | 6 | 290 | ∞ → **95** | ∞ → **90** |
-| Chen Zhenglei | Gran Maestro | 6 | 295 | 1000 → **100** | 1000 → **80** |
-| Andrea | Maestro | 4 | 230 | 120 → **85** | 95 → **75** |
+| Chen Wangting | Fondatore Supremo | 6 | 300 | ∞ → **95** | ∞ → **90** |
+| Chen Zhenglei | Gran Maestro | 6 | 295 | 1000 → **95** | 1000 → **80** |
+| Andrea | Maestro | 4 | 230 | 120 → **90** | 95 → **75** |
 | Chen Delang | Maestro | 4 | 235 | 100 → **80** | 100 → **70** |
 | Elia Moretton | Maestro | 4 | 230 | 105 → **85** | 95 → **75** |
 | John Higginson | Maestro | 4 | 235 | 95 → **80** | 90 → **70** |

@@ -9,6 +9,11 @@ for (const k of ['hp', 'atk', 'def']) {
   // le Leggende stanno sopra tutte le altre carte
   const top = Math.max(...S.CARDS.filter(c => c.rank !== 'L').map(c => c[k]));
   for (const c of S.CARDS) if (c.rank === 'L') assert.ok(c[k] > top, `${c.name}: ${k} ${c[k]} non sopra ${top}`);
+  // gerarchie volute: Chen Zhenglei mai sopra Chen Wangting, Andrea mai sotto Samuele
+  for (const [su, giu] of [['wangting', 'zhenglei'], ['andrea', 'samuele']]) {
+    const a = S.CARDS.find(c => c.id === su), b = S.CARDS.find(c => c.id === giu);
+    assert.ok(a[k] >= b[k], `${b.name}: ${k} ${b[k]} sopra ${a.name} (${a[k]})`);
+  }
 }
 
 const players = [{ name: 'A', cards: ['samuele', 'grazia', 'caterina', 'katya'] }, { name: 'B', cards: ['vittorio', 'annastella', 'adriano', 'remigio'] }];
