@@ -104,12 +104,12 @@
       id: 'chicca', name: 'Chicca Fossa', rank: 'M', cost: 3, hp: 140, atk: 65, def: 60,
       orig: { atk: 70, def: 60 },
       moves: [
-        { name: 'Blocco Telematico', target: 'enemy', cd: 3, hit: { defMul: 0.5 },
+        { name: 'Blocco Telematico', target: 'enemy', cd: 4, hit: { defMul: 0.5 },
           desc: 'Rallenta l\'avversario (ATK −25% per 2 turni) e lo colpisce con la sua difesa dimezzata.',
           use(g, u, t) { attack(g, u, t, { defMul: 0.5 }); addStatus(g, t, u, 'atkMul', 2, 0.75); } },
-        { name: 'Ventaglio Perforante', target: 'enemy', cd: 1, hit: { flat: 10 },
-          desc: 'Finge di avere caldo e attacca con il ventaglio: +10 danni extra.',
-          use(g, u, t) { attack(g, u, t, { flat: 10 }); } },
+        { name: 'Ventaglio Perforante', target: 'enemy', cd: 2, hit: { flat: 5 },
+          desc: 'Finge di avere caldo e attacca con il ventaglio: +5 danni extra.',
+          use(g, u, t) { attack(g, u, t, { flat: 5 }); } },
       ],
     },
     {

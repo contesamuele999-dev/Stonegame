@@ -12,6 +12,7 @@ window.NOVITA = [
       'Sonia apre il buffet per tutta la partita (cibo per i suoi, avvelenato per gli altri), Luca impara una mossa anche dai compagni di squadra, Arian cresce a ogni turno.',
       'Nella Modalità Storia si incontrano nell\'erba alta e nelle grotte; John solo nel parco inglese, e di rado.',
       'PV ricalibrati: Istruttori, Maestri e Leggende ora hanno molti più PV degli Allievi (da 175 a 305), calcolati su ATK, DEF e costo.',
+      'Chicca Fossa un po’ più lenta: Blocco Telematico ricarica 4, Ventaglio Perforante ricarica 2 e +5 danni.',
     ],
   },
   {

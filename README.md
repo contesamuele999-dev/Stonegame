@@ -260,8 +260,8 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 - *Forma Universale* (ricarica 6): Raddoppia ATK e DEF di tutta la sua squadra in campo per 1 turno.
 
 **Chicca Fossa**
-- *Blocco Telematico* (ricarica 3): Rallenta l'avversario (ATK −25% per 2 turni) e lo colpisce con la sua difesa dimezzata.
-- *Ventaglio Perforante* (ricarica 1): Finge di avere caldo e attacca con il ventaglio: +10 danni extra.
+- *Blocco Telematico* (ricarica 4): Rallenta l'avversario (ATK −25% per 2 turni) e lo colpisce con la sua difesa dimezzata.
+- *Ventaglio Perforante* (ricarica 2): Finge di avere caldo e attacca con il ventaglio: +5 danni extra.
 
 **Christian Checchin**
 - *Apprendimento Fulmineo* (ricarica 4): Copia e usa subito una mossa speciale di un avversario in campo.
