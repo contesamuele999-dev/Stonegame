@@ -37,19 +37,19 @@
   // cd = turni di ricarica dopo l'uso. once = una volta per partita.
   const CARDS = [
     {
-      id: 'andrea', name: 'Andrea', rank: 'M', cost: 4, hp: 145, atk: 90, def: 75,
+      id: 'andrea', name: 'Andrea', rank: 'M', cost: 4, hp: 145, atk: 90, def: 75, hpFix: 205,
       orig: { atk: 120, def: 95 },
       moves: [
-        { name: 'Calma Sovrastante', target: 'allies', cd: 3,
+        { name: 'Calma Sovrastante', target: 'allies', cd: 4,
           desc: 'Annulla stordimento e ogni malus su tutta la sua squadra. Gli alleati non possono essere storditi per 2 turni.',
           use(g, u) {
             for (const f of team(g, u.owner)) { cleanse(g, f); addStatus(g, f, u, 'stunGuard', 2); }
             log(g, `${nm(u)} infonde calma a tutta la squadra.`);
           } },
         { name: 'Rimprovero Costruttivo', target: 'enemy', cd: 3,
-          desc: 'Assorbe la DEF dell\'avversario (fino a 40): il bersaglio perde quei punti DEF e Andrea li somma al suo ATK per il turno successivo.',
+          desc: 'Assorbe la DEF dell\'avversario (fino a 25): il bersaglio perde quei punti DEF e Andrea li somma al suo ATK per il turno successivo.',
           use(g, u, t) {
-            const x = Math.max(0, Math.min(40, Math.round(effDef(g, t))));
+            const x = Math.max(0, Math.min(25, Math.round(effDef(g, t))));
             addStatus(g, t, u, 'defAdd', 1, -x);
             addStatus(g, u, u, 'atkAdd', 1, x, true);
             log(g, `${nm(u)} assorbe ${x} DEF da ${nm(t)}!`);
@@ -76,14 +76,14 @@
       id: 'elia', name: 'Elia Moretton', rank: 'M', cost: 4, hp: 140, atk: 85, def: 75,
       orig: { atk: 105, def: 95 },
       moves: [
-        { name: 'Perfezionismo Compulsivo', target: 'enemy', cd: 3,
-          desc: 'Fa notare gli errori di tecnica: l\'avversario dimezza il suo ATK per 2 turni.',
-          use(g, u, t) { addStatus(g, t, u, 'atkMul', 2, 0.5); log(g, `${nm(t)} dubita di sé: ATK dimezzato!`); } },
+        { name: 'Perfezionismo Compulsivo', target: 'enemy', cd: 4,
+          desc: 'Fa notare gli errori di tecnica: l\'avversario perde il 30% del suo ATK per 2 turni.',
+          use(g, u, t) { addStatus(g, t, u, 'atkMul', 2, 0.7); log(g, `${nm(t)} dubita di sé: ATK -30%!`); } },
         { name: 'Disallineamento Temporale', target: 'self', once: true, nocopy: true,
-          desc: 'Una volta per partita: dimentica gli attacchi subiti. Recupera 40 PV, annulla i malus e ottiene +20 ATK permanenti; da ora il suo ATK non può più essere ridotto.',
+          desc: 'Una volta per partita: dimentica gli attacchi subiti. Recupera 30 PV, annulla i malus e ottiene +10 ATK permanenti; da ora il suo ATK non può più essere ridotto.',
           use(g, u) {
-            cleanse(g, u); heal(g, u, 40); u.forget = true;
-            addStatus(g, u, u, 'atkAdd', 99, 20, true, true);
+            cleanse(g, u); heal(g, u, 30); u.forget = true;
+            addStatus(g, u, u, 'atkAdd', 99, 10, true, true);
             log(g, `${nm(u)} ha dimenticato tutto... anche le valigie. Forza massima!`);
           } },
       ],

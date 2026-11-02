@@ -1,56 +1,56 @@
-partite 8000 in 92.3s | turni medi 21.4 | vince chi inizia 51.0% | senza esito 0
-zhenglei    costo 6   92.9%  (28)  uso att/m1/m2 67% / 14% / 19%
-wangting    costo 6   80.0%  (25)  uso att/m1/m2 78% / 12% / 10%
-elia        costo 4   60.3%  (1286)  uso att/m1/m2 77% / 11% / 12%
-andrea      costo 4   60.1%  (1350)  uso att/m1/m2 67% / 9% / 24%
-caterina    costo 1   58.1%  (1630)  uso att/m1/m2 77% / 2% / 20%
-federica    costo 3   57.6%  (1863)  uso att/m1/m2 56% / 18% / 26%
-strahinja   costo 3   57.3%  (1821)  uso att/m1/m2 52% / 22% / 27%
-katya       costo 3   54.5%  (1953)  uso att/m1/m2 63% / 7% / 30%
-niccolo     costo 3   53.0%  (1855)  uso att/m1/m2 72% / 21% / 7%
-lorenzo     costo 2   52.6%  (1857)  uso att/m1/m2 81% / 6% / 14%
-liming      costo 4   52.3%  (1303)  uso att/m1/m2 65% / 29% / 6%
-annastella  costo 2   51.6%  (1895)  uso att/m1/m2 45% / 30% / 26%
-john        costo 4   51.5%  (1323)  uso att/m1/m2 68% / 8% / 24%
-sonia       costo 2   50.7%  (1898)  uso att/m1/m2 59% / 16% / 25%
-chen        costo 4   50.7%  (1305)  uso att/m1/m2 55% / 29% / 15%
-remigio     costo 2   50.6%  (1967)  uso att/m1/m2 73% / 7% / 19%
-giulia      costo 2   50.5%  (1931)  uso att/m1/m2 55% / 30% / 15%
-raffaele    costo 2   49.9%  (1873)  uso att/m1/m2 44% / 26% / 30%
-margherita  costo 2   49.5%  (1920)  uso att/m1/m2 49% / 28% / 23%
-adriano     costo 2   49.4%  (1863)  uso att/m1/m2 79% / 0% / 21%
-chicca      costo 3   49.4%  (1791)  uso att/m1/m2 51% / 24% / 26%
-signorello  costo 3   49.3%  (1910)  uso att/m1/m2 73% / 16% / 11%
-annalisa    costo 1   49.2%  (1582)  uso att/m1/m2 68% / 18% / 14%
-roberto     costo 3   49.2%  (1812)  uso att/m1/m2 50% / 25% / 26%
-celeste     costo 2   48.2%  (1942)  uso att/m1/m2 68% / 32% / 0%
-samuele     costo 4   47.9%  (1348)  uso att/m1/m2 70% / 20% / 9%
+partite 8000 in 91.8s | turni medi 21.4 | vince chi inizia 51.1% | senza esito 0
+zhenglei    costo 6   85.7%  (28)  uso att/m1/m2 68% / 14% / 19%
+wangting    costo 6   68.0%  (25)  uso att/m1/m2 75% / 15% / 10%
+federica    costo 3   57.5%  (1863)  uso att/m1/m2 56% / 17% / 26%
+caterina    costo 1   56.6%  (1630)  uso att/m1/m2 77% / 3% / 21%
+strahinja   costo 3   56.2%  (1821)  uso att/m1/m2 51% / 22% / 27%
+elia        costo 4   55.8%  (1286)  uso att/m1/m2 81% / 9% / 11%
+katya       costo 3   55.4%  (1953)  uso att/m1/m2 64% / 7% / 29%
+andrea      costo 4   54.4%  (1350)  uso att/m1/m2 77% / 9% / 14%
+john        costo 4   54.0%  (1323)  uso att/m1/m2 68% / 8% / 24%
+lorenzo     costo 2   53.8%  (1857)  uso att/m1/m2 81% / 6% / 13%
+niccolo     costo 3   52.9%  (1855)  uso att/m1/m2 71% / 21% / 8%
+annastella  costo 2   52.8%  (1895)  uso att/m1/m2 44% / 30% / 26%
+liming      costo 4   52.4%  (1303)  uso att/m1/m2 64% / 29% / 6%
+chicca      costo 3   52.0%  (1791)  uso att/m1/m2 51% / 24% / 26%
+signorello  costo 3   51.9%  (1910)  uso att/m1/m2 73% / 17% / 10%
+sonia       costo 2   51.9%  (1898)  uso att/m1/m2 58% / 17% / 25%
+samuele     costo 4   51.1%  (1348)  uso att/m1/m2 70% / 21% / 10%
+chen        costo 4   51.0%  (1305)  uso att/m1/m2 56% / 29% / 15%
+roberto     costo 3   50.5%  (1812)  uso att/m1/m2 50% / 24% / 26%
+giulia      costo 2   50.4%  (1931)  uso att/m1/m2 55% / 31% / 14%
+remigio     costo 2   49.7%  (1967)  uso att/m1/m2 73% / 8% / 19%
+margian     costo 2   49.2%  (1969)  uso att/m1/m2 69% / 22% / 9%
+adriano     costo 2   48.7%  (1863)  uso att/m1/m2 79% / 0% / 21%
+margherita  costo 2   48.6%  (1920)  uso att/m1/m2 50% / 28% / 23%
+raffaele    costo 2   48.5%  (1873)  uso att/m1/m2 44% / 26% / 30%
+annalisa    costo 1   48.4%  (1582)  uso att/m1/m2 69% / 18% / 13%
+celeste     costo 2   48.0%  (1942)  uso att/m1/m2 68% / 32% / 0%
+grazia      costo 2   47.7%  (1951)  uso att/m1/m2 36% / 32% / 32%
+christian   costo 2   47.5%  (1865)  uso att/m1/m2 52% / 30% / 18%
 nicole      costo 1   47.3%  (1587)  uso att/m1/m2 53% / 23% / 24%
-ruben       costo 2   47.2%  (1878)  uso att/m1/m2 59% / 32% / 9%
-viola       costo 2   47.1%  (1868)  uso att/m1/m2 59% / 14% / 27%
-christian   costo 2   46.6%  (1865)  uso att/m1/m2 52% / 30% / 18%
-margian     costo 2   46.6%  (1969)  uso att/m1/m2 69% / 22% / 9%
-grazia      costo 2   46.1%  (1951)  uso att/m1/m2 36% / 32% / 32%
-arian       costo 2   46.0%  (1901)  uso att/m1/m2 82% / 10% / 8%
-vittorio    costo 2   45.9%  (1938)  uso att/m1/m2 46% / 29% / 25%
-gatto       costo 2   45.6%  (1980)  uso att/m1/m2 51% / 25% / 25%
-alessandro  costo 2   45.6%  (1877)  uso att/m1/m2 50% / 33% / 18%
-simone      costo 2   45.6%  (1909)  uso att/m1/m2 74% / 8% / 18%
-luca        costo 2   44.3%  (1946)  uso att/m1/m2 64% / 6% / 29%
-chi perde la prima carta vince il 38.2%
+ruben       costo 2   47.0%  (1878)  uso att/m1/m2 60% / 32% / 8%
+luca        costo 2   45.7%  (1946)  uso att/m1/m2 65% / 6% / 29%
+alessandro  costo 2   45.6%  (1877)  uso att/m1/m2 50% / 33% / 17%
+viola       costo 2   45.4%  (1868)  uso att/m1/m2 59% / 14% / 27%
+arian       costo 2   45.3%  (1901)  uso att/m1/m2 81% / 11% / 8%
+vittorio    costo 2   44.9%  (1938)  uso att/m1/m2 46% / 29% / 25%
+simone      costo 2   44.6%  (1909)  uso att/m1/m2 74% / 8% / 18%
+gatto       costo 2   43.4%  (1980)  uso att/m1/m2 51% / 24% / 24%
+chi perde la prima carta vince il 38.7%
 --- armi
-nessuna      92.5%  (214)
-shuangjian   49.6%  (3683)
-dadao        49.3%  (3668)
-jian         49.0%  (3787)
-dao          48.4%  (3577)
-shuangdao    48.0%  (3774)
-qiang        47.5%  (3662)
-qimeigun     46.3%  (3814)
-dagan        45.7%  (3789)
+nessuna      92.2%  (179)
+shuangjian   49.8%  (3645)
+dao          49.3%  (3646)
+dadao        49.1%  (3726)
+qimeigun     48.3%  (3734)
+qiang        47.6%  (3718)
+shuangdao    47.3%  (3736)
+jian         46.5%  (3871)
+dagan        46.5%  (3753)
 --- palestre (turni medi)
-liming      21.4  (1598)
+liming      21.3  (1598)
 lancenigo   23.0  (1616)
 priula      20.7  (1631)
 chenjiagou  20.8  (1607)
-nessuno     21.3  (1548)
+nessuno     21.1  (1548)
