@@ -11,6 +11,7 @@ window.NOVITA = [
       'Nuove carte: il Maestro John Higginson (British Master, con la Panza Ruspante e il Killing Taiji) e gli Allievi Raffaele Gatto, Luca Vellardi, Arian Ghadimi, Margian Ghadimi e Sonia Pompeiano.',
       'Sonia apre il buffet per tutta la partita (cibo per i suoi, avvelenato per gli altri), Luca impara una mossa anche dai compagni di squadra, Arian cresce a ogni turno.',
       'Nella Modalità Storia si incontrano nell\'erba alta e nelle grotte; John solo nel parco inglese, e di rado.',
+      'PV ricalibrati: Istruttori, Maestri e Leggende ora hanno molti più PV degli Allievi (da 175 a 305), calcolati su ATK, DEF e costo.',
     ],
   },
   {

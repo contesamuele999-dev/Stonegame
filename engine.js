@@ -892,6 +892,16 @@
     use(g, u, t) { fuse(g, u, t); } };
   const FUSE_I = -3, DUO_I = -10; // tecnica di coppia con la carta al posto k del campo: mossa DUO_I - k
 
+  // PV di Istruttori, Maestri e Leggende: molto sopra gli Allievi (tetto 140) e calibrati su ATK, DEF e costo.
+  // [PV base, ATK+DEF di riferimento, costo di riferimento]: ogni 2 punti di ATK+DEF oltre il riferimento tolgono 1 PV,
+  // ogni Punto Dojo di costo in più ne aggiunge 30. Gli Allievi tengono i PV scritti sulla carta.
+  const HP_RANK = { I: [180, 135, 3], M: [235, 150, 4], L: [300, 165, 6] };
+  function hpFor(c) {
+    const r = HP_RANK[c.rank];
+    return r ? Math.round((r[0] - (c.atk + c.def - r[1]) / 2 + 30 * (c.cost - r[2])) / 5) * 5 : c.hp;
+  }
+  CARDS.forEach(c => { c.hp = hpFor(c); });
+
   const CARD = {};
   CARDS.forEach(c => { CARD[c.id] = c; c.moves.forEach((m, i) => { m.ref = { card: c.id, i }; }); });
 

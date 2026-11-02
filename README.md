@@ -168,28 +168,28 @@ I **nomi delle mosse non sono stati toccati**. Sono cambiati i punti e, dove ser
 2. **Aggiungere i PV** (punti vita), che sulle carte non c'erano.
 3. **Bilanciare.** Ho fatto giocare il computer contro sé stesso per migliaia di partite con squadre casuali e ho corretto i valori finché ogni carta vinceva più o meno quanto le altre, tenendo conto del suo costo.
 
-**Regola dei gradi.** Un Allievo non ha mai PV, ATK o DEF più alti di quelli di un Istruttore, di un Maestro o di una Leggenda: oggi il tetto è 140 PV, 65 ATK e 55 DEF. Gli Allievi si bilanciano con il costo e con le mosse. `tools/test-combattimento.js` lo controlla, carte segrete comprese.
+**Regola dei gradi.** Un Allievo non ha mai PV, ATK o DEF più alti di quelli di un Istruttore, di un Maestro o di una Leggenda: oggi il tetto è 140 PV, 65 ATK e 55 DEF. I PV di Istruttori, Maestri e Leggende li calcola `hpFor` in `engine.js`, molto sopra gli Allievi (da 175 a 305): si parte da 180 (Istruttori, costo 3), 235 (Maestri, costo 4) e 300 (Leggende, costo 6), ogni 2 punti di ATK+DEF sopra la media del grado tolgono 1 PV e ogni Punto Dojo di costo in più ne aggiunge 30. Gli Allievi si bilanciano con il costo e con le mosse. `tools/test-combattimento.js` lo controlla, carte segrete comprese.
 
 Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 
 | Carta | Grado | Costo | PV | ATK | DEF |
 |---|---|---|---|---|---|
-| Chen Wangting | Fondatore Supremo | 6 | 170 | ∞ → **85** | ∞ → **90** |
-| Chen Zhenglei | Gran Maestro | 6 | 140 | 1000 → **85** | 1000 → **70** |
-| Andrea | Maestro | 4 | 145 | 120 → **85** | 95 → **75** |
-| Chen Delang | Maestro | 4 | 155 | 100 → **80** | 100 → **70** |
-| Elia Moretton | Maestro | 4 | 140 | 105 → **85** | 95 → **75** |
-| John Higginson | Maestro | 4 | 145 | 95 → **80** | 90 → **70** |
-| Samuele Contessa | Istruttore | 4 | 165 | 100 → **90** | 90 → **70** |
-| Liming Yue | Maestro | 4 | 145 | 100 → **75** | 100 → **70** |
-| Chicca Fossa | Maestro | 3 | 140 | 70 → **65** | 60 |
-| Katya | Maestro | 3 | 140 | 60 → **65** | 80 → **70** |
-| Federica Siciliano | Istruttore | 3 | 140 | 50 → **65** | 50 → **55** |
-| Lorenzo Signorello | Istruttore | 3 | 145 | 100 → **80** | 90 → **65** |
-| Niccolò Cividini | Istruttore | 3 | 140 | 70 | 65 |
-| Strahinja Crnic | Istruttore | 3 | 140 | 80 → **75** | 50 → **55** |
+| Chen Wangting | Fondatore Supremo | 6 | 295 | ∞ → **85** | ∞ → **90** |
+| Chen Zhenglei | Gran Maestro | 6 | 305 | 1000 → **85** | 1000 → **70** |
+| Andrea | Maestro | 4 | 230 | 120 → **85** | 95 → **75** |
+| Chen Delang | Maestro | 4 | 235 | 100 → **80** | 100 → **70** |
+| Elia Moretton | Maestro | 4 | 230 | 105 → **85** | 95 → **75** |
+| John Higginson | Maestro | 4 | 235 | 95 → **80** | 90 → **70** |
+| Samuele Contessa | Istruttore | 4 | 200 | 100 → **90** | 90 → **70** |
+| Liming Yue | Maestro | 4 | 240 | 100 → **75** | 100 → **70** |
+| Chicca Fossa | Maestro | 3 | 220 | 70 → **65** | 60 |
+| Katya | Maestro | 3 | 215 | 60 → **65** | 80 → **70** |
+| Federica Siciliano | Istruttore | 3 | 190 | 50 → **65** | 50 → **55** |
+| Lorenzo Signorello | Istruttore | 3 | 175 | 100 → **80** | 90 → **65** |
+| Niccolò Cividini | Istruttore | 3 | 180 | 70 | 65 |
+| Strahinja Crnic | Istruttore | 3 | 185 | 80 → **75** | 50 → **55** |
 | Lorenzo Pattaro | Allievo | 2 | 140 | 90 → **65** | 80 → **55** |
-| Roberto Morini | Istruttore | 3 | 140 | 60 → **65** | 50 → **55** |
+| Roberto Morini | Istruttore | 3 | 190 | 60 → **65** | 50 → **55** |
 | Adriano Rossetto | Allievo | 2 | 140 | 30 → **50** | 90 → **55** |
 | Alessandro Rizzo | Allievo | 2 | 140 | 60 → **65** | 30 → **35** |
 | Annastella Bettiol | Allievo | 2 | 140 | 40 → **60** | 50 |
