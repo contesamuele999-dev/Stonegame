@@ -6,6 +6,9 @@ const S = require('../engine.js');
 for (const k of ['hp', 'atk', 'def']) {
   const tetto = Math.min(...S.CARDS.filter(c => c.rank !== 'A').map(c => c[k]));
   for (const c of S.CARDS) if (c.rank === 'A') assert.ok(c[k] <= tetto, `${c.name}: ${k} ${c[k]} oltre ${tetto}`);
+  // le Leggende stanno sopra tutte le altre carte
+  const top = Math.max(...S.CARDS.filter(c => c.rank !== 'L').map(c => c[k]));
+  for (const c of S.CARDS) if (c.rank === 'L') assert.ok(c[k] > top, `${c.name}: ${k} ${c[k]} non sopra ${top}`);
 }
 
 const players = [{ name: 'A', cards: ['samuele', 'grazia', 'caterina', 'katya'] }, { name: 'B', cards: ['vittorio', 'annastella', 'adriano', 'remigio'] }];

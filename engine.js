@@ -570,7 +570,7 @@
       ],
     },
     {
-      id: 'wangting', name: 'Chen Wangting', rank: 'L', title: 'Fondatore Supremo', cost: 6, hp: 170, atk: 85, def: 90,
+      id: 'wangting', name: 'Chen Wangting', rank: 'L', title: 'Fondatore Supremo', cost: 6, hp: 170, atk: 95, def: 90,
       orig: { atk: '∞', def: '∞' },
       moves: [
         { name: 'Creazione Marziale', target: 'self', cd: 3,
@@ -582,7 +582,7 @@
       ],
     },
     {
-      id: 'zhenglei', name: 'Chen Zhenglei', rank: 'L', title: 'Gran Maestro', cost: 6, hp: 140, atk: 85, def: 70,
+      id: 'zhenglei', name: 'Chen Zhenglei', rank: 'L', title: 'Gran Maestro', cost: 6, hp: 140, atk: 100, def: 80,
       orig: { atk: 1000, def: 1000 },
       moves: [
         { name: 'Ciuffata Cosmica', target: 'enemies', once: true, offensive: true, nocopy: true,
