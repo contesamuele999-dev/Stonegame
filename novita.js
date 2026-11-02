@@ -14,6 +14,7 @@ window.NOVITA = [
       'PV ricalibrati: Istruttori, Maestri e Leggende ora hanno molti più PV degli Allievi (da 175 a 305), calcolati su ATK, DEF e costo.',
       'Chicca Fossa un po’ più lenta: Blocco Telematico ricarica 4, Ventaglio Perforante ricarica 2 e +5 danni.',
       'Nicole Fava molto meno forte: ATK 30 come sulla carta, Cameraman Improvvisato prende al massimo 15 DEF e dà +25% (ricarica 4), Gentilezza Ultrapremurosa dà +5 ATK e +5 DEF (ricarica 5).',
+      'Annalisa Brino meno forte: ATK 35 e DEF 50, Saluto Caritatevole toglie 15 DEF invece di 25.',
     ],
   },
   {

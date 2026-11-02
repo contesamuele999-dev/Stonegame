@@ -209,7 +209,7 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 | Sonia Pompeiano | Allievo | 2 | 140 | 40 → **50** | 30 → **45** |
 | Viola Donadi | Allievo | 2 | 125 | 40 → **50** | 50 |
 | Vittorio Buosi | Allievo | 2 | 100 | 50 → **40** | 30 → **35** |
-| Annalisa Brino | Allievo | 1 | 140 | 20 → **45** | 50 → **55** |
+| Annalisa Brino | Allievo | 1 | 140 | 20 → **35** | 50 |
 | Caterina Fighera | Allievo | 1 | 125 | 35 → **45** | 35 |
 | Nicole Fava | Allievo | 1 | 130 | 30 | 35 |
 
@@ -228,7 +228,7 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 - *Rimprovero Costruttivo* (ricarica 3): Assorbe la DEF dell'avversario (fino a 40): il bersaglio perde quei punti DEF e Andrea li somma al suo ATK per il turno successivo.
 
 **Annalisa Brino**
-- *Saluto Caritatevole* (ricarica 3): Abbassa di 25 i punti difesa di tutti gli avversari per 2 turni.
+- *Saluto Caritatevole* (ricarica 3): Abbassa di 15 i punti difesa di tutti gli avversari per 2 turni.
 - *Ribaltamento Psicosomatico* (ricarica 4): Inverte i punti ATK e DEF dell'avversario per 2 turni.
 
 **Annastella Bettiol**

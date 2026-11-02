@@ -366,12 +366,12 @@
       ],
     },
     {
-      id: 'annalisa', name: 'Annalisa Brino', rank: 'A', cost: 1, hp: 140, atk: 45, def: 55,
+      id: 'annalisa', name: 'Annalisa Brino', rank: 'A', cost: 1, hp: 140, atk: 35, def: 50,
       orig: { atk: 20, def: 50 },
       moves: [
         { name: 'Saluto Caritatevole', target: 'enemies', cd: 3,
-          desc: 'Abbassa di 25 i punti difesa di tutti gli avversari per 2 turni.',
-          use(g, u) { for (const f of enemies(g, u.owner)) addStatus(g, f, u, 'defAdd', 2, -25); log(g, `🙏 ${nm(u)} saluta tutti con grande carità.`); } },
+          desc: 'Abbassa di 15 i punti difesa di tutti gli avversari per 2 turni.',
+          use(g, u) { for (const f of enemies(g, u.owner)) addStatus(g, f, u, 'defAdd', 2, -15); log(g, `🙏 ${nm(u)} saluta tutti con grande carità.`); } },
         { name: 'Ribaltamento Psicosomatico', target: 'enemy', cd: 4,
           desc: 'Inverte i punti ATK e DEF dell\'avversario per 2 turni.',
           use(g, u, t) { if (addStatus(g, t, u, 'swap', 2)) { log(g, `🔄 ${nm(t)} si ritrova con ATK e DEF invertiti!`); ev(g, { type: 'status', uid: t.uid, text: 'INVERTITO' }); } } },
