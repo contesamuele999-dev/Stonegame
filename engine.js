@@ -348,21 +348,21 @@
       ],
     },
     {
-      id: 'nicole', name: 'Nicole Fava', rank: 'A', cost: 1, hp: 130, atk: 35, def: 35,
+      id: 'nicole', name: 'Nicole Fava', rank: 'A', cost: 1, hp: 130, atk: 30, def: 35,
       orig: { atk: 30, def: 35 },
       moves: [
-        { name: 'Cameraman Improvvisato', target: 'enemy', cd: 3,
-          desc: 'Cattura l\'istante perfetto: prende fino a 30 punti DEF dell\'avversario e li aggiunge ai suoi per 2 turni; il suo prossimo attacco fa il 50% in più.',
+        { name: 'Cameraman Improvvisato', target: 'enemy', cd: 4,
+          desc: 'Cattura l\'istante perfetto: prende fino a 15 punti DEF dell\'avversario e li aggiunge ai suoi per 2 turni; il suo prossimo attacco fa il 25% in più.',
           use(g, u, t) {
-            const x = Math.max(0, Math.min(30, Math.round(effDef(g, t))));
+            const x = Math.max(0, Math.min(15, Math.round(effDef(g, t))));
             addStatus(g, t, u, 'defAdd', 2, -x);
             addStatus(g, u, u, 'defAdd', 2, x, true);
-            addStatus(g, u, u, 'nextAtkMul', 2, 1.5, true);
+            addStatus(g, u, u, 'nextAtkMul', 2, 1.25, true);
             log(g, `🎥 ${nm(u)} cattura l'istante: prende ${x} DEF a ${nm(t)}!`);
           } },
-        { name: 'Gentilezza Ultrapremurosa', target: 'allies', cd: 4,
-          desc: 'Il tocco magico della cura: +10 ATK e +10 DEF a ogni membro della squadra in campo per 2 turni, e 10 PV di cura.',
-          use(g, u) { for (const f of team(g, u.owner)) { addStatus(g, f, u, 'atkAdd', 2, 10, true); addStatus(g, f, u, 'defAdd', 2, 10, true); heal(g, f, 10); } log(g, `🥰 ${nm(u)} coccola tutta la squadra.`); } },
+        { name: 'Gentilezza Ultrapremurosa', target: 'allies', cd: 5,
+          desc: 'Il tocco magico della cura: +5 ATK e +5 DEF a ogni membro della squadra in campo per 2 turni, e 10 PV di cura.',
+          use(g, u) { for (const f of team(g, u.owner)) { addStatus(g, f, u, 'atkAdd', 2, 5, true); addStatus(g, f, u, 'defAdd', 2, 5, true); heal(g, f, 10); } log(g, `🥰 ${nm(u)} coccola tutta la squadra.`); } },
       ],
     },
     {

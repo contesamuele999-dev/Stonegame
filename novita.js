@@ -13,6 +13,7 @@ window.NOVITA = [
       'Nella Modalità Storia si incontrano nell\'erba alta e nelle grotte; John solo nel parco inglese, e di rado.',
       'PV ricalibrati: Istruttori, Maestri e Leggende ora hanno molti più PV degli Allievi (da 175 a 305), calcolati su ATK, DEF e costo.',
       'Chicca Fossa un po’ più lenta: Blocco Telematico ricarica 4, Ventaglio Perforante ricarica 2 e +5 danni.',
+      'Nicole Fava molto meno forte: ATK 30 come sulla carta, Cameraman Improvvisato prende al massimo 15 DEF e dà +25% (ricarica 4), Gentilezza Ultrapremurosa dà +5 ATK e +5 DEF (ricarica 5).',
     ],
   },
   {

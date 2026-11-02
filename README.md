@@ -211,7 +211,7 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 | Vittorio Buosi | Allievo | 2 | 100 | 50 → **40** | 30 → **35** |
 | Annalisa Brino | Allievo | 1 | 140 | 20 → **45** | 50 → **55** |
 | Caterina Fighera | Allievo | 1 | 125 | 35 → **45** | 35 |
-| Nicole Fava | Allievo | 1 | 130 | 30 → **35** | 35 |
+| Nicole Fava | Allievo | 1 | 130 | 30 | 35 |
 
 ### Le mosse in gioco
 
@@ -324,8 +324,8 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 - *Discernimento Occulto* (ricarica 3): Attacca senza che il nemico se ne accorga, con 20 ATK in più: non si può schivare.
 
 **Nicole Fava**
-- *Cameraman Improvvisato* (ricarica 3): Cattura l'istante perfetto: prende fino a 30 punti DEF dell'avversario e li aggiunge ai suoi per 2 turni; il suo prossimo attacco fa il 50% in più.
-- *Gentilezza Ultrapremurosa* (ricarica 4): Il tocco magico della cura: +10 ATK e +10 DEF a ogni membro della squadra in campo per 2 turni, e 10 PV di cura.
+- *Cameraman Improvvisato* (ricarica 4): Cattura l'istante perfetto: prende fino a 15 punti DEF dell'avversario e li aggiunge ai suoi per 2 turni; il suo prossimo attacco fa il 25% in più.
+- *Gentilezza Ultrapremurosa* (ricarica 5): Il tocco magico della cura: +5 ATK e +5 DEF a ogni membro della squadra in campo per 2 turni, e 10 PV di cura.
 
 **Raffaele Gatto**
 - *Distrazione Kundalinica* (ricarica 2): Distrae l'avversario con foto provocanti e attacca con 10 danni in più.
