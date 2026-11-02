@@ -487,6 +487,89 @@
       ],
     },
     {
+      id: 'raffaele', name: 'Raffaele Gatto', rank: 'A', cost: 2, hp: 130, atk: 55, def: 45,
+      orig: { atk: 50, def: 40 },
+      moves: [
+        { name: 'Distrazione Kundalinica', target: 'enemy', cd: 2, hit: { flat: 10 },
+          desc: 'Sfrutta un momento di distrazione mostrando foto provocanti e attacca con 10 danni in più.',
+          use(g, u, t) { log(g, `📸 ${nm(u)} mostra il telefono a ${nm(t)}... che si distrae!`); attack(g, u, t, { flat: 10 }); } },
+        { name: 'Battuta Interrompente', target: 'enemy', cd: 4, hit: {},
+          desc: 'Di contropiede attacca e ruba un turno al nemico (stordito per 1 turno).',
+          use(g, u, t) { log(g, `💬 ${nm(u)} interrompe ${nm(t)} con una battuta!`); attack(g, u, t); stun(g, t, u, 1); } },
+      ],
+    },
+    {
+      id: 'luca', name: 'Luca Vellardi', rank: 'A', cost: 2, hp: 140, atk: 55, def: 55,
+      orig: { atk: 40, def: 45 },
+      moves: [
+        { name: 'Ascensione Divina', target: 'self', cd: 3,
+          desc: 'Potenzia l\'aura: +10 ATK e +10 DEF per 3 turni.',
+          use(g, u) { addStatus(g, u, u, 'atkAdd', 3, 10, true); addStatus(g, u, u, 'defAdd', 3, 10, true); log(g, `😇 L'aura di ${nm(u)} si accende: +10 ATK e +10 DEF!`); } },
+        // copyAllies: si copia anche dalla propria squadra; selfStun: dopo resta fermo a studiare (doAction)
+        { name: 'Viaggio Iperuranico', target: 'copy', cd: 4, nocopy: true, copyAllies: true, selfStun: 1,
+          desc: 'Si prende 2 turni per imparare una mossa a scelta degli avversari o della propria squadra: la usa subito, poi resta fermo 1 turno.',
+          use() {} },
+      ],
+    },
+    {
+      id: 'john', name: 'John Higginson', rank: 'M', title: 'British Master', cost: 4, hp: 145, atk: 80, def: 70,
+      orig: { atk: 95, def: 90 },
+      moves: [
+        { name: 'Panza Ruspante', target: 'self', cd: 4,
+          desc: 'Assorbe gli attacchi dei prossimi 2 turni: i danni subiti sono dimezzati.',
+          use(g, u) { addStatus(g, u, u, 'dmgIn', 2, 0.5, true); log(g, `🫃 ${nm(u)} gonfia la panza: i colpi rimbalzano a metà!`); } },
+        { name: 'Killing Taiji', target: 'enemy', cd: 3, hit: { atkAdd: 30 },
+          desc: 'Spiega la sua filosofia: se l\'avversario ci crede e ascolta (gli Allievi sempre, gli altri una volta su due) lo colpisce con 30 ATK in più.',
+          use(g, u, t) {
+            const listens = t.rank === 'A' || rand(g) < 0.5;
+            log(g, listens ? `☕ ${nm(t)} ascolta rapito la filosofia di ${nm(u)}...` : `☕ ${nm(t)} non crede a una parola di ${nm(u)}.`);
+            attack(g, u, t, { atkAdd: listens ? 30 : 0 });
+          } },
+      ],
+    },
+    {
+      id: 'arian', name: 'Arian Ghadimi', rank: 'A', cost: 2, hp: 140, atk: 60, def: 55,
+      orig: { atk: 30, def: 20 },
+      moves: [
+        // growth: +5 ATK e +5 DEF subito e a ogni suo turno, fino a +30 (startTurn)
+        { name: 'Apprendimento Istantaneo', target: 'self', once: true,
+          desc: 'Capisce subito il punto debole dell\'avversario: +5 ATK e +5 DEF subito e a ogni suo turno, fino a +30. Una volta per partita.',
+          use(g, u) { addStatus(g, u, u, 'growth', 99, 5, true); log(g, `🌼 ${nm(u)} ha già capito tutto: cresce a ogni turno!`); } },
+        { name: 'Entusiasmo Costante', target: 'allies', cd: 3,
+          desc: 'Tutta la squadra in campo +10 ATK per 3 turni, trascinata dalla sua intraprendenza.',
+          use(g, u) { for (const f of team(g, u.owner)) addStatus(g, f, u, 'atkAdd', 3, 10, true); log(g, `🎉 ${nm(u)} trascina la squadra: +10 ATK a tutti!`); } },
+      ],
+    },
+    {
+      id: 'margian', name: 'Margian Ghadimi', rank: 'A', cost: 2, hp: 140, atk: 60, def: 50,
+      orig: { atk: 35, def: 30 },
+      moves: [
+        { name: 'Sorriso Restaurante', target: 'allies', cd: 3,
+          desc: 'Cura di 20 PV tutta la squadra in campo.',
+          use(g, u) { for (const f of team(g, u.owner)) heal(g, f, 20); log(g, `😊 ${nm(u)} sorride: la squadra recupera 20 PV!`); } },
+        { name: 'Accompagnamento Entusiasta', target: 'ally', cd: 2,
+          desc: 'Potenzia di 15 punti le azioni di un compagno: +15 ATK fino al suo prossimo turno.',
+          use(g, u, t) { addStatus(g, t, u, 'atkAdd', 1, 15, true); log(g, `👏 ${nm(u)} fa il tifo per ${nm(t)}: +15 ATK!`); } },
+      ],
+    },
+    {
+      id: 'sonia', name: 'Sonia Pompeiano', rank: 'A', cost: 2, hp: 140, atk: 50, def: 45,
+      orig: { atk: 40, def: 30 },
+      moves: [
+        // regen: cura a ogni turno (startTurn); 99 turni = "cibo infinito", una volta per partita
+        { name: 'Catering Abbestia', target: 'allies', once: true,
+          desc: 'Cibo infinito per tutta la partita: la squadra in campo recupera 3 PV a ogni turno, gli avversari in campo perdono 2 PV a turno col cibo avvelenato. Una volta per partita.',
+          use(g, u) {
+            for (const f of team(g, u.owner)) addStatus(g, f, u, 'regen', 99, 3, true);
+            for (const f of enemies(g, u.owner)) addStatus(g, f, u, 'dot', 99, 2);
+            log(g, `🍝 ${nm(u)} apre il buffet: cibo per i suoi, avvelenato per gli altri!`);
+          } },
+        { name: 'Attesa Scomoda', target: 'enemies', cd: 4,
+          desc: 'Fissa i nemici proprio quando pensano che se ne sia andata: tutti confusi per 2 turni (possono colpirsi da soli).',
+          use(g, u) { for (const f of enemies(g, u.owner)) confuse(g, f, u, 2); log(g, `👁️ ${nm(u)} è ancora lì che li fissa...`); } },
+      ],
+    },
+    {
       id: 'wangting', name: 'Chen Wangting', rank: 'L', title: 'Fondatore Supremo', cost: 6, hp: 170, atk: 85, def: 90,
       orig: { atk: '∞', def: '∞' },
       moves: [
@@ -711,9 +794,10 @@
   };
   const ELEMENT_OF = {
     lorenzo: 'fuoco', caterina: 'fuoco', alessandro: 'fuoco', remigio: 'fuoco', giulia: 'fuoco',
-    vittorio: 'vento', celeste: 'vento', christian: 'vento', margherita: 'vento',
-    viola: 'montagna', adriano: 'montagna', simone: 'montagna', annastella: 'montagna',
-    nicole: 'foresta', annalisa: 'foresta', ruben: 'foresta', grazia: 'foresta', gatto: 'foresta',
+    arian: 'fuoco',
+    vittorio: 'vento', celeste: 'vento', christian: 'vento', margherita: 'vento', raffaele: 'vento', margian: 'vento',
+    viola: 'montagna', adriano: 'montagna', simone: 'montagna', annastella: 'montagna', luca: 'montagna',
+    nicole: 'foresta', annalisa: 'foresta', ruben: 'foresta', grazia: 'foresta', gatto: 'foresta', sonia: 'foresta',
   };
   const elementOf = id => ELEMENT_OF[id] || 'vento'; // carte segrete senza elemento
   const DUO_WAIT = 4;
@@ -934,7 +1018,7 @@
     let add = 0, mul = 1;
     for (const s of f.st) {
       const k = s.perm ? 1 : w;
-      if (s.type === 'atkAdd') add += s.value * k;
+      if (s.type === 'atkAdd' || s.type === 'growth') add += s.value * k;
       if (s.type === 'atkMul') mul *= 1 + (s.value - 1) * k;
     }
     return Math.max(0, (f.baseAtk + add) * mul);
@@ -946,7 +1030,7 @@
     let add = 0, mul = 1;
     for (const s of f.st) {
       const k = s.perm ? 1 : w;
-      if (s.type === 'defAdd') add += s.value * k;
+      if (s.type === 'defAdd' || s.type === 'growth') add += s.value * k;
       if (s.type === 'defMul') mul *= 1 + (s.value - 1) * k;
     }
     let d = f.baseDef + add;
@@ -1140,6 +1224,10 @@
         log(g, `${nm(f)} soffre: −${n} PV`);
         if (s.grow) s.value = Math.min(10, s.value + s.grow); // la Zampata Perpetua fa sempre più male
       }
+      for (const s of f.st) {
+        if (s.type === 'regen' && f.hp > 0) heal(g, f, s.value); // Catering Abbestia
+        if (s.type === 'growth' && s.at !== g.turnNo) s.value = Math.min(30, s.value + 5); // Apprendimento Istantaneo
+      }
     }
     if (g.winner !== null) return;
     // se nessuno può agire il turno passa
@@ -1260,7 +1348,8 @@
 
   function copyOptions(g, u) {
     const out = [];
-    for (const e of enemies(g, u.owner)) {
+    const from = movesOf(u).some(m => m.copyAllies) ? field(g).filter(f => f !== u) : enemies(g, u.owner);
+    for (const e of from) {
       const c = cardOf(e);
       c.moves.forEach((m, i) => {
         if (m.passive || m.nocopy || !usableInner(g, u, m)) return;
@@ -1352,6 +1441,7 @@
       // la bottiglia di Carla cattura l'ultima mossa speciale usata
       if (!exec.nocopy) g.lastSpecial = { card: exec.ref.card, i: exec.ref.i };
     }
+    if (m.selfStun && u.hp > 0) { addStatus(g, u, u, 'stun', m.selfStun, 0, true); log(g, `📖 ${nm(u)} è ancora assorto nello studio.`); }
     if (!m.basic) {
       if (m.once || m.maxUses) u.used[a.move] = (u.used[a.move] || 0) + 1;
       if (m.cd) u.cds[a.move] = m.cd + 1 - ((TERRAIN[g.terrain] || {}).cdBonus || 0);
@@ -1447,6 +1537,8 @@
           // un bonus di ATK permanente rende per tutto il resto della partita, ben oltre l'orizzonte della simulazione
           if (s.perm && s.type === 'atkAdd') v += sign * s.value * 1.5;
           if (s.type === 'dot') v -= sign * s.value * Math.min(s.dur, 3);
+          if (s.type === 'regen') v += sign * s.value * Math.min(s.dur, 3);
+          if (s.type === 'growth') v += sign * (s.value + 10);
           if (s.type === 'stun') v -= sign * 12;
           if (s.type === 'confuse') v -= sign * 8;
         }

@@ -26,6 +26,8 @@
     annalisa: ['#e9f2ea', '#55b98a'], wangting: ['#6d6a5e', '#d4ae62'], zhenglei: ['#f4efe2', '#b04cff'],
     liming: ['#1c1c1f', '#d8412f'], gatto: ['#d4a530', '#c8322a'], giulia: ['#2a2a2e', '#b8322a'],
     ruben: ['#1a1a1d', '#ff8a3a'], simone: ['#1e1626', '#d4ae62'], roberto: ['#2f4a2a', '#7bd87b'], margherita: ['#efe8dc', '#ff9a3d'],
+    raffaele: ['#3d4a2a', '#ff7a1a'], luca: ['#161616', '#ffd24a'], john: ['#5f7a78', '#3ee0c8'],
+    arian: ['#c94a7a', '#ffb02e'], margian: ['#2a1f2e', '#b04cff'], sonia: ['#b8202a', '#a35cff'],
   };
   const BELT = { M: '#d4ae62', I: '#111111', A: '#f2efe6', L: '#b04cff' };
 
@@ -94,6 +96,18 @@
     'Forma con VR': { anim: 'cast', fx: 'orb', e: '🥽', c: '#38d6ff' },
     'Parlantina Competente': { anim: 'shout', fx: 'bubble', t: 'BLA BLA', c: '#eadbc0' },
     'Discernimento Occulto': { anim: 'palm', fx: 'burst', e: '🔮', c: '#b04cff' },
+    'Distrazione Kundalinica': { anim: 'point', fx: 'hypno', e: '📸', c: '#ff7a1a' },
+    'Battuta Interrompente': { anim: 'shout', fx: 'bubble', t: 'AH-AH!', c: '#ffd24a' },
+    'Ascensione Divina': { anim: 'meditate', fx: 'aura', e: '😇', c: '#ffd24a' },
+    'Viaggio Iperuranico': { anim: 'cast', fx: 'vortex', e: '📜', c: '#7a6cff' },
+    'Panza Ruspante': { anim: 'sumo', fx: 'metal', e: '🫃', c: '#3ee0c8' },
+    'Killing Taiji': { anim: 'palm', fx: 'shock', e: '☕', c: '#3ee0c8' },
+    'Apprendimento Istantaneo': { anim: 'meditate', fx: 'aura', e: '🌼', c: '#ffb02e' },
+    'Entusiasmo Costante': { anim: 'dance', fx: 'flash', e: '🎉', c: '#ffb02e' },
+    'Sorriso Restaurante': { anim: 'cast', fx: 'calm', e: '😊', c: '#7bd87b' },
+    'Accompagnamento Entusiasta': { anim: 'dance', fx: 'aura', e: '👏', c: '#b04cff' },
+    'Catering Abbestia': { anim: 'throw', fx: 'steam', e: '🍝', c: '#e8631c' },
+    'Attesa Scomoda': { anim: 'point', fx: 'hypno', e: '👁️', c: '#a35cff' },
     // tecniche di coppia (duoScene): cambiano colore ed emoji
     'Drago Gemello': { anim: 'cast', e: '🐉', c: '#ff5a1f' },
     'Tifone Invisibile': { anim: 'cast', e: '🌪️', c: '#9fe8ff' },
@@ -197,6 +211,8 @@
     signorello: [0.479, 0.23, 0.086], strahinja: [0.48, 0.255, 0.096], viola: [0.5, 0.283, 0.168, '#5a3a24'],
     vittorio: [0.476, 0.288, 0.196], wangting: [0.49, 0.191, 0.085], zhenglei: [0.46, 0.21, 0.105],
     ruben: [0.507, 0.213, 0.118, '#3a2418'], simone: [0.5, 0.202, 0.11, '#c99a7a'], roberto: [0.507, 0.329, 0.2, '#8a8a86'], margherita: [0.513, 0.315, 0.17, '#2a1d16'],
+    raffaele: [0.494, 0.347, 0.2, '#1e1712'], luca: [0.5, 0.2, 0.2, '#4a3528'], john: [0.53, 0.204, 0.12, '#c9a58a'],
+    arian: [0.516, 0.288, 0.2, '#3a2418'], margian: [0.494, 0.27, 0.2, '#1d1612'], sonia: [0.469, 0.175, 0.16, '#2a1c14'],
     liming: [0.512, 0.173, 0.07, '#1d1612'], gatto: [0.47, 0.215, 0.26, '#d4a530'], giulia: [0.487, 0.207, 0.1, '#5a3a24'],
   };
   // foto del viso di fronte, solo per le teste 3D: [file in img/, centro x, centro y, larghezza del viso, capelli]

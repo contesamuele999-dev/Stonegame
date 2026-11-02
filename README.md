@@ -1,6 +1,6 @@
 # Stone Temple Cards Game
 
-Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal telefono con 30 personaggi della palestra (tra cui il Maestro Liming Yue e il Gatto Dorato) e 2 Leggende del Taijiquan stile Chen.
+Gioco di carte digitale per la palestra **Stone Temple Tao**, giocabile dal telefono con 36 personaggi della palestra (tra cui il Maestro Liming Yue e il Gatto Dorato) e 2 Leggende del Taijiquan stile Chen.
 
 - **Contro il computer**, con tre livelli di difficoltà: facile, normale e difficile.
 - **Torneo**: 5 incontri contro squadre sempre più forti, fino al Tempio dei Maestri.
@@ -38,7 +38,7 @@ Dal menu iniziale, "📖 Modalità Storia". Si crea il proprio personaggio (nome
 - **Comprare, vendere, scambiare**: in bottega pergamene e bustine (Allievi, Istruttori, Maestri: più sigilli hai, più alto il livello della carta che esce) e si vendono le copie doppie. Alcuni abitanti propongono scambi di carte.
 - **Squadra**: 4 carte e 10 Punti Dojo come nel gioco normale; le carte trovate nella storia si sbloccano anche nel resto del gioco. Le carte segrete restano fuori dalla storia.
 - **Arena del Tempio** (Lancenigo, a destra della Stone Temple Tao): una torre di sfide senza fine, aperta dal primo sigillo. Al piano N una squadra a caso di livello 1 + N/2 (anche oltre il 10), sempre la stessa per lo stesso viaggio e piano; il computer passa da facile a normale (dal piano 6) e difficile (dal 16); la palestra cambia a ogni piano. Ogni 5 piani un campione (Tommaso, Federica, Liming Yue, Chen Delang, Samuele, le Leggende, poi da capo più forti): vale 3 pergamene e una carta (Istruttore, Maestro dal piano 15, Leggenda dal 30). Ogni 10 piani un traguardo: chi perde riparte dall'ultimo, senza perdere monete. La **sfida del giorno** ha una regola diversa ogni giorno, uguale per tutti (solo Allievi, tre Maestri nella Piazza del Taiji, squadra da 7 Punti Dojo...), avversari di un livello sopra la tua squadra e un premio in più una volta al giorno. Il record sta nella Tessera.
-- **La Grotta dei Sussurri** (sidestory in Inghilterra): dopo aver battuto il Maestro Liming Yue, lui confessa che lo spirito della sua carta è scappato e grida nella grotta del parco (il bobby all'ingresso ora ti lascia passare). Dentro si sentono le sue grida vere, registrate («Shuaaa», «Iiii», «Paaa», «Taaan», «Zsss»…), con le scritte che indicano da dove arrivano; con le cuffie si sente anche da che parte (audio stereo). Per raggiungerlo si risponde alle sue tre grida colpendo le lanterne di pietra nello stesso ordine (diverso per ogni viaggio). Lo spirito ti fa gridare con lui al microfono e poi ti sfida, con il remix delle sue grida come musica: vincendo, la carta di Liming Yue si unisce a te. Le mutande ritrovate nella grotta si riportano al Maestro in cambio di monete. Liming Yue si trova solo qui (non esce dalle vittorie a caso né dalle bustine); Gatto Dorato e Giulia Gagno si incontrano nella grotta e sul Percorso 2; Margherita Carli sul Percorso 1, Ruben Rossi a Ponte della Priula, Simone Squizzato nella Grotta del Montello, Roberto Morini nel parco inglese.
+- **La Grotta dei Sussurri** (sidestory in Inghilterra): dopo aver battuto il Maestro Liming Yue, lui confessa che lo spirito della sua carta è scappato e grida nella grotta del parco (il bobby all'ingresso ora ti lascia passare). Dentro si sentono le sue grida vere, registrate («Shuaaa», «Iiii», «Paaa», «Taaan», «Zsss»…), con le scritte che indicano da dove arrivano; con le cuffie si sente anche da che parte (audio stereo). Per raggiungerlo si risponde alle sue tre grida colpendo le lanterne di pietra nello stesso ordine (diverso per ogni viaggio). Lo spirito ti fa gridare con lui al microfono e poi ti sfida, con il remix delle sue grida come musica: vincendo, la carta di Liming Yue si unisce a te. Le mutande ritrovate nella grotta si riportano al Maestro in cambio di monete. Liming Yue si trova solo qui (non esce dalle vittorie a caso né dalle bustine); Gatto Dorato e Giulia Gagno si incontrano nella grotta e sul Percorso 2; Margherita Carli sul Percorso 1, Ruben Rossi a Ponte della Priula, Simone Squizzato nella Grotta del Montello, Roberto Morini nel parco inglese; Arian Ghadimi sul Percorso 1, Raffaele Gatto a Ponte della Priula, Luca Vellardi nella Grotta del Montello, Margian Ghadimi e Sonia Pompeiano sul Percorso 2, il Maestro John Higginson (raro) nel parco inglese.
 - Il viaggio si salva da solo (a ogni porta, sfida e acquisto) sul telefono. Mappe e trama stanno in `mondo.js` (anche l'Arena), il motore del mondo in `storia.js`; `node tools/test-storia.js` controlla che le mappe siano percorribili e che le squadre dell'Arena siano valide.
 
 ### Aggiornamento automatico su tutti i telefoni
@@ -104,7 +104,7 @@ La chat della palestra si attiva incollando `supabase/aggiornamento-5.sql` (una 
 
 **Qi di squadra.** Ogni squadra ha una barra di Qi che si carica perdendo PV (0,3 punti per PV perso). Piena, nel tuo turno si libera il 🔥 *Colpo del Tempio*: tutta la tua squadra in campo recupera 20 PV e ogni avversario in campo subisce 25 danni che ignorano la difesa. Non usa l'azione di una carta. Aiuta chi sta perdendo a rimontare.
 
-**Tecniche di coppia.** Ogni Allievo ha un elemento: 🔥 Fuoco (Lorenzo Pattaro, Caterina, Alessandro, Remigio, Giulia), 🌪️ Vento (Vittorio, Celeste, Christian, Margherita), ⛰️ Montagna (Viola, Adriano, Simone, Annastella), 🌳 Foresta (Nicole, Annalisa, Ruben, Grazia, Gatto Dorato). Due Allievi in campo che non hanno ancora agito uniscono le azioni in una tecnica decisa dalla coppia di elementi, con gli ATK sommati. Costa l'azione di entrambi e la squadra aspetta 4 turni prima di farne un'altra. Le tecniche sono 10 e stanno nella tabella `DUO` di `engine.js`.
+**Tecniche di coppia.** Ogni Allievo ha un elemento: 🔥 Fuoco (Lorenzo Pattaro, Caterina, Alessandro, Remigio, Giulia, Arian), 🌪️ Vento (Vittorio, Celeste, Christian, Margherita, Raffaele, Margian), ⛰️ Montagna (Viola, Adriano, Simone, Annastella, Luca), 🌳 Foresta (Nicole, Annalisa, Ruben, Grazia, Gatto Dorato, Sonia). Due Allievi in campo che non hanno ancora agito uniscono le azioni in una tecnica decisa dalla coppia di elementi, con gli ATK sommati. Costa l'azione di entrambi e la squadra aspetta 4 turni prima di farne un'altra. Le tecniche sono 10 e stanno nella tabella `DUO` di `engine.js`.
 
 **Fusione.** Una volta per partita due carte qualsiasi in campo che non hanno ancora agito si fondono per sempre, unendo gli indici: PV sommati, la più forte tra ATK e DEF più una parte dell'altra (50% e 30%), tutte le mosse (non le passive della seconda carta). Il nome è metà di ciascuno (Lorenzo + Nicole = Loreole). Costa l'azione di entrambe, il posto libero lo prende la riserva, e se la fusione va K.O. si perdono entrambe. Nell'arena 3D i due fanno il balletto e la telecamera stringe sugli indici che si toccano; la carta fusa ha mezza faccia per parte.
 
@@ -120,7 +120,7 @@ Sulle carte in campo i simboli in basso a sinistra mostrano le mosse speciali: �
 
 **Eventi in palestra.** Ogni 3 round capita qualcosa che vale per tutte le carte in campo, di entrambe le squadre, per un round: Lezione extra (+15 PV), Aria condizionata rotta (ATK −15%), Il Maestro osserva (+10 ATK a Maestri e Istruttori), Musica a palla (+10 ATK), Pulizie del tatami (via gli effetti negativi), Riscaldamento (+15 DEF). Si possono spegnere dalle impostazioni.
 
-**Gradi.** Il grado è quello stampato sulla carta: Maestri (Andrea, Chen Delang, Chicca Fossa, Elia Moretton, Katya, Liming Yue), Istruttori (Samuele Contessa, Niccolò Cividini, Strahinja Crnic, Federica Siciliano, Lorenzo Signorello), Allievi (tutte le carte senza grado stampato). Le **Leggende** Chen Wangting (Fondatore Supremo) e Chen Zhenglei (Gran Maestro) costano 6 Punti Dojo, contano come Maestri e si sbloccano vincendo il torneo.
+**Gradi.** Il grado è quello stampato sulla carta: Maestri (Andrea, Chen Delang, Chicca Fossa, Elia Moretton, John Higginson, Katya, Liming Yue), Istruttori (Samuele Contessa, Niccolò Cividini, Strahinja Crnic, Federica Siciliano, Lorenzo Signorello), Allievi (tutte le carte senza grado stampato). Le **Leggende** Chen Wangting (Fondatore Supremo) e Chen Zhenglei (Gran Maestro) costano 6 Punti Dojo, contano come Maestri e si sbloccano vincendo il torneo.
 
 **Palestre (carte terreno).** Ogni sfida si combatte in una palestra, scelta prima della partita o a sorte; il suo effetto vale per entrambe le squadre e nell'arena 3D cambiano fondale e pavimento.
 - *Stone Temple Tao* (Lancenigo, sede principale): tutte le carte +15 PV e gli eventi in palestra capitano ogni 2 round invece di 3.
@@ -179,6 +179,7 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 | Andrea | Maestro | 4 | 145 | 120 → **85** | 95 → **75** |
 | Chen Delang | Maestro | 4 | 155 | 100 → **80** | 100 → **70** |
 | Elia Moretton | Maestro | 4 | 140 | 105 → **85** | 95 → **75** |
+| John Higginson | Maestro | 4 | 145 | 95 → **80** | 90 → **70** |
 | Samuele Contessa | Istruttore | 4 | 165 | 100 → **90** | 90 → **70** |
 | Liming Yue | Maestro | 4 | 145 | 100 → **75** | 100 → **70** |
 | Chicca Fossa | Maestro | 3 | 140 | 70 → **65** | 60 |
@@ -201,6 +202,11 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 | Ruben Rossi | Allievo | 2 | 140 | 30 → **55** | 40 → **50** |
 | Simone Squizzato | Allievo | 2 | 140 | 55 → **60** | 45 → **55** |
 | Margherita Carli | Allievo | 2 | 135 | 20 → **50** | 40 → **50** |
+| Arian Ghadimi | Allievo | 2 | 140 | 30 → **60** | 20 → **55** |
+| Margian Ghadimi | Allievo | 2 | 140 | 35 → **60** | 30 → **50** |
+| Luca Vellardi | Allievo | 2 | 140 | 40 → **55** | 45 → **55** |
+| Raffaele Gatto | Allievo | 2 | 130 | 50 → **55** | 40 → **45** |
+| Sonia Pompeiano | Allievo | 2 | 140 | 40 → **50** | 30 → **45** |
 | Viola Donadi | Allievo | 2 | 125 | 40 → **50** | 50 |
 | Vittorio Buosi | Allievo | 2 | 100 | 50 → **40** | 30 → **35** |
 | Annalisa Brino | Allievo | 1 | 140 | 20 → **45** | 50 → **55** |
@@ -228,6 +234,10 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 **Annastella Bettiol**
 - *Che Voglia di Vivere* (ricarica 2): Toglie 40 punti DEF a qualsiasi carta in campo (anche a sé stessa) per 2 turni.
 - *Spaccaossa* (ricarica 3): Colpisce e toglie 30 punti ATK alla carta bersagliata per 2 turni.
+
+**Arian Ghadimi**
+- *Apprendimento Istantaneo* (una volta per partita): Capisce subito il punto debole dell'avversario: +5 ATK e +5 DEF subito e a ogni suo turno, fino a +30.
+- *Entusiasmo Costante* (ricarica 3): Tutta la squadra in campo +10 ATK per 3 turni.
 
 **Caterina Fighera**
 - *Incazzatura Interstellare* (ricarica 3): Per 2 turni moltiplica ×2 tutti i danni che infligge… ma anche quelli che subisce.
@@ -277,6 +287,10 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 - *Peluche Ipercoccoloso* (ricarica 4): L'avversario si innamora del peluche: lo colpisce con la sua DEF dimezzata e lo stordisce per 1 turno.
 - *Pubblicità Fotogenica* (ricarica 1): Si mostra innocua per poi sferrare l'attacco con 10 punti extra.
 
+**John Higginson**
+- *Panza Ruspante* (ricarica 4): Assorbe gli attacchi dei prossimi 2 turni: danni subiti dimezzati.
+- *Killing Taiji* (ricarica 3): Spiega la sua filosofia: se l'avversario ci crede e ascolta (gli Allievi sempre, gli altri una volta su due) lo colpisce con 30 ATK in più.
+
 **Katya**
 - *Firma Urgente* (ricarica 3): Blocca le tecniche avversarie: per 1 turno nessun avversario può usare mosse speciali.
 - *Annotazione Omnidirezionale* (ricarica 2): Colpisce con precisione qualsiasi avversario (+10 danni): ignora schivate e invulnerabilità. Si può usare anche se Katya è stordita.
@@ -293,6 +307,14 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 - *Sussurro Eterno* (ricarica 4): Parla a ogni manifestazione dell'esistenza ed evoca eserciti: tutti gli avversari subiscono un attacco al 45% della sua forza.
 - *Demassazione Fecale* (ricarica 3): Riduce la sua massa per diventare velocissimo: +10 ATK e +10 DEF per 2 turni e schiva il prossimo attacco.
 
+**Luca Vellardi**
+- *Ascensione Divina* (ricarica 3): Potenzia l'aura: +10 ATK e +10 DEF per 3 turni.
+- *Viaggio Iperuranico* (ricarica 4): Impara una mossa a scelta degli avversari o della propria squadra e la usa subito; poi resta fermo 1 turno a studiare.
+
+**Margian Ghadimi**
+- *Sorriso Restaurante* (ricarica 3): Cura di 20 PV tutta la squadra in campo.
+- *Accompagnamento Entusiasta* (ricarica 2): Un compagno +15 ATK fino al suo prossimo turno.
+
 **Niccolò Cividini**
 - *Terza Persona Colloquiale* (ricarica 4): Stordisce il nemico dandogli del "Lei" per 2 turni.
 - *Mutandone Dirompente* (ricarica 3): Indossa la divisa da Sumo: +20 ATK e +20 DEF per 3 turni.
@@ -304,6 +326,10 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 **Nicole Fava**
 - *Cameraman Improvvisato* (ricarica 3): Cattura l'istante perfetto: prende fino a 30 punti DEF dell'avversario e li aggiunge ai suoi per 2 turni; il suo prossimo attacco fa il 50% in più.
 - *Gentilezza Ultrapremurosa* (ricarica 4): Il tocco magico della cura: +10 ATK e +10 DEF a ogni membro della squadra in campo per 2 turni, e 10 PV di cura.
+
+**Raffaele Gatto**
+- *Distrazione Kundalinica* (ricarica 2): Distrae l'avversario con foto provocanti e attacca con 10 danni in più.
+- *Battuta Interrompente* (ricarica 4): Di contropiede attacca e ruba un turno al nemico (stordito per 1 turno).
 
 **Remigio Spinazzè**
 - *Potenziamento Tysoniano* (ricarica 2, al massimo 3 volte): Aumenta l'attacco di 10 punti per il resto della partita (fino a 3 volte).
@@ -324,6 +350,10 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 **Simone Squizzato**
 - *Tuta Immanente* (ricarica 4): Il Qi accumulato in anni di pratica con la stessa tuta: +50 DEF per 2 turni.
 - *Giovinezza Apparente* (ricarica 2): Sembra così giovane che gli avversari si sentono in svantaggio: tutti −20 ATK per 2 turni.
+
+**Sonia Pompeiano**
+- *Catering Abbestia* (una volta per partita): Cibo infinito: la squadra in campo recupera 3 PV a ogni turno, gli avversari in campo ne perdono 2 col cibo avvelenato, per tutta la partita.
+- *Attesa Scomoda* (ricarica 4): Fissa i nemici quando pensano che se ne sia andata: tutti confusi per 2 turni.
 
 **Strahinja Crnic**
 - *Dolori Omnidirezionali* (ricarica 4): Dolori che nessuno nota: ogni avversario in campo subisce 10 danni per 3 turni (ignorano la difesa).

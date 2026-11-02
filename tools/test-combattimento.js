@@ -147,4 +147,21 @@ for (let s = 0; s < 20; s++) {
   assert.ok(c.winner !== null, 'partita senza esito');
 }
 assert.ok(duos > 0, 'il computer non usa mai le tecniche di coppia');
+
+// Viaggio Iperuranico copia anche dalla propria squadra e poi Luca resta fermo; Catering cura a ogni turno
+{
+  const c = S.createGame({ seed: 3, first: 0, gymEvents: false, players: [{ name: 'A', cards: ['luca', 'margian', 'sonia', 'arian'] }, { name: 'B', cards: ['vittorio', 'annastella', 'adriano', 'remigio'] }] });
+  const [luca, margian, sonia] = c.players[0].field;
+  S.passTurn(c); S.passTurn(c); // il primo turno si può solo attaccare
+  const opts = S.copyOptions(c, luca);
+  assert.ok(opts.some(o => o.ref.card === 'margian') && opts.some(o => o.ref.card === 'vittorio'), 'Viaggio Iperuranico: mancano mosse alleate o avversarie');
+  const heal = opts.find(o => o.move.name === 'Sorriso Restaurante');
+  assert.ok(S.doAction(c, { actor: luca.uid, move: 1, pick: heal.ref, target: null }));
+  assert.ok(luca.st.some(s => s.type === 'stun'), 'Luca non resta fermo dopo la copia');
+  assert.ok(S.doAction(c, { actor: sonia.uid, move: 0, target: null }));
+  margian.hp = 100;
+  S.passTurn(c); S.passTurn(c);
+  assert.ok(margian.hp >= 103, 'Catering Abbestia non cura');
+  assert.ok(!S.actorOptions(c, luca).some(o => o.ok && o.i >= 0), 'Luca agisce mentre studia');
+}
 console.log(`ok · in 30 partite il computer ha usato il Qi ${qi} volte e il Cambio ${swaps}; in 20 partite di Allievi ${duos} tecniche e ${fus} fusioni`);
