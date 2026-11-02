@@ -182,7 +182,7 @@ Valori in gioco (a sinistra della freccia il valore stampato sulla carta):
 | John Higginson | Maestro | 4 | 235 | 95 → **80** | 90 → **70** |
 | Samuele Contessa | Istruttore | 4 | 200 | 100 → **90** | 90 → **70** |
 | Liming Yue | Maestro | 4 | 240 | 100 → **75** | 100 → **70** |
-| Chicca Fossa | Maestro | 3 | 220 | 70 → **65** | 60 |
+| Chicca Fossa | Maestro | 3 | 190 | 70 → **65** | 60 |
 | Katya | Maestro | 3 | 215 | 60 → **65** | 80 → **70** |
 | Federica Siciliano | Istruttore | 3 | 190 | 50 → **65** | 50 → **55** |
 | Lorenzo Signorello | Istruttore | 3 | 175 | 100 → **80** | 90 → **65** |

@@ -101,7 +101,7 @@
       ],
     },
     {
-      id: 'chicca', name: 'Chicca Fossa', rank: 'M', cost: 3, hp: 140, atk: 65, def: 60,
+      id: 'chicca', name: 'Chicca Fossa', rank: 'M', cost: 3, hp: 140, atk: 65, def: 60, hpFix: 190, // hpFix: PV decisi a mano, sotto Samuele
       orig: { atk: 70, def: 60 },
       moves: [
         { name: 'Blocco Telematico', target: 'enemy', cd: 4, hit: { defMul: 0.5 },
@@ -898,7 +898,7 @@
   const HP_RANK = { I: [180, 135, 3], M: [235, 150, 4], L: [300, 165, 6] };
   function hpFor(c) {
     const r = HP_RANK[c.rank];
-    return r ? Math.round((r[0] - (c.atk + c.def - r[1]) / 2 + 30 * (c.cost - r[2])) / 5) * 5 : c.hp;
+    return c.hpFix || (r ? Math.round((r[0] - (c.atk + c.def - r[1]) / 2 + 30 * (c.cost - r[2])) / 5) * 5 : c.hp);
   }
   CARDS.forEach(c => { c.hp = hpFor(c); });
 
