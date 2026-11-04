@@ -123,11 +123,11 @@
 
   // ------------------------------------------------------------ stato
   let renderer, scene, camera, clock, root, overlay, titleEl, subEl, flashEl, ctrlEl, back, ground, ready = false, failed = false;
-  let running = false, speed = 1, skipping = false;
+  let running = false, speed = 1, skipping = false, actor = null;
   const tweens = [], parts = [], updaters = [];
   const faceCache = {}, texCache = {};
   let toonGrad;
-  let camBase, camLook, shakeT = 0, shakeAmp = 0;
+  let camBase, camLook, shakeT = 0, shakeAmp = 0, narrowK = 1;
 
   function available() {
     if (failed || !T) return false;
@@ -661,7 +661,7 @@
     renderer.domElement.style.width = w + 'px'; renderer.domElement.style.height = h + 'px';
     camera.aspect = w / h;
     // in verticale allontana la camera per far stare tutti nell'inquadratura
-    const narrow = Math.min(1, camera.aspect / 0.75); // 1 = abbastanza largo, meno = telefono in verticale
+    const narrow = narrowK = Math.min(1, camera.aspect / 0.75); // 1 = abbastanza largo, meno = telefono in verticale
     camera.fov = 44;
     camBase = new T.Vector3(0, 2.9, 5.8 + (1 - narrow) * 3.6);
     camLook = new T.Vector3(0.05, 1.0, -0.4);
@@ -687,6 +687,8 @@
       if (k >= 1) { q.obj.parent && q.obj.parent.remove(q.obj); parts.splice(i, 1); continue; }
       q.v.y -= (q.g || 0) * dt;
       q.obj.position.addScaledVector(q.v, dt);
+      // i rottami rimbalzano sul tatami invece di attraversarlo
+      if (q.floor !== undefined && q.obj.position.y < q.floor) { q.obj.position.y = q.floor; q.v.y *= -0.35; q.v.x *= 0.6; q.v.z *= 0.6; }
       if (q.spin) { q.obj.rotation.x += q.spin * dt; q.obj.rotation.y += q.spin * dt; }
       if (q.obj.material) q.obj.material.opacity = (q.o || 1) * (1 - k);
       if (q.grow) q.obj.scale.multiplyScalar(1 + q.grow * dt);
@@ -731,6 +733,31 @@
     elbows: { hy: -0.3, tz: -0.08, lsx: -1.35, ls: 0.25, le: 2.05, rsx: 1.35, rs: 0.25, re: 2.05, lh: 0.6, lk: -1.05, rh: -0.6, rk: -1.05 },
     frameWind: { hy: -0.08, tz: 0.1, hd: 0.05, ls: 0.5, le: 1.9, rs: 0.5, re: 1.9, lh: 0.3, lk: -0.35, rh: -0.3, rk: -0.3 },
     frame: { hy: -0.1, tz: -0.12, hd: 0.12, lsx: -0.25, ls: 1.25, le: 1.05, rsx: 0.25, rs: 1.6, re: 0.55, lh: 0.4, lk: -0.45, rh: -0.4, rk: -0.2 },
+    // combinazioni: diretto sinistro, gancio, montante, gomitata, ginocchiata, calci alti e bassi, spazzata, calcio volante
+    jab: { hy: -0.1, ty: 0.4, tz: -0.18, ls: 1.62, le: 0.02, rs: 0.4, re: 2.0, lh: 0.5, lk: -0.55, rh: -0.45, rk: -0.3 },
+    hookWind: { hy: -0.12, ty: 0.45, tz: -0.05, ls: 1.1, le: 1.2, rsx: 1.3, rs: -0.2, re: 1.5, lh: 0.45, lk: -0.6, rh: -0.4, rk: -0.4 },
+    hook: { hy: -0.14, ty: -0.85, tz: -0.2, ls: 0.9, le: 1.5, rsx: 1.5, rs: 0.6, re: 1.4, lh: 0.55, lk: -0.5, rh: -0.5, rk: -0.2 },
+    upperWind: { hy: -0.32, ty: 0.3, tz: -0.3, ls: 1.1, le: 1.5, rs: -0.2, re: 2.2, lh: 0.8, lk: -1.2, rh: -0.2, rk: -0.9 },
+    upper: { hy: -0.02, ty: -0.5, tz: 0.08, hd: 0.15, ls: 0.9, le: 1.6, rs: 1.2, re: 1.7, lh: 0.3, lk: -0.2, rh: -0.3, rk: -0.1 },
+    elbow: { hy: -0.14, ty: -0.9, tz: -0.25, ls: 0.8, le: 1.6, rsx: 1.5, rs: 1.2, re: 2.6, lh: 0.55, lk: -0.55, rh: -0.5, rk: -0.2 },
+    knee: { hy: 0.05, tz: 0.2, ls: 1.5, le: 1.2, rs: 1.5, re: 1.2, lh: 1.9, lk: -2.3, rh: -0.05, rk: -0.05 },
+    highKick: { hy: 0, hz: 0.15, ty: -0.3, tz: 0.55, ls: 0.3, le: 1.6, rs: -0.5, re: 0.8, lh: 2.4, lk: -0.05, rh: -0.1, rk: -0.1 },
+    lowKick: { hy: -0.15, tz: 0.2, ls: 1.1, le: 1.0, rs: 0.35, re: 1.9, lh: 0.9, lk: -0.1, rh: -0.2, rk: -0.4 },
+    sweep: { hy: -0.45, tz: -0.35, ls: 0.8, le: 0.5, rs: 0.4, re: 1.0, lh: 1.4, lk: -2.4, rh: 1.5, rk: -0.05 },
+    crouch: { hy: -0.35, tz: -0.35, ls: 0.7, le: 1.3, rs: 0.5, re: 1.5, lh: 1.2, lk: -1.9, rh: 0.4, rk: -1.6 },
+    flyKick: { hy: 0.05, ty: 0.2, tz: 0.45, ls: 0.6, le: 1.5, rs: -0.5, re: 0.9, lh: 1.65, lk: -0.05, rh: 0.5, rk: -2.0 },
+    tuck: { hy: 0, tz: -0.4, ls: 1.3, le: 1.9, rs: 1.3, re: 1.9, lh: 2.3, lk: -2.5, rh: 2.3, rk: -2.5 },
+    land: { hy: -0.42, tz: -0.5, hd: 0.3, ls: 1.0, le: 0.2, rs: -0.6, re: 0.4, lh: 1.6, lk: -2.2, rh: -0.2, rk: -1.9 },
+    // difese: guardia chiusa, parata laterale, schivata bassa, schivata all'indietro, deviazione col palmo
+    cover: { hy: -0.15, tz: 0.15, hd: -0.2, ls: 1.9, le: 1.6, rs: 1.9, re: 1.6, lh: 0.45, lk: -0.6, rh: -0.4, rk: -0.45 },
+    parry: { hy: -0.12, ty: 0.35, hd: -0.1, lsx: -0.7, ls: 1.5, le: 0.6, rs: 0.6, re: 1.9, lh: 0.5, lk: -0.6, rh: -0.4, rk: -0.4 },
+    duck: { hy: -0.38, tz: -0.6, hd: -0.2, ls: 1.6, le: 1.8, rs: 1.6, re: 1.8, lh: 1.0, lk: -1.6, rh: 0.1, rk: -1.2 },
+    sway: { hy: -0.25, hz: 0.55, tz: 0.35, hd: 0.2, lsx: -0.9, ls: 0.2, le: 0.4, rsx: 0.9, rs: 0.2, re: 0.4, lh: 1.0, lk: -1.5, rh: -0.5, rk: -1.0 },
+    deflect: { hy: -0.22, ty: 0.5, tz: -0.05, lsx: -0.3, ls: 1.7, le: 0.15, rs: 0.8, re: 1.7, lh: 0.7, lk: -0.9, rh: -0.6, rk: -0.5 },
+    // pose d'ingresso: saluto marziale, gru, ruggito
+    bow: { hy: -0.05, tz: -0.2, hd: -0.25, lsx: 0.35, ls: 1.3, le: 1.4, rsx: -0.35, rs: 1.3, re: 1.4, lh: 0.1, lk: -0.1, rh: -0.1, rk: -0.1 },
+    crane: { hy: 0.02, hd: 0.1, lsx: -1.2, ls: 0.4, le: 0.2, rsx: 1.2, rs: 0.4, re: 0.2, lh: 1.7, lk: -2.4, rh: 0, rk: -0.05 },
+    roar: { hy: -0.2, tz: 0.2, hd: 0.35, lsx: -0.6, ls: -0.2, le: 0.8, rsx: 0.6, rs: -0.2, re: 0.8, lh: 0.4, lk: -0.7, rh: -0.4, rk: -0.7 },
   };
   function pose(name) { return Object.assign({}, POSE0, P[name]); }
 
@@ -1010,9 +1037,10 @@
     if (J.sash) J.sash.rotation.z = Math.sin(ch.t * 2.3) * 0.12 - p.tz * 0.6;
   }
 
+  // l'ultima posa chiesta vince: una parata interrotta dal colpo non si "riprende" la guardia a metà
   function toPose(ch, name, dur, e) {
-    const from = Object.assign({}, ch.pose), to = typeof name === 'string' ? pose(name) : name;
-    return tween(dur, t => { for (const k in to) ch.pose[k] = lerp(from[k], to[k], t); }, e || ease.io);
+    const from = Object.assign({}, ch.pose), to = typeof name === 'string' ? pose(name) : name, id = ch.poseId = (ch.poseId || 0) + 1;
+    return tween(dur, t => { if (ch.poseId === id) for (const k in to) ch.pose[k] = lerp(from[k], to[k], t); }, e || ease.io);
   }
   function moveTo(ch, x, z, dur, e, hop) {
     const x0 = ch.g.position.x, z0 = ch.g.position.z;
@@ -1342,22 +1370,23 @@
     return texCache.spike;
   }
   const rv = k => new T.Vector3((Math.random() - 0.5) * k, (Math.random() - 0.3) * k, (Math.random() - 0.5) * k);
-  // k = 1 piena potenza (chi agisce), meno = aura leggera. Restituisce { stop() }.
-  function ki(ch, rank, k) {
+  // k = 1 piena potenza (chi agisce), meno = aura leggera. col: colore personale (ingressi), il grado resta nel cuore dell'aura.
+  // Restituisce { stop() }.
+  function ki(ch, rank, k, col) {
     const K = KI[rank] || KI.A;
     const full = k >= 1;
     const grp = new T.Group(); ch.g.add(grp);
     const shape = geo('ki', () => new T.LatheGeometry([[0.26, 0], [0.44, 0.25], [0.54, 0.7], [0.52, 1.2], [0.4, 1.65], [0.22, 2.0], [0.03, 2.3]].map(([r, y]) => new T.Vector2(r, y)), 24));
-    const shells = [[K.c, 1, 1, 0.35], [K.c2 || '#ffffff', 0.8, 0.65, -0.5]].map(([c, sc, op, spin], i) => {
+    const shells = [[col || K.c, 1, 1, 0.35], [col ? K.c2 || K.c : K.c2 || '#ffffff', 0.8, 0.65, -0.5]].map(([c, sc, op, spin], i) => {
       const map = flameTex(i + 1).clone(); map.needsUpdate = true; map.temp = true; // da liberare a fine scena
       const m = new T.Mesh(shape, addMat(c, { map, opacity: 0 }));
       m.scale.setScalar(sc * K.s); grp.add(m);
       return { m, op: op * K.o * k, sc: sc * K.s, spin };
     });
     let light = null, hair = null;
-    if (full) { light = new T.PointLight(K.c, 0, 3.4); light.position.y = 1.1; grp.add(light); }
+    if (full) { light = new T.PointLight(col || K.c, 0, 3.4); light.position.y = 1.1; grp.add(light); }
     if (full && K.hair) {
-      hair = new T.Sprite(new T.SpriteMaterial({ map: spikeTex(), color: K.c2 || K.c, transparent: true, blending: T.AdditiveBlending, depthWrite: false, opacity: 0 }));
+      hair = new T.Sprite(new T.SpriteMaterial({ map: spikeTex(), color: col || K.c2 || K.c, transparent: true, blending: T.AdditiveBlending, depthWrite: false, opacity: 0 }));
       hair.scale.set(0.95, 0.95, 1); hair.position.y = 0.32; hair.renderOrder = 1; ch.J.neck.add(hair);
     }
     let t = 0, on = 0, want = 1;
@@ -1371,7 +1400,7 @@
       if (light) light.intensity = 2.6 * on * (0.85 + Math.random() * 0.3);
       if (hair) { hair.material.opacity = 0.9 * on; hair.material.rotation = Math.sin(t * 22) * 0.04; }
       const p = ch.g.position;
-      if (on > 0.5 && K.sparks && Math.random() < K.sparks * k * dt * 5) rise(new T.Vector3(p.x, 0.15, p.z), K.c2 || K.c, 1, 0.45 * K.s);
+      if (on > 0.5 && K.sparks && Math.random() < K.sparks * k * dt * 5) rise(new T.Vector3(p.x, 0.15, p.z), col || K.c2 || K.c, 1, 0.45 * K.s);
       if (full && on > 0.6 && K.bolts && Math.random() < K.bolts * dt) { const c = chestPos(ch); lightning(c.clone().add(rv(0.6)), c.clone().add(rv(0.9)), K.c2 ? '#fff3b0' : '#ffffff', 0.12); }
       if (!want && on < 0.02) {
         updaters.splice(updaters.indexOf(u), 1);
@@ -1382,7 +1411,7 @@
     updaters.push(u);
     // accensione: onda d'urto a terra; Maestri e Leggende fanno tremare la scena
     if (full) {
-      ring(new T.Vector3(ch.g.position.x, 0.05, ch.g.position.z), K.c, 2.3 * K.s, 0.55, true);
+      ring(new T.Vector3(ch.g.position.x, 0.05, ch.g.position.z), col || K.c, 2.3 * K.s, 0.55, true);
       sfx('buff');
       if (rank === 'M' || rank === 'L' || rank === 'X') shake(rank === 'M' ? 0.07 : 0.12, 0.3);
       if (rank === 'L' || rank === 'X') screenFlash(K.c, 0.3);
@@ -1393,6 +1422,51 @@
   // suoni e vibrazione (audio.js), se presenti
   const sfx = (n, k) => { if (window.Sound) window.Sound.play(n, k); };
   const buzz = p => { if (window.Sound) window.Sound.buzz(p); };
+
+  // ------------------------------------------------------------ difese (più spettacolari con più DEF)
+  // 0: guardia chiusa, passo di lato · 1: parata laterale, schivata bassa · 2: parata, schivata all'indietro
+  // 3: deviazione col palmo con onda d'urto, salto mortale all'indietro con la scia
+  const defTier = d => { const v = d.def || 0; return v >= 85 ? 3 : v >= 65 ? 2 : v >= 45 ? 1 : 0; };
+  const fwd = ch => new T.Vector3(Math.cos(ch.facing), 0, -Math.sin(ch.facing));
+  const lhandPos = ch => { const v = new T.Vector3(); ch.J.lf.getWorldPosition(v); return v; };
+  async function block(ch, color) {
+    const tier = defTier(ch.d);
+    ch.idle = false;
+    await toPose(ch, ['cover', 'parry', 'parry', 'deflect'][tier], 0.07, ease.out);
+    const h = tier ? lhandPos(ch) : chestPos(ch).add(fwd(ch).multiplyScalar(0.25));
+    burst(h, tier >= 2 ? '#ffffff' : color || '#ffb347', 4 + tier * 3, 1.5 + tier * 0.5, 0.04);
+    if (tier >= 2) { sfx('shield'); ring(h, tier === 3 ? RANK_GLOW[ch.d.rank] || '#ffffff' : '#ffffff', 0.4 + tier * 0.25, 0.3); }
+    if (tier === 3) {
+      const p0 = ch.g.position.clone(), b = fwd(ch).multiplyScalar(-0.18);
+      ring(new T.Vector3(p0.x, 0.04, p0.z), '#ffffff', 1.3, 0.35, true);
+      await tween(0.16, t => { ch.g.position.copy(p0).addScaledVector(b, t); }, ease.out);
+    }
+  }
+  // colpo intermedio di una combinazione: il bersaglio para e torna in guardia
+  function parried(ch, color) {
+    sfx('hit', 6); buzz(8);
+    block(ch, color).then(() => toPose(ch, 'guard', 0.12)).then(() => { if (!ch.down) ch.idle = true; });
+  }
+  async function evade(ch) {
+    const tier = defTier(ch.d), p0 = ch.g.position.clone(), f = fwd(ch);
+    ch.idle = false;
+    if (tier === 0) await tween(0.35, (t, raw) => { ch.g.position.z = p0.z + Math.sin(raw * Math.PI) * 0.7; ch.g.position.y = Math.sin(raw * Math.PI) * 0.1; }, ease.lin);
+    else if (tier === 1) { await toPose(ch, 'duck', 0.08, ease.out); await wait(0.22); }
+    else if (tier === 2) {
+      await Promise.all([toPose(ch, 'sway', 0.1, ease.out), tween(0.4, (t, raw) => { const k = Math.sin(raw * Math.PI) * 0.3; ch.g.position.set(p0.x - f.x * k, 0, p0.z - f.z * k); }, ease.lin)]);
+    } else {
+      const col = RANK_GLOW[ch.d.rank] || HOLO, trail = () => burst(chestPos(ch), col, 1, 0.4, 0.06);
+      await toPose(ch, 'tuck', 0.08);
+      updaters.push(trail);
+      await tween(0.5, (t, raw) => { ch.pose.hz = Math.PI * 2 * t; ch.g.position.set(p0.x - f.x * 0.9 * t, Math.sin(raw * Math.PI) * 0.85, p0.z - f.z * 0.9 * t); }, ease.io);
+      updaters.splice(updaters.indexOf(trail), 1);
+      ch.pose.hz = 0; ch.g.position.y = 0;
+      ring(new T.Vector3(ch.g.position.x, 0.04, ch.g.position.z), col, 1.2, 0.35, true);
+      await toPose(ch, 'land', 0.07, ease.out);
+      await moveTo(ch, p0.x, p0.z, 0.25);
+    }
+    ch.g.position.copy(p0);
+  }
 
   // ------------------------------------------------------------ reazioni del bersaglio
   async function react(ch, out, color) {
@@ -1405,8 +1479,7 @@
     if (out.stun) setTimeout(() => sfx('stun'), 200);
     else if (out.confuse) setTimeout(() => sfx('confuse'), 200);
     if (out.dodge) {
-      const z0 = ch.g.position.z;
-      pr.push(tween(0.35, (t, raw) => { ch.g.position.z = z0 + Math.sin(raw * Math.PI) * 0.7; }, ease.lin));
+      pr.push(evade(ch));
       pr.push(numberPop(ch, 'SCHIVATA', '#8fe0b5', 0.3));
     }
     if (out.immune) {
@@ -1422,10 +1495,15 @@
       glitch(ch).then(() => flashChar(ch, '#ff5a3c'));
       padFlash(ch, '#ff3b30');
       const back = -0.35;
-      const x0 = ch.g.position.x, z0 = ch.g.position.z;
       const dx = Math.cos(ch.facing) * back, dz = -Math.sin(ch.facing) * back;
       ch.idle = false;
-      pr.push(toPose(ch, 'hit', 0.12, ease.out).then(() => tween(0.25, t => { ch.g.position.x = x0 + dx * Math.sin(t * Math.PI); ch.g.position.z = z0 + dz * Math.sin(t * Math.PI); })));
+      // chi subisce un attacco prova a pararlo: il colpo passa lo stesso, ma la guardia si vede
+      pr.push((async () => {
+        if (ch !== actor && !out.ko) await block(ch, color);
+        await toPose(ch, 'hit', 0.12, ease.out);
+        const q0 = ch.g.position.clone();
+        await tween(0.25, t => { ch.g.position.x = q0.x + dx * Math.sin(t * Math.PI); ch.g.position.z = q0.z + dz * Math.sin(t * Math.PI); });
+      })());
       pr.push(numberPop(ch, '−' + out.dmg, '#ff6a50'));
     }
     if (out.heal) { padFlash(ch, '#8fe0b5'); rise(new T.Vector3(ch.g.position.x, 0.2, ch.g.position.z), '#8fe0b5', 16, 0.5); pr.push(numberPop(ch, '+' + out.heal, '#8fe0b5')); }
@@ -1435,7 +1513,7 @@
     if (out.ko) {
       await wait(0.4);
       sfx('ko'); buzz([90, 50, 160]);
-      ch.idle = false;
+      ch.idle = false; ch.down = true;
       pop(headPos(ch).add(new T.Vector3(0, 0.5, 0)), textTex('K.O.', '#ff6a50'), 0.6, 1.2, 0.3);
       await toPose(ch, 'ko', 0.45, ease.in);
       padOff(ch);
@@ -1451,31 +1529,70 @@
   }
 
   // ------------------------------------------------------------ coreografie
-  async function melee(A, tg, kind, spec, M) {
-    const tp = tg.ch.g.position;
-    face(A, tp.x, tp.z);
-    const home = A.g.position.clone();
-    // si ferma davanti al bersaglio
-    const dir = new T.Vector3(tp.x - home.x, 0, tp.z - home.z); const dist = dir.length(); dir.normalize();
-    const stop = new T.Vector3().copy(home).addScaledVector(dir, dist - (kind === 'kick' || kind === 'spin' ? 1.05 : 0.85));
-    A.idle = false;
-    sfx('whoosh');
-    if (kind === 'charge') {
+  // colpi delle combinazioni: [posa di carica, posa del colpo, durata carica, durata colpo]
+  const STRIKE = {
+    jab: ['guard', 'jab', 0.06, 0.07], cross: ['punchWind', 'punch', 0.1, 0.08], hook: ['hookWind', 'hook', 0.12, 0.09],
+    upper: ['upperWind', 'upper', 0.12, 0.1], elbow: ['punchWind', 'elbow', 0.1, 0.08], knee: ['guard', 'knee', 0.08, 0.09],
+    kick: ['kickWind', 'kick', 0.14, 0.09], lowKick: ['guard', 'lowKick', 0.08, 0.09], highKick: ['kickWind', 'highKick', 0.14, 0.1],
+    palm: ['palmWind', 'palm', 0.14, 0.08],
+  };
+  // sequenze per tipo di attacco: l'ultimo colpo è quello che va a segno, i gradi alti ne concatenano di più
+  const COMBOS = {
+    punch: [['cross'], ['jab', 'cross'], ['jab', 'jab', 'cross'], ['jab', 'cross', 'hook'], ['cross', 'hook', 'upper'], ['jab', 'elbow', 'upper'], ['jab', 'cross', 'hook', 'upper']],
+    kick: [['kick'], ['jab', 'kick'], ['lowKick', 'highKick'], ['knee', 'kick'], ['flyKick'], ['jab', 'cross', 'highKick'], ['lowKick', 'jab', 'flyKick']],
+    palm: [['palm'], ['jab', 'palm'], ['elbow', 'palm'], ['knee', 'elbow', 'palm']],
+    spin: [['spin'], ['jab', 'spin'], ['lowKick', 'spin'], ['sweep', 'spin']],
+    charge: [['charge'], ['charge', 'knee'], ['charge', 'elbow', 'upper']],
+  };
+  const COMBO_LEN = { A: 2, I: 3, M: 3, L: 4, X: 4 };
+  const windOf = s => (STRIKE[s] ? STRIKE[s][0] : s === 'sweep' || s === 'flyKick' ? 'crouch' : 'kickWind');
+
+  async function strike(A, s, dir, stop, M) {
+    const f0 = A.facing;
+    if (s === 'charge') {
       await toPose(A, 'run1', 0.12);
       const run = moveTo(A, stop.x, stop.z, 0.42, ease.in);
       const legs = (async () => { for (let i = 0; i < 3; i++) { await toPose(A, 'run2', 0.07, ease.lin); await toPose(A, 'run1', 0.07, ease.lin); } })();
-      const trail = (dt) => burst(new T.Vector3(A.g.position.x, 0.4, A.g.position.z), M.c, 1, 0.8, 0.07);
+      const trail = () => burst(new T.Vector3(A.g.position.x, 0.4, A.g.position.z), M.c, 1, 0.8, 0.07);
       updaters.push(trail);
       await Promise.all([run, legs]);
       updaters.splice(updaters.indexOf(trail), 1);
       await toPose(A, 'shoulder', 0.08, ease.out);
+    } else if (s === 'spin' || s === 'sweep') {
+      await toPose(A, windOf(s), 0.1);
+      sfx('whoosh');
+      await Promise.all([tween(0.28, t => { A.g.rotation.y = f0 + t * Math.PI * 2; }, ease.in), toPose(A, s === 'spin' ? 'kick' : 'sweep', 0.28, ease.in)]);
+      A.g.rotation.y = f0;
+    } else if (s === 'flyKick') {
+      await toPose(A, 'crouch', 0.1);
+      sfx('whoosh');
+      const p0 = A.g.position.clone();
+      await Promise.all([toPose(A, 'flyKick', 0.16, ease.out), tween(0.3, t => { A.g.position.set(p0.x + dir.x * 0.3 * t, Math.sin(t * Math.PI * 0.6) * 0.55, p0.z + dir.z * 0.3 * t); }, ease.out)]);
     } else {
-      await Promise.all([moveTo(A, stop.x, stop.z, 0.32, ease.io, 0.18), toPose(A, kind === 'kick' || kind === 'spin' ? 'kickWind' : kind === 'palm' ? 'palmWind' : 'punchWind', 0.32)]);
-      if (kind === 'spin') {
-        const f0 = A.facing;
-        await Promise.all([tween(0.28, t => { A.g.rotation.y = f0 + t * Math.PI * 2; }, ease.in), toPose(A, 'kick', 0.28, ease.in)]);
-        A.g.rotation.y = f0;
-      } else await toPose(A, kind === 'kick' ? 'kick' : kind === 'palm' ? 'palm' : 'punch', 0.1, ease.out);
+      const [w, h, dw, dh] = STRIKE[s];
+      await toPose(A, w, dw);
+      sfx('whoosh');
+      if (s === 'upper') tween(0.25, (t, raw) => { A.g.position.y = Math.sin(raw * Math.PI) * 0.16; }, ease.lin);
+      await toPose(A, h, dh, ease.out);
+    }
+  }
+
+  async function melee(A, tg, kind, spec, M) {
+    const tp = tg.ch.g.position;
+    face(A, tp.x, tp.z);
+    const home = A.g.position.clone();
+    const opts = COMBOS[kind].filter(c => c.length <= (COMBO_LEN[auraOf(A.d)] || 2));
+    const combo = opts[Math.floor(Math.random() * opts.length)];
+    // si ferma davanti al bersaglio, un po' più lontano se ci sono calci
+    const legs = combo.some(s => /ick|spin|sweep/.test(s));
+    const dir = new T.Vector3(tp.x - home.x, 0, tp.z - home.z); const dist = dir.length(); dir.normalize();
+    const stop = new T.Vector3().copy(home).addScaledVector(dir, dist - (legs ? 1.05 : 0.85));
+    A.idle = false;
+    sfx('whoosh');
+    if (combo[0] !== 'charge') await Promise.all([moveTo(A, stop.x, stop.z, 0.32, ease.io, 0.18), toPose(A, windOf(combo[0]), 0.32)]);
+    for (let i = 0; i < combo.length; i++) {
+      await strike(A, combo[i], dir, stop, M);
+      if (i < combo.length - 1) { parried(tg.ch, M.c); burst(chestPos(tg.ch), M.c, 4, 1.6, 0.04); }
     }
     return { home };
   }
@@ -1626,6 +1743,246 @@
     return finish();
   }
 
+  // preparazione della scena: palestra, pulizia dei resti della scena precedente
+  function open(spec) {
+    overlay.hidden = false;
+    document.body.classList.add('arena-open');
+    ctrlEl.innerHTML = spec.controls || '';
+    flashEl.style.opacity = '0';
+    resize();
+    const sc = sceneTex(spec.terrain);
+    back.material.map = sc.bg; ground.material.map = sc.floor;
+    // i pavimenti chiari sotto le luci calde dell'arena sarebbero accecanti
+    ground.material.color.setScalar(sc.dim);
+    while (root.children.length) root.remove(root.children[0]);
+    tweens.length = 0; parts.length = 0; updaters.length = 0;
+    skipping = false;
+  }
+  // squadra in primo piano e squadra sullo sfondo
+  function rows(near, far) {
+    const row = (list, cx, z, deep) => list.forEach((c, i) => {
+      const n = list.length;
+      const s = n === 1 ? 0 : i / (n - 1) - 0.5;
+      c.g.position.set(cx + s * (z > 0 ? 1.3 : 1.6), 0, z + deep * Math.abs(s) * 0.6 + (n > 3 && i % 2 ? -deep * 0.35 : 0));
+    });
+    // in primo piano si sta più stretti: in due o tre restano dentro lo schermo del telefono
+    row(near, near.length > 1 ? -0.1 : -0.55, 1.3, -0.4);
+    row(far, far.length > 1 ? 0.45 : 0.55, -1.5, -1);
+  }
+
+  // ------------------------------------------------------------ ingressi in campo (stile wrestling)
+  // A inizio sfida ogni lottatore entra a modo suo, si mette in posa e accende l'aura:
+  // colore e simbolo personali, potenza secondo il grado (le Leggende scendono dal cielo in una colonna di luce).
+  const ENTRANCES = ['pyro', 'chair', 'table', 'glass', 'smoke', 'flip', 'drop'];
+  const POSES = ['flex', 'win', 'bow', 'crane', 'roar', 'point', 'power', 'meditate'];
+  const POSE_OF = { samuele: 'frame' };
+  const hash = s => { let h = 7; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return h; };
+
+  // sedia pieghevole e tavolo (col piano già diviso in due metà, per spaccarsi bene)
+  function prop(kind, x, z, rot) {
+    const g = new T.Group(), metal = toon('#9aa3ad'), dark = toon('#3a3f47'), wood = toon('#8a5a2b');
+    const box = (k, sx, sy, sz, m, px, py, pz, rz) => { const b = new T.Mesh(geo(k, () => new T.BoxGeometry(sx, sy, sz)), m); b.position.set(px, py, pz); b.rotation.z = rz || 0; b.castShadow = true; g.add(b); };
+    const legs = (k, h, lx, lz) => [[lx, lz], [lx, -lz], [-lx, lz], [-lx, -lz]].forEach(([a, b]) => box(k, 0.035, h, 0.035, metal, a, h / 2, b));
+    if (kind === 'chair') { box('chSeat', 0.42, 0.04, 0.42, dark, 0, 0.46, 0); box('chBack', 0.04, 0.42, 0.42, dark, -0.21, 0.72, 0, 0.12); legs('chLeg', 0.46, 0.18, 0.18); }
+    else { [1, -1].forEach(sd => box('tbTop', 0.55, 0.06, 0.6, wood, sd * 0.28, 0.62, 0)); legs('tbLeg', 0.6, 0.48, 0.24); }
+    g.position.set(x, 0, z); g.rotation.y = rot || 0; root.add(g);
+    return g;
+  }
+  // il prop va in pezzi: ogni parte vola via girando e rimbalza sul tatami
+  function smash(g, power) {
+    g.updateMatrixWorld(true);
+    const c = g.position.clone().setY(0.5);
+    [...g.children].forEach(m => {
+      const wp = new T.Vector3(), wq = new T.Quaternion();
+      m.getWorldPosition(wp); m.getWorldQuaternion(wq);
+      g.remove(m); root.add(m); m.position.copy(wp); m.quaternion.copy(wq);
+      m.material = m.material.clone(); m.material.transparent = true;
+      const v = wp.clone().sub(c).setY(0).normalize().multiplyScalar(1.5 + Math.random() * 2.5 * power);
+      v.y = 2 + Math.random() * 3 * power;
+      parts.push({ obj: m, v, life: 0, max: 1.5, g: 9, spin: 6 + Math.random() * 8, floor: 0.03 });
+    });
+    root.remove(g);
+    burst(c, '#d8c8a8', 16, 3, 0.05);
+  }
+  // getto di scintille verso l'alto (fuochi da palco)
+  function fountain(x, z, color, n, up) {
+    for (let i = 0; i < n; i++) {
+      const m = new T.Mesh(geo('oct', () => new T.OctahedronGeometry(1, 0)), new T.MeshBasicMaterial({ color: Math.random() < 0.3 ? '#ffffff' : color, transparent: true, blending: T.AdditiveBlending, depthWrite: false }));
+      m.scale.setScalar(0.03 + Math.random() * 0.05); m.position.set(x, 0.05, z); root.add(m);
+      parts.push({ obj: m, v: new T.Vector3((Math.random() - 0.5) * 0.8, up * (0.7 + Math.random() * 0.5), (Math.random() - 0.5) * 0.8), life: 0, max: 0.7 + Math.random() * 0.4, g: 5, spin: 6 });
+    }
+  }
+  function smoke(x, z, n) {
+    for (let i = 0; i < n; i++) {
+      const m = new T.Mesh(geo('puff', () => new T.SphereGeometry(1, 10, 8)), new T.MeshBasicMaterial({ color: '#9a948c', transparent: true, depthWrite: false }));
+      m.scale.setScalar(0.2 + Math.random() * 0.25);
+      m.position.set(x + (Math.random() - 0.5) * 1.2, 0.1 + Math.random() * 0.8, z + (Math.random() - 0.5) * 0.8); root.add(m);
+      parts.push({ obj: m, v: new T.Vector3((Math.random() - 0.5) * 0.6, 0.3 + Math.random() * 0.4, (Math.random() - 0.5) * 0.4), life: 0, max: 1.1 + Math.random() * 0.5, o: 0.4, grow: 0.3 });
+    }
+  }
+  // schegge di vetro che volano verso il pubblico
+  function shards(pos, n) {
+    for (let i = 0; i < n; i++) {
+      const m = new T.Mesh(geo('shard', () => new T.TetrahedronGeometry(1, 0)), new T.MeshBasicMaterial({ color: '#d8f4ff', transparent: true, blending: T.AdditiveBlending, depthWrite: false }));
+      m.scale.set(0.04 + Math.random() * 0.08, 0.02 + Math.random() * 0.03, 0.04 + Math.random() * 0.08); m.position.copy(pos); root.add(m);
+      parts.push({ obj: m, v: rv(7).add(new T.Vector3(0, 1.5, 2.5)), life: 0, max: 1.2, g: 7, spin: 10, floor: 0.02 });
+    }
+  }
+  function spotlight(x, z, color, dur) {
+    const cone = new T.Mesh(geo('spot', () => new T.CylinderGeometry(0.06, 0.75, 6, 24, 1, true)), addMat(color, { map: holoTex(), opacity: 0 }));
+    const pool = new T.Mesh(geo('pool', () => new T.CircleGeometry(0.75, 32)), addMat(color, { opacity: 0 }));
+    cone.position.set(x, 3, z); pool.rotation.x = -Math.PI / 2; pool.position.set(x, 0.02, z); root.add(cone, pool);
+    return tween(dur, (t, raw) => { const k = Math.min(1, raw * 6, (1 - raw) * 4); cone.material.opacity = 0.22 * k; pool.material.opacity = 0.3 * k; }, ease.lin)
+      .then(() => { root.remove(cone, pool); cone.material.dispose(); pool.material.dispose(); });
+  }
+  // colonna di luce fino al cielo (Leggende e Ascesa)
+  function pillar(p, col) {
+    const b = new T.Mesh(geo('beam', () => new T.CylinderGeometry(0.36, 0.44, 2.3, 24, 1, true)), addMat(col, { map: holoTex(), opacity: 0 }));
+    b.position.set(p.x, 4.6, p.z); b.scale.set(1.3, 4, 1.3); root.add(b);
+    tween(1.2, (t, raw) => { b.material.opacity = 0.42 * Math.sin(raw * Math.PI); b.scale.x = b.scale.z = 1.3 + raw * 0.6; }, ease.lin).then(() => { root.remove(b); b.material.dispose(); });
+  }
+  // sassi che si staccano dal tatami e salgono, sollevati dall'energia
+  function debris(p, n) {
+    for (let i = 0; i < n; i++) {
+      const m = new T.Mesh(geo('rock', () => new T.DodecahedronGeometry(1, 0)), new T.MeshLambertMaterial({ color: '#6b5a48', transparent: true }));
+      const a = Math.random() * Math.PI * 2, r = 0.6 + Math.random() * 0.9;
+      m.scale.setScalar(0.03 + Math.random() * 0.06); m.position.set(p.x + Math.cos(a) * r, 0.03, p.z + Math.sin(a) * r * 0.6); root.add(m);
+      parts.push({ obj: m, v: new T.Vector3(0, 0.5 + Math.random() * 0.9, 0), life: 0, max: 1.6, spin: 1.5 });
+    }
+  }
+  async function runTo(ch, x, z, dur) {
+    face(ch, x, z);
+    let on = true;
+    const legs = (async () => { while (on) { await toPose(ch, 'run2', 0.09, ease.lin); if (on) await toPose(ch, 'run1', 0.09, ease.lin); } })();
+    await moveTo(ch, x, z, dur, ease.lin);
+    on = false; await legs;
+  }
+  // atterraggio pesante: onde a terra, polvere, scossa
+  function landing(p, col, k) {
+    sfx(k > 1 ? 'bighit' : 'hit', 30); buzz(k > 1 ? [60, 30, 90] : 30); shake(0.08 * k, 0.3);
+    [1.4, 2.6].forEach((s, i) => ring(new T.Vector3(p.x, 0.04, p.z), i ? '#ffffff' : col, s * k, 0.5, true));
+    burst(new T.Vector3(p.x, 0.15, p.z), '#b8a88d', 12 * k, 3, 0.06);
+  }
+
+  async function enter(ch, how, col) {
+    const p = ch.g.position.clone(), f = ch.facing, side = p.x < 0 ? -1 : 1;
+    const from = new T.Vector3(p.x + side * 4.5, 0, p.z + 0.4);
+    ch.g.visible = true; ch.idle = false;
+    if (how === 'drop' || how === 'table') {
+      // discesa dal cielo con capriole; il tavolo sotto si spezza in due
+      const tb = how === 'table' ? prop('table', p.x, p.z, f) : null;
+      ch.pose = pose('tuck'); ch.poseId = (ch.poseId || 0) + 1; ch.apply();
+      ch.g.position.set(p.x, 7, p.z);
+      sfx('whoosh');
+      const trail = () => burst(chestPos(ch), col, 1, 0.5, 0.07);
+      updaters.push(trail);
+      await tween(0.55, t => { ch.g.position.y = 7 * (1 - t); ch.pose.hz = -t * Math.PI * 4; }, ease.in);
+      updaters.splice(updaters.indexOf(trail), 1);
+      ch.pose.hz = 0; ch.g.position.y = 0;
+      if (tb) { smash(tb, 1.4); sfx('crash'); }
+      landing(p, col, 2);
+      await toPose(ch, 'land', 0.06, ease.out);
+      await wait(0.35);
+    } else if (how === 'chair') {
+      // corre, salta sulla sedia e la sfonda
+      const c = prop('chair', p.x, p.z, f + Math.PI / 2);
+      ch.g.position.copy(from); await runTo(ch, p.x + side * 1.1, p.z, 0.5);
+      await toPose(ch, 'crouch', 0.08);
+      sfx('whoosh');
+      await Promise.all([toPose(ch, 'stomp', 0.25), moveTo(ch, p.x, p.z, 0.4, ease.out, 0.95)]);
+      smash(c, 1); sfx('crash');
+      landing(p, col, 1.5);
+      await toPose(ch, 'land', 0.06, ease.out);
+      await wait(0.2);
+    } else if (how === 'flip') {
+      ch.g.position.copy(from); await runTo(ch, p.x + side * 1.4, p.z, 0.45);
+      await toPose(ch, 'tuck', 0.08);
+      const s0 = ch.g.position.clone();
+      await tween(0.5, (t, raw) => { ch.g.position.set(lerp(s0.x, p.x, t), Math.sin(raw * Math.PI) * 1.1, lerp(s0.z, p.z, t)); ch.pose.hz = -t * Math.PI * 2; }, ease.io);
+      ch.pose.hz = 0; ch.g.position.y = 0;
+      landing(p, col, 1);
+      await toPose(ch, 'land', 0.06, ease.out);
+      await wait(0.15);
+    } else if (how === 'smoke') {
+      // nuvola di fumo sotto l'occhio di bue, ne esce camminando
+      smoke(p.x, p.z, 26); sfx('pyro'); spotlight(p.x, p.z, '#fff4dc', 2);
+      ch.g.visible = false;
+      await wait(0.35);
+      ch.g.visible = true; ch.g.position.set(p.x, 0, p.z - 0.7);
+      await runTo(ch, p.x, p.z, 0.55);
+    } else {
+      // corsa dal lato: tra due colonne di fuochi, o sfondando una vetrata
+      if (how === 'glass') { screenFlash('#ffffff', 0.9); sfx('glass'); buzz(40); shards(new T.Vector3(from.x * 0.5 + p.x * 0.5, 1.4, p.z - 0.4), 40); }
+      if (how === 'pyro') {
+        sfx('pyro');
+        (async () => { for (let k = 0; k < 8; k++) { fountain(p.x - 0.8, p.z - 0.3, col, 8, 5); fountain(p.x + 0.8, p.z - 0.3, col, 8, 5); if (k === 4) sfx('pyro'); await wait(0.09); } })();
+      }
+      ch.g.position.copy(from); await runTo(ch, p.x, p.z, 0.6);
+    }
+    ch.g.position.copy(p); ch.g.rotation.y = ch.facing = f;
+  }
+
+  // la posa: l'aura si accende con il colore e il simbolo del personaggio, più grande e rumorosa con il grado
+  async function posa(ch, col) {
+    const d = ch.d, r = auraOf(d), lv = KI_UP.indexOf(r), K = KI[r], p = ch.g.position;
+    await toPose(ch, POSE_OF[d.card] || POSES[(hash(d.card) >>> 3) % POSES.length], 0.28, ease.back);
+    ch.ki = ki(ch, r, 1, col);
+    for (let i = 0; i <= lv; i++) ring(new T.Vector3(p.x, 0.04, p.z), i % 2 ? K.c : col, 1.5 + i * 0.9, 0.5 + i * 0.12, true);
+    if (d.sig) for (let i = 0; i < 3 + lv * 2; i++) {
+      const a = Math.random() * Math.PI * 2, rr = 0.45 + Math.random() * 0.35;
+      pop(new T.Vector3(p.x + Math.cos(a) * rr, 0.2 + Math.random() * 1.4, p.z + Math.sin(a) * rr), emojiTex(d.sig), 0.2 + lv * 0.04, 1.1, 0.9);
+    }
+    if (lv >= 2) (async () => { for (let k = 0; k < lv * 2; k++) { lightning(new T.Vector3(p.x + (Math.random() - 0.5) * 1.4, 4.5, p.z + (Math.random() - 0.5)), new T.Vector3(p.x + (Math.random() - 0.5) * 0.8, 0.05, p.z + (Math.random() - 0.5) * 0.6), k % 2 ? '#ffffff' : col, 0.3); await wait(0.06); } })();
+    if (lv >= 3) { pillar(p, col); debris(p, 10 + lv * 4); screenFlash(col, 0.35); }
+    shake(0.03 + lv * 0.04, 0.3 + lv * 0.1);
+    await wait(0.75 + lv * 0.1);
+  }
+
+  async function introScene(spec) {
+    open(spec);
+    speed = spec.speed || 1;
+    subEl.textContent = ''; titleEl.textContent = '';
+    const v = spec.viewer >= 0 ? spec.viewer : 0;
+    const all = spec.fighters.map(d => { const ch = fighter(d); equip(ch, d.weapon); ch.g.visible = false; root.add(ch.g); return ch; });
+    const near = all.filter(c => c.d.owner === v), far = all.filter(c => c.d.owner !== v);
+    rows(near, far);
+    const mid = list => list.reduce((a, c) => a.add(c.g.position), new T.Vector3()).multiplyScalar(1 / Math.max(1, list.length));
+    // in guardia verso gli avversari, di tre quarti verso il pubblico
+    const turn = (c, dur) => { const m = mid(near.includes(c) ? far : near); return stage(c, m.x, m.z, near.includes(c) ? 0.6 : 0.3, dur); };
+    all.forEach(c => turn(c));
+    all.forEach((c, i) => cardPad(c, 0.62, i * 0.003));
+    updaters.push(dt => all.forEach(c => { c.t += dt; c.apply(); }));
+    running = true; clock.getDelta(); loop();
+    const cam0 = camBase.clone(), look0 = camLook.clone();
+    const slam = () => { overlay.classList.remove('show'); void overlay.offsetWidth; overlay.classList.add('show'); };
+    // gli sfidanti entrano per primi, la squadra di chi tiene il telefono per ultima
+    let prev = null;
+    for (const ch of far.concat(near)) {
+      const d = ch.d, p = ch.g.position, col = (LOOK[d.card] || [0, '#e8631c'])[1], r = auraOf(d);
+      // chi ha già fatto il suo ingresso resta acceso, ma piano
+      if (prev) { prev.ki.stop(); prev.ki = ki(prev, auraOf(prev.d), 0.35, (LOOK[prev.d.card] || [0, null])[1]); }
+      const dist = 3 + (1 - narrowK) * 1.6;
+      await camTo(new T.Vector3(p.x * 0.7, 1.55, p.z + dist), new T.Vector3(p.x, 1.05, p.z), 0.35);
+      subEl.textContent = d.title || ''; titleEl.textContent = d.name; slam();
+      await enter(ch, r === 'L' || r === 'X' ? 'drop' : ENTRANCES[hash(d.card) % ENTRANCES.length], col);
+      padFlash(ch, col);
+      stage(ch, camBase.x, camBase.z, 0, 0.15); // la posa si fa guardando il pubblico
+      await posa(ch, col);
+      prev = ch;
+    }
+    subEl.textContent = ''; titleEl.textContent = 'COMBATTETE!'; slam();
+    sfx('event');
+    all.forEach(c => { toPose(c, 'guard', 0.4); turn(c, 0.4); });
+    await camTo(cam0, look0, 0.6);
+    screenFlash('#ffffff', 0.5);
+    await wait(0.8);
+  }
+  async function intro(spec) {
+    if (!init()) return;
+    try { await introScene(spec); } catch (e) { console.error(e); }
+    return finish();
+  }
+
   // se una scena va storta si chiude comunque, e l'errore resta visibile in console
   async function play(spec) {
     try { return await playScene(spec); } catch (e) { console.error(e); return finish(); }
@@ -1638,24 +1995,12 @@
     // con un'arma in mano l'attacco base è un affondo o un fendente girato
     if (kind === 'basic') kind = spec.attacker.weapon ? ['punch', 'spin', 'punch'][Math.floor(Math.random() * 3)] : ['punch', 'kick', 'palm', 'punch', 'spin'][Math.floor(Math.random() * 5)];
 
-    // preparazione della scena
-    overlay.hidden = false;
-    document.body.classList.add('arena-open');
+    open(spec);
     subEl.textContent = spec.attacker.name;
-    ctrlEl.innerHTML = spec.controls || '';
     titleEl.textContent = spec.label || spec.move;
-    flashEl.style.opacity = '0';
-    resize();
-    const sc = sceneTex(spec.terrain);
-    back.material.map = sc.bg; ground.material.map = sc.floor;
-    // i pavimenti chiari sotto le luci calde dell'arena sarebbero accecanti
-    ground.material.color.setScalar(sc.dim);
-    while (root.children.length) root.remove(root.children[0]);
-    tweens.length = 0; parts.length = 0; updaters.length = 0;
-    skipping = false;
     speed = (spec.speed || 1) * (spec.finisher ? 0.6 : 1); // colpo finale: tutto al rallentatore
 
-    const A = fighter(spec.attacker);
+    const A = actor = fighter(spec.attacker);
     equip(A, spec.attacker.weapon);
     root.add(A.g);
     // tecnica di coppia e fusione: in scena c'è anche il compagno
@@ -1679,14 +2024,7 @@
       const others = (far.length ? far : near).filter(c => c !== A);
       near.length = 0; far.length = 0; near.push(A); far.push(...others);
     }
-    const row = (list, cx, z, deep) => list.forEach((c, i) => {
-      const n = list.length;
-      const s = n === 1 ? 0 : i / (n - 1) - 0.5;
-      c.g.position.set(cx + s * (z > 0 ? 1.3 : 1.6), 0, z + deep * Math.abs(s) * 0.6 + (n > 3 && i % 2 ? -deep * 0.35 : 0));
-    });
-    // in primo piano si sta più stretti: in due o tre restano dentro lo schermo del telefono
-    row(near, near.length > 1 ? -0.1 : -0.55, 1.3, -0.4);
-    row(far, far.length > 1 ? 0.45 : 0.55, -1.5, -1);
+    rows(near, far);
     if (B) { const z = A.g.position.z; A.g.position.set(-0.55, 0, z); B.g.position.set(0.55, 0, z); }
     if (spec.fusion) { A.g.position.set(-1.45, 0, 0.55); B.g.position.set(1.45, 0, 0.55); }
     const focus = tgs.length ? tgs.map(t => t.ch.g.position).reduce((a, b) => a.clone().add(b)).multiplyScalar(1 / tgs.length) : new T.Vector3(1, 0, -1);
@@ -1739,7 +2077,12 @@
       if (M.fx === 'steam') rise(new T.Vector3(main.ch.g.position.x, 0.3, main.ch.g.position.z), M.c, 20, 0.5);
       if (M.fx === 'fire' || kind === 'charge') burst(hitPos, '#ff5a1f', 20, 4, 0.08);
       ring(hitPos, M.c, 1.2, 0.35);
-      await Promise.all([impactAll(), (async () => { await wait(0.12); await Promise.all([toPose(A, 'guard', 0.3), moveTo(A, home.x, home.z, 0.35, ease.io, 0.15)]); await stage(A, focus.x, focus.z, 0.6, 0.2); A.idle = true; })()]);
+      await Promise.all([impactAll(), (async () => {
+        await wait(0.12);
+        // dopo un calcio volante o un montante si torna giù prima di rientrare
+        const y0 = A.g.position.y;
+        if (y0 > 0.01) await tween(0.14, t => { A.g.position.y = y0 * (1 - t); }, ease.in);
+        await Promise.all([toPose(A, 'guard', 0.3), moveTo(A, home.x, home.z, 0.35, ease.io, 0.15)]); await stage(A, focus.x, focus.z, 0.6, 0.2); A.idle = true; })()]);
     } else if (['cast', 'point', 'shout', 'throw', 'summon', 'dance'].includes(kind) && tgs.length) {
       A.idle = false;
       const wind = { cast: 'castWind', point: 'guard', shout: 'shoutWind', throw: 'throwWind', summon: 'castWind', dance: 'flex' }[kind];
@@ -1888,6 +2231,6 @@
   // scarica in anticipo le immagini delle carte della partita
   function preload(cards) { if (T) cards.forEach(cardTex); }
 
-  window.Arena3D = { available, play, skip, setSpeed, preload, terrainArt, MOVES, LOOK, FACE };
+  window.Arena3D = { available, play, intro, skip, setSpeed, preload, terrainArt, MOVES, LOOK, FACE };
   if (location.hash === '#test') window.Arena3D.lineup = lineup;
 })();

@@ -5,6 +5,16 @@
  */
 window.NOVITA = [
   {
+    data: '2026-11-04',
+    titolo: 'Ingressi in campo e combo',
+    testo: [
+      'A inizio sfida ogni lottatore fa il suo ingresso: fuochi d\'artificio, sedie e tavoli spaccati, vetri in frantumi, fumo, capriole. Le Leggende scendono dal cielo in una colonna di luce.',
+      'Arrivato in campo si mette in posa e accende la sua aura: colore e simbolo personali, sempre più potente salendo di grado. Tocca lo schermo per saltare.',
+      'Attacchi in combinazione: diretti, ganci, montanti, gomitate, ginocchiate, calci alti e bassi, spazzate e calci volanti. Maestri e Leggende concatenano più colpi.',
+      'Chi viene attaccato si difende: guardia, parate laterali, schivate basse e all\'indietro. Più DEF ha, più la difesa è spettacolare (fino al salto mortale).',
+    ],
+  },
+  {
     data: '2026-11-02',
     titolo: 'Sei nuove carte',
     testo: [

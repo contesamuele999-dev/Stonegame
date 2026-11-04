@@ -110,6 +110,10 @@
     magic(t) { for (let i = 0; i < 6; i++) tone('sine', noteF(587.33, Math.floor(Math.random() * 8)), null, t + i * 0.05, 0.3, 0.07); },
     heal(t) { [0, 2, 4].forEach((n, i) => tone('sine', noteF(440, n + 5), null, t + i * 0.09, 0.4, 0.12)); },
     event(t) { FX.ko(t); for (let i = 0; i < 8; i++) taiko(t + 0.3 + i * 0.08, 0.25 + i * 0.05); },
+    // ingressi in campo: vetro che va in frantumi, sedia di metallo che si spacca, fuochi d'artificio
+    glass(t) { noise(t, 0.5, 0.7, 'highpass', 3000, 7000, 1); for (let i = 0; i < 9; i++) tone('sine', 2500 + Math.random() * 3500, null, t + Math.random() * 0.4, 0.15, 0.06); },
+    crash(t) { tone('square', 420, 140, t, 0.18, 0.25); tone('triangle', 900, 610, t, 0.3, 0.12); noise(t, 0.3, 0.7, 'bandpass', 2500, 800, 1.5); },
+    pyro(t) { noise(t, 0.6, 0.6, 'lowpass', 600, 120, 0.7); tone('sine', 70, 35, t, 0.5, 0.7); },
     win(t) { [0, 2, 4, 5, 7, 9].forEach((n, i) => pluck(noteF(293.66, n + 5), t + i * 0.12, 0.45)); taiko(t, 0.8); taiko(t + 0.72, 0.9); },
     lose(t) { [7, 5, 3, 0].forEach((n, i) => pluck(noteF(146.83, n + 5), t + i * 0.22, 0.4)); },
     // modalità storia

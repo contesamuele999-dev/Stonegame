@@ -1332,7 +1332,7 @@
     const opt = S.actorOptions(g, u).find(o => o.i === a.move);
     const m = opt ? opt.move : S.BASIC;
     const exec = (m.target === 'copy' || m.target === 'bottle') ? S.refMove(a.pick || g.lastSpecial) : m;
-    const info = uid => { const f = S.byUid(g, uid); return { uid, card: f.card, fusion: f.fusion || null, name: f.name, rank: f.rank, ev: f.ev || 0, owner: f.owner, weapon: f.weapon || null, variant: f.owner === mySide() ? variantOf(f.card) : '' }; };
+    const info = uid => { const f = S.byUid(g, uid); return { uid, card: f.card, fusion: f.fusion || null, name: f.name, rank: f.rank, ev: f.ev || 0, owner: f.owner, weapon: f.weapon || null, variant: f.owner === mySide() ? variantOf(f.card) : '', def: S.effDef(g, f) }; };
     const partner = opt && opt.partner ? info(opt.partner) : m.fuse ? info(a.target) : null;
     let tg = [];
     if (m.fuse) tg = [];
@@ -1342,6 +1342,19 @@
     else if (exec.target === 'none' && exec.offensive) tg = S.field(g).map(f => f.uid).filter(x => x !== u.uid);
     if (partner) tg = tg.filter(x => x !== partner.uid);
     return { actor: info(u.uid), partner, fuse: !!m.fuse, move: exec.name, label: exec !== m ? `${m.name} → ${exec.name}` : m.name, targets: tg.map(info), info, formula: a.formula ? (exec.voice ? SHOUT_TXT[voiceWord(g, a)] || voiceWord(g, a) : typeof exec.formula === 'string' ? exec.formula : null) : null };
+  }
+
+  // ingressi in campo a inizio sfida (stile wrestling): ognuno entra, si mette in posa e accende l'aura
+  async function entrances() {
+    const g = A.game;
+    if (!use3D() || !Arena3D.intro) return;
+    const busy = A.busy;
+    A.busy = true; render();
+    const sig = f => { const m = S.movesOf(f).find(x => !x.passive); return m && Arena3D.MOVES[m.name] ? Arena3D.MOVES[m.name].e || null : null; };
+    const fighters = S.field(g).map(f => ({ card: f.card, name: f.name, rank: f.rank, ev: f.ev || 0, owner: f.owner, weapon: f.weapon || null,
+      variant: f.owner === mySide() ? variantOf(f.card) : '', sig: sig(f), title: S.RANKS[f.rank] + (f.ev ? ' · ' + S.EVO[f.ev].name : '') }));
+    try { await Arena3D.intro({ fighters, viewer: A.view, terrain: g.terrain, speed: speedK(), controls: speedHtml() }); } catch (e) { /* si gioca anche senza */ }
+    A.busy = busy; render();
   }
 
   function buildSpec(d, evs) {
@@ -2397,7 +2410,7 @@
         break;
       case 'card': e.stopPropagation(); cardSheet(v); break;
       case 'close': closeLayer(); if (A.screen === 'battle' && A.mode === 'tutorial') render(); break;
-      case 'begin': closeLayer(); if (A.mode === 'replay') runReplay(); else if (g.players[g.turn].cpu) runCPU(); else if (A.mode === 'online') processRemote(); break;
+      case 'begin': closeLayer(); entrances().then(() => { if (A.game !== g) return; if (A.mode === 'replay') runReplay(); else if (g.players[g.turn].cpu) runCPU(); else if (A.mode === 'online') processRemote(); }); break;
       case 'share-replay': shareReplay(); break;
       case 'watch-replay': startReplay({ r: S.RULES, setup: A.setup, log: A.log.slice() }); break;
       case 'replay-again': closeLayer(); startReplay(A.replay.data); break;
